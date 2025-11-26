@@ -1,0 +1,88 @@
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Pagination\Paginator;
+ use Laravel\Socialite\Facades\Socialite;
+use Cache;
+use App\Models\Category;
+use App\Models\Banner;
+use App\Models\Product;
+
+use Illuminate\Support\Facades\View;
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        $loader = \Illuminate\Foundation\AliasLoader::getInstance();
+        $loader->alias('Debugbar', \Barryvdh\Debugbar\Facades\Debugbar::class);
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+       
+        // Dynamically override Google Socialite config no need service.php entry
+        config([
+            'services.google.client_id' => setting('GOOGLE_CLIENT_ID'),
+            'services.google.client_secret' => setting('GOOGLE_CLIENT_SECRET'),
+            'services.google.redirect' => url('/auth/google/callback'),
+        ]);
+
+        Gate::before(function ($user, $ability) {
+            return $user->hasRole('super-admin') ? true : null;
+        });
+        
+        Paginator::useBootstrap();
+
+
+        $categories = Cache::rememberForever('categories', function () {
+            return Category::with('allChildren') // recursive eager load
+                ->whereNull('parent_id')
+                ->where('status', true)
+                ->get();
+        });
+        View::share('categories', $categories);
+
+
+   
+        $banners = Cache::rememberForever('banners', function () {
+            return Banner::where('status', true)->where('type', 'banner')->get();
+        });
+
+        View::share('banners', $banners);
+
+
+        $products = Cache::rememberForever('products', function () {
+                return  Product::with([
+                'category',
+                'user',
+                'coupons',
+                'reviews',
+                'variants.variantAttributeValues.attribute',
+                'variants.variantAttributeValues.attributeValue'
+            ])->where('status', true)->get();
+        });
+
+        View::share('products', $products);
+
+
+
+        $ads = Cache::rememberForever('ads', function () {
+            return Banner::where('status', true)->where('type', 'ads')->get();
+        });
+        View::share('ads', $ads);
+
+        $popup = Cache::rememberForever('popup', function () {
+            return Banner::where('status', true)->where('type', 'popup')->get();
+        });
+        View::share('popup', $popup);
+    }
+}

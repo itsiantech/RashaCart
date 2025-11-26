@@ -1,0 +1,74 @@
+resources/views/admin/
+├── layouts/
+│   ├── app.blade.php          <!-- মূল লেআউট ফাইল, Header/Footer/Sidebar ইত্যাদি -->
+│   ├── header.blade.php
+│   ├── sidebar.blade.php
+│   └── footer.blade.php
+│
+├── components/               <!-- ছোট ছোট reusable UI components -->
+│   ├── alert.blade.php       <!-- Success/Error message alerts -->
+│   ├── pagination.blade.php
+│   ├── modal.blade.php
+│   └── button.blade.php
+│
+├── auth/                     <!-- Admin login, forgot password ইত্যাদি -->
+│   ├── login.blade.php
+│   └── reset-password.blade.php
+│
+├── dashboard/                <!-- Admin ড্যাশবোর্ডের ভিউ -->
+│   └── index.blade.php
+│
+├── categories/               <!-- ক্যাটাগরি সম্পর্কিত পেজ -->
+│   ├── index.blade.php       <!-- লিস্টিং -->
+│   ├── create.blade.php
+│   └── edit.blade.php
+│
+├── subcategories/            <!-- সাবক্যাটাগরি সম্পর্কিত পেজ -->
+│   ├── index.blade.php
+│   ├── create.blade.php
+│   └── edit.blade.php
+│
+├── attributes/               <!-- প্রডাক্ট অ্যাট্রিবিউট ও ভ্যালু -->
+│   ├── index.blade.php       <!-- অ্যাট্রিবিউট লিস্ট -->
+│   ├── create.blade.php
+│   ├── edit.blade.php
+│   ├── values/               <!-- অ্যাট্রিবিউট ভ্যালু সম্পর্কিত পেজ -->
+│   │   ├── index.blade.php
+│   │   ├── create.blade.php
+│   │   └── edit.blade.php
+│
+├── products/                 <!-- প্রডাক্ট ম্যানেজমেন্ট -->
+│   ├── index.blade.php       <!-- প্রডাক্ট লিস্টিং -->
+│   ├── create.blade.php
+│   ├── edit.blade.php
+│   └── variants/             <!-- প্রডাক্ট ভেরিয়েন্টস -->
+│       ├── index.blade.php
+│       ├── create.blade.php
+│       └── edit.blade.php
+│
+├── orders/                   <!-- অর্ডার ম্যানেজমেন্ট -->
+│   ├── index.blade.php
+│   ├── show.blade.php        <!-- অর্ডার বিস্তারিত -->
+│   └── invoices/             <!-- চালান/ইনভয়েস -->
+│       └── invoice.blade.php
+│
+├── coupons/                  <!-- কুপন ম্যানেজমেন্ট -->
+│   ├── index.blade.php
+│   ├── create.blade.php
+│   └── edit.blade.php
+│
+├── banners/                  <!-- ব্যানার ম্যানেজমেন্ট -->
+│   ├── index.blade.php
+│   ├── create.blade.php
+│   └── edit.blade.php
+│
+├── users/                    <!-- ইউজার/ভেন্ডর ম্যানেজমেন্ট -->
+│   ├── index.blade.php
+│   ├── create.blade.php
+│   └── edit.blade.php
+│
+└── settings/                 <!-- সাইট সেটিংস -->
+    ├── general.blade.php
+    ├── payment.blade.php
+    └── shipping.blade.php
+
