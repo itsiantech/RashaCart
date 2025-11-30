@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
         $user = User::factory()->create([
             'name' => 'Super Admin',
             'email' => 'superadmin@gmail.com',
+            'phone' => '01742201187',
             'password' => bcrypt('password')
         ]);
         
@@ -32,30 +33,7 @@ class DatabaseSeeder extends Seeder
         $permissions = Permission::all();  
         $role->givePermissionTo($permissions);
 
-
-        $user = User::factory()->create([
-            'name' => 'rider',
-            'email' => 'rider@gmail.com',
-            'password' => bcrypt('password')
-        ]);
-
-        $role = Role::where('name', 'rider')->first(); 
-        $user->assignRole($role);
-        $permissions = Permission::where('group_name', 'rider')->get();  
-        $role->givePermissionTo($permissions);
-
-
-        $user = User::factory()->create([
-            'name' => 'user',
-            'email' => 'user@gmail.com',
-            'password' => bcrypt('password')
-        ]);
-
-        $role = Role::where('name', 'user')->first(); 
-        $user->assignRole($role);
-        $permissions = Permission::where('group_name', 'user')->get();  
-        $role->givePermissionTo($permissions);
-
+    
 
 
     }

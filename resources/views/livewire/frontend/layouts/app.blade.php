@@ -6,7 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Tara Mart - Your Trusted Online Shopping Destination</title>
+    <title>{{ setting('app_name') ?? config('app.name') }}</title>
+
     <meta name="description"
         content="Shop the latest products at tara mart. Fast delivery, secure payments, and excellent customer service.">
     <meta name="theme-color" content="#EB0000">
@@ -26,7 +27,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 
-    <link rel="stylesheet" href="{{ asset('assets/frontend/themes/' . setting('theme') . '/assets/style.css') }}">
+    @php
+        $theme = setting('theme') ?? 'default';
+    @endphp
+
+    <link rel="stylesheet" href="{{ asset("assets/frontend/themes/$theme/assets/style.css") }}">
 
     <link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css">
 
@@ -45,7 +50,9 @@
 
     <!-- Toastr CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
-     @stack('styles')
+
+
+    @stack('styles')
     @livewireStyles
 </head>
 
@@ -57,14 +64,14 @@
     @include('livewire.frontend.layouts.partial.header.header-default')
 
 
-    
+
     <!-- Main Content -->
-    <main class="main-content">        
+    <main class="main-content">
 
         @isset($slot)
             {{ $slot }}
         @endisset
-         @yield('content')
+        @yield('content')
         <!-- Right Side Shopping Cart -->
         @php
             $cartItems = session()->get('cart', []);
@@ -82,14 +89,7 @@
                     <span class="close-cart">&times;</span>
                 </div>
 
-                @if (empty($cartItems))
-                    <div class="cart-empty">
-                        <i class="fas fa-shopping-basket"></i>
-                        <p>Your Cart List is Empty!</p>
-                        <p>Sorry! your cart has no item to show. Please add some product to see here.</p>
-                        <a href="#" class="btn-continue-shopping">Continue Shopping</a>
-                    </div>
-                @endif
+
                 <div class="cart-items">
                     <livewire:frontend.components.cart-items :cartItems="$cartItems" />
                 </div>
@@ -114,59 +114,59 @@
 
     <script src="{{ asset('assets/frontend/themes/' . setting('theme') . '/js/tabs.js') }}"></script>
     <script src="{{ asset('assets/frontend/themes/' . setting('theme') . '/js/main.js') }}"></script>
- 
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-   <script>
-    document.addEventListener('livewire:init', () => {
+    <script>
+        document.addEventListener('livewire:init', () => {
 
-        // Livewire success/error events
-        Livewire.on('success', (event) => {
-            const message = event.message || event[0]?.message || 'Success!';
-            toastr.success(message);
+            // Livewire success/error events
+            Livewire.on('success', (event) => {
+                const message = event.message || event[0]?.message || 'Success!';
+                toastr.success(message);
+            });
+
+            Livewire.on('error', (event) => {
+                const message = event.message || event[0]?.message || 'Error!';
+                toastr.error(message);
+            });
+
+            // Check for Laravel session flash messages (middleware or controller)
+            @if (session()->has('success'))
+                toastr.success("{{ session('success') }}");
+            @endif
+
+            @if (session()->has('error'))
+                toastr.error("{{ session('error') }}");
+            @endif
         });
 
-        Livewire.on('error', (event) => {
-            const message = event.message || event[0]?.message || 'Error!';
-            toastr.error(message);
+        // Toastr options
+        toastr.options = {
+            "progressBar": true,
+            "closeButton": true,
+            "positionClass": "toast-top-right",
+            "timeOut": 2500,
+            "preventDuplicates": true,
+            "preventOpenDuplicates": true
+        };
+
+        // SweetAlert Delete Confirmation
+        window.addEventListener('showDeleteConfirmation', () => {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won’t be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Livewire.dispatch('deleteConfirmed');
+                }
+            });
         });
-
-        // Check for Laravel session flash messages (middleware or controller)
-        @if(session()->has('success'))
-            toastr.success("{{ session('success') }}");
-        @endif
-
-        @if(session()->has('error'))
-            toastr.error("{{ session('error') }}");
-        @endif
-    });
-
-    // Toastr options
-    toastr.options = {
-        "progressBar": true,
-        "closeButton": true,
-        "positionClass": "toast-top-right",
-        "timeOut": 2500,
-        "preventDuplicates": true,
-        "preventOpenDuplicates": true
-    };
-
-    // SweetAlert Delete Confirmation
-    window.addEventListener('showDeleteConfirmation', () => {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "You won’t be able to revert this!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Livewire.dispatch('deleteConfirmed');
-            }
-        });
-    });
-</script>
+    </script>
 
 
     @stack('scripts')

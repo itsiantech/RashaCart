@@ -12,6 +12,7 @@ class Category extends Model
         'image',
         'status',
         'parent_id',
+        'is_featured'
     ];
     
     public function parent() {
@@ -40,8 +41,8 @@ class Category extends Model
     {
         static::saved(fn() => Cache::forget('categories'));
         static::deleted(fn() => Cache::forget('categories'));
-    }
-    
+        
+    }    
 
 
 }

@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Cache;
 class Review extends Model
 {
     protected $fillable = [
@@ -19,5 +19,12 @@ class Review extends Model
     public function product() {
         return $this->belongsTo(Product::class);
     }
+
+    protected static function booted()
+    {
+        static::saved(fn() => Cache::forget('products'));
+        static::deleted(fn() => Cache::forget('products'));
+        
+    }   
 
 }

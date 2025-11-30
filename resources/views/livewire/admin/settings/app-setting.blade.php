@@ -1,8 +1,8 @@
 <div class="row">
     <div class="col-md-12">
-        <div class="card mb-4">
+        <div class="card">
             <h5 class="card-header">Settings</h5>
-            <hr>
+            
             <div class="card-body">
                 <div class="row">
 
@@ -32,14 +32,12 @@
                             </div>
 
                             <div class="tab-pane fade" id="notification" role="tabpanel" aria-labelledby="notification-tab">
-                                @include('livewire.admin.settings.partial.notification')
+                                @include('livewire.admin.settings.partial.notification');
                             </div>
 
                             <div class="tab-pane fade" id="api" role="tabpanel" aria-labelledby="api-tab">
-                                @include('livewire.admin.settings.partial.api-settings')
+                                @include('livewire.admin.settings.partial.api-settings');
                             </div>
-
-
 
                             
 

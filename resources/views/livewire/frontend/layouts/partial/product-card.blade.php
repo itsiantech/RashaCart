@@ -25,18 +25,10 @@
 
     <div class="product-info">
         <div class="product-rating">
-           @php
-                $average = $product->reviews->avg('rating') ?? 0;
-                $reviewCount = $product->reviews->count();
-            @endphp
-
-            <div class="stars">
-                @for ($i = 1; $i <= 5; $i++)
-                    <i class="{{ $i <= $average ? 'fas' : 'far' }} fa-star"></i>
-                @endfor
-                <span class="rating-count">({{ $reviewCount }})</span>
-            </div>
-
+            <x-rating-stars 
+                :rating="$product->reviews_avg_rating"
+                :count="$product->reviews_count"
+            />
         </div>
         <h3 class="product-title">{{ $product->name }}</h3>
 

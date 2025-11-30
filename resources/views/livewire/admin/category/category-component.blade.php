@@ -84,6 +84,23 @@
                         </div>
                     </div>
 
+                    <div class="row mb-3">
+                        <label class="col-sm-2 col-form-label">Show Homepage?</label>
+                        <div class="col-sm-10">
+                            <div class="form-check form-switch">
+                                <input 
+                                    class="form-check-input" 
+                                    type="checkbox" 
+                                    id="is_featured" 
+                                    wire:model.live="is_featured"
+                                    @if($is_featured) checked @endif
+                                >
+                                <label class="form-check-label" for="is_featured">
+                                    {{ $is_featured ? 'Yes' : 'No' }}
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row justify-content-end">
                         <div class="col-sm-10">
                             <button type="submit" class="btn btn-primary me-2">
@@ -97,9 +114,9 @@
                 </form>
             </div>
         </div>
-        @endif
+        @else
 
-        <!-- Categories List -->
+        
         <div class="card">
             <div class="card-header">
                 <div class="row align-items-center g-2">
@@ -233,9 +250,13 @@
                             @endforeach                        
                         @endif
                     </tbody>
+                    
                 </table>
+
             </div>
         </div>
+        
+        @endif
     </div>
 
     

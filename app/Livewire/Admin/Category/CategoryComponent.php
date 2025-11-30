@@ -25,6 +25,7 @@ class CategoryComponent extends Component
     public $image;
     
     public $status = true;
+    public $is_featured = false;
     public $parent_id = null;
     
     public $showForm = false;
@@ -73,7 +74,8 @@ class CategoryComponent extends Component
         $this->category_id = $id;
         $this->name = $category->name;
         $this->slug = $category->slug;
-        $this->status = $category->status;
+        $this->status = $category->status; 
+        $this->is_featured = $category->is_featured;
         $this->parent_id = $category->parent_id;
         
         $this->showForm = true;
@@ -88,6 +90,7 @@ class CategoryComponent extends Component
             'slug',
             'image',
             'status',
+            'is_featured',
             'parent_id'
         ]);
         $this->resetValidation();
@@ -100,13 +103,15 @@ class CategoryComponent extends Component
             'slug' => 'required|unique:categories,slug,'.$this->category_id,
             'image' => 'nullable|image|max:2048',
             'status' => 'boolean',
+            'is_featured' => 'boolean',
             'parent_id' => 'nullable|exists:categories,id'
         ]);
 
         $data = [
             'name' => $this->name,
             'slug' => $this->slug,
-            'status' => $this->status,
+            'status' => $this->status, 
+            'is_featured' => $this->is_featured,
             'parent_id' => $this->parent_id
         ];
 

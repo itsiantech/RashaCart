@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Order;
 
 use Livewire\Component;
+use Livewire\WithoutUrlPagination;
 use Livewire\WithPagination;
 use App\Models\Order;
 use App\Services\CourierService;
@@ -12,8 +13,8 @@ use Illuminate\Support\Facades\DB;
 
 class OrderIndex extends Component
 {
-    use WithPagination;
-
+    use WithPagination, WithoutUrlPagination;
+    
     public $search = '';
     public $statusFilter = 'all';
     protected $courier;

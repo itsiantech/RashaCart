@@ -11,11 +11,21 @@ class Banner extends Model
         'image',
         'status',
     ];
-
+    
     protected static function booted()
     {
-        static::saved(fn() => Cache::forget('banners'));
-        static::deleted(fn() => Cache::forget('banners'));
+        static::saved(function($model) {
+            Cache::forget('banners');
+            Cache::forget('ads');
+            Cache::forget('popup');
+        });
+
+        static::deleted(function($model) {
+            Cache::forget('banners');
+            Cache::forget('ads');
+            Cache::forget('popup');
+        });
     }
+
 
 }

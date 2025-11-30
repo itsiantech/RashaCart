@@ -1,4 +1,44 @@
 <div>
+
+     <!-- Charts and Main Content -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title m-0">Revenue Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div wire:ignore id="revenueChart" style="height: 300px;">                       
+                        <div class="d-flex justify-content-center align-items-center" style="height: 300px;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading chart...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title m-0">Sales by Category</h5>
+                </div>
+                <div class="card-body">
+                    <div wire:ignore id="categoryChart" style="height: 300px;">                       
+                        <div class="d-flex justify-content-center align-items-center" style="height: 300px;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading chart...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   
+   
     <!-- Global Filter Section -->
     <div class="row mb-4">
         <div class="col-12 position-relative">
@@ -12,7 +52,7 @@
                 </div>
             </div>
 
-               <style>
+            <style>
                 .loader-overlay {
                     position: absolute;
                     top: 0;
@@ -83,7 +123,8 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <span class="fw-semibold d-block mb-1">Total Revenue</span>
-                            <h3 class="card-title mb-2">${{ number_format($orderStats->total_revenue ?? 0, 2) }}</h3>
+                            <h3 class="card-title mb-2">
+                                {{ setting('currency') }}{{ number_format($orderStats->total_revenue ?? 0, 2) }}</h3>
                             <small class="text-success fw-semibold">
                                 <i class="bx bx-up-arrow-alt"></i>
                                 From {{ $orderStats->total_orders ?? 0 }} Orders
@@ -165,34 +206,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Charts and Main Content -->
-    <div class="row">
-        <!-- Revenue Chart -->
-        <div class="col-lg-8 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title m-0">Revenue Overview</h5>
-                </div>
-                <div class="card-body">
-                    <div id="revenueChart" style="height: 300px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sales by Category -->
-        <div class="col-lg-4 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title m-0">Sales by Category</h5>
-                </div>
-                <div class="card-body">
-                    <div id="categoryChart" style="height: 300px;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Order Status Overview -->
     <div class="row mb-4">
         <div class="col-12">
@@ -263,7 +276,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($bestSellingProducts as $product)
+                                @forelse ($bestSellingProducts as $product)
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
@@ -274,10 +287,18 @@
                                             </div>
                                         </td>
                                         <td>{{ $product->total_sold }}</td>
-                                        <td>${{ number_format($product->total_revenue, 2) }}</td>
+                                        <td>{{ setting('currency') }}{{ number_format($product->total_revenue, 2) }}
+                                        </td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-4">
+                                            No data found
+                                        </td>
+                                    </tr>
+                                @endforelse
                             </tbody>
+
                         </table>
                     </div>
                 </div>
@@ -301,14 +322,21 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($popularCategories as $category)
+                                @forelse ($popularCategories as $category)
                                     <tr>
                                         <td class="fw-semibold">{{ $category->name }}</td>
                                         <td>{{ $category->order_count }}</td>
                                         <td>{{ $category->total_sold }}</td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-4">
+                                            No data found
+                                        </td>
+                                    </tr>
+                                @endforelse
                             </tbody>
+
                         </table>
                     </div>
                 </div>
@@ -332,7 +360,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($goldenCustomers as $customer)
+                                @forelse ($goldenCustomers as $customer)
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
@@ -346,10 +374,18 @@
                                             </div>
                                         </td>
                                         <td>{{ $customer->total_orders }}</td>
-                                        <td>${{ number_format($customer->total_spent, 2) }}</td>
+                                        <td>{{ setting('currency') }}{{ number_format($customer->total_spent, 2) }}
+                                        </td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-4">
+                                            No data found
+                                        </td>
+                                    </tr>
+                                @endforelse
                             </tbody>
+
                         </table>
                     </div>
                 </div>
@@ -358,87 +394,105 @@
     </div>
 </div>
 @push('scripts')
-    <script>
-        document.addEventListener('livewire:initialized', initCharts);
-        document.addEventListener('livewire:navigated', initCharts);
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
-        Livewire.hook('morph.updated', () => {
+    <script>
+        let googleReady = false;
+
+        // Load Google only once
+        google.charts.load("current", {
+            packages: ["corechart"]
+        });
+
+        // When google is loaded
+        google.charts.setOnLoadCallback(() => {
+            googleReady = true;
             drawCharts();
         });
 
-        function initCharts() {
-            if (!google || !google.charts) return;
+        // Livewire page loaded
+        document.addEventListener("livewire:initialized", () => {
+            if (googleReady) drawCharts();
+        });
 
-            google.charts.load('current', {
-                'packages': ['corechart']
-            });
-            google.charts.setOnLoadCallback(drawCharts);
-        }
+        // SPA navigate inside Livewire
+        document.addEventListener("livewire:navigated", () => {
+            setTimeout(() => {
+                if (googleReady) drawCharts();
+            }, 200);
+        });
 
+        // Whenever Livewire updates DOM (filter changed, data refreshed, etc.)
+        Livewire.hook("morph.updated", () => {
+            if (googleReady) {
+                setTimeout(drawCharts, 150);
+            }
+        });
+
+        // Draw Both Charts
         function drawCharts() {
             drawRevenueChart();
             drawCategoryChart();
         }
 
+        // Revenue Chart
         function drawRevenueChart() {
-            var data = new google.visualization.DataTable();
-            data.addColumn('string', 'Date');
-            data.addColumn('number', 'Revenue');
+            let el = document.getElementById("revenueChart");
+            if (!el) return;
 
-            data.addRows([
-                @foreach ($revenueChartData as $item)
-                    ['{{ \Carbon\Carbon::parse($item->date)->format('M d') }}', {{ $item->revenue }}],
-                @endforeach
-            ]);
+            let rows = @json($revenueChartData);
+            if (rows.length < 2) {
+                el.innerHTML = "<p class='text-center text-muted mt-5'>No revenue data</p>";
+                return;
+            }
 
-            var options = {
-                title: 'Daily Revenue',
-                curveType: 'function',
+            let data = google.visualization.arrayToDataTable(rows);
+
+            let options = {
+                title: "Revenue Overview",
+                curveType: "function",
                 legend: {
-                    position: 'bottom'
+                    position: "bottom"
                 },
-                colors: ['#7367f0'],
-                backgroundColor: 'transparent',
+                colors: ["#4285F4"],
+                backgroundColor: "transparent",
                 chartArea: {
                     width: '85%',
-                    height: '75%'
+                    height: '70%'
                 }
             };
 
-            var chart = new google.visualization.LineChart(
-                document.getElementById('revenueChart')
-            );
-            chart.draw(data, options);
+            new google.visualization.LineChart(el).draw(data, options);
         }
 
+        // Category Chart
         function drawCategoryChart() {
-            var data = new google.visualization.DataTable();
-            data.addColumn('string', 'Category');
-            data.addColumn('number', 'Sales');
+            let el = document.getElementById("categoryChart");
+            if (!el) return;
 
-            data.addRows([
-                @foreach ($salesByCategoryData as $category)
-                    ['{{ $category->name }}', {{ $category->total_sales }}],
-                @endforeach
-            ]);
+            let rows = @json($categoryChartData);
+            if (rows.length < 2) {
+                el.innerHTML = "<p class='text-center text-muted mt-5'>No category data</p>";
+                return;
+            }
 
-            var options = {
-                title: 'Sales Distribution',
+            let data = google.visualization.arrayToDataTable(rows);
+
+            let options = {
+                title: "Sales by Category",
                 pieHole: 0.4,
-                backgroundColor: 'transparent',
                 chartArea: {
-                    width: '90%',
-                    height: '80%'
-                },
-                legend: {
-                    position: 'labeled'
+                    width: "90%",
+                    height: "80%"
                 }
             };
 
-            var chart = new google.visualization.PieChart(
-                document.getElementById('categoryChart')
-            );
-            chart.draw(data, options);
+            new google.visualization.PieChart(el).draw(data, options);
         }
+
+        // Redraw on resize
+        window.addEventListener("resize", () => {
+            if (googleReady) drawCharts();
+        });
     </script>
 @endpush

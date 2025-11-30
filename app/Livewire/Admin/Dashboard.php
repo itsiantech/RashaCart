@@ -17,9 +17,21 @@ class Dashboard extends Component
     public $endDate;
     public $filterType = 'this_month';
 
+    // Add these properties for chart data
+    public $revenueChartData = [];
+    public $categoryChartData = [];
+
+    protected function getListeners()
+    {
+        return [
+            'refreshCharts' => 'prepareChartData',
+        ];
+    }
+
     public function mount()
     {
         $this->setDefaultDateRange();
+        $this->prepareChartData();
     }
 
     protected function setDefaultDateRange()
@@ -63,13 +75,77 @@ class Dashboard extends Component
                 // Keep current custom dates
                 break;
         }
+        
+        $this->prepareChartData();
+        $this->dispatch('charts-updated');
     }
 
     public function applyFilter()
     {
-        // This method will be called when custom date range is applied
+        $this->prepareChartData();
+        $this->dispatch('charts-updated');
     }
 
+    // Add this method to prepare chart data
+    protected function prepareChartData()
+    {
+        $this->revenueChartData = $this->formatRevenueChartData();
+        $this->categoryChartData = $this->formatCategoryChartData();
+        
+        // Dispatch browser event to refresh charts
+        $this->dispatch('charts-updated');
+    }
+
+    protected function formatRevenueChartData()
+    {
+        $revenueData = $this->getRevenueChartData();
+        
+        $chartData = [['Date', 'Revenue']];
+        foreach ($revenueData as $data) {
+            $chartData[] = [
+                Carbon::parse($data->date)->format('M d'),
+                (float) $data->revenue
+            ];
+        }
+        
+        // Ensure we have at least some data
+        if (count($chartData) === 1) {
+            $chartData[] = [Carbon::now()->format('M d'), 0];
+        }
+        
+        return $chartData;
+    }
+
+    protected function formatCategoryChartData()
+    {
+        $categoryData = $this->getSalesByCategoryData();
+        
+        $chartData = [['Category', 'Sales']];
+        foreach ($categoryData as $data) {
+            $chartData[] = [
+                $data->name,
+                (float) $data->total_sales
+            ];
+        }
+        
+        // Ensure we have at least some data
+        if (count($chartData) === 1) {
+            $chartData[] = ['No Data', 1];
+        }
+        
+        return $chartData;
+    }
+
+    // Add a method to handle empty data scenarios
+    protected function ensureChartData($chartData)
+    {
+        if (!$chartData) {
+            return [['No Data', 'Value'], ['No Data', 1]];
+        }
+        return $chartData;
+    }
+
+    // Your existing methods remain the same...
     public function getBestSellingProducts()
     {
         return OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
@@ -153,7 +229,7 @@ class Dashboard extends Component
 
     public function getRevenueChartData()
     {
-        $revenueData = Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
+        return Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
             ->where('status', '!=', 'cancelled')
             ->select(
                 DB::raw('DATE(created_at) as date'),
@@ -162,8 +238,6 @@ class Dashboard extends Component
             ->groupBy('date')
             ->orderBy('date')
             ->get();
-
-        return $revenueData;
     }
 
     public function getSalesByCategoryData()
@@ -183,15 +257,17 @@ class Dashboard extends Component
 
     public function render()
     {
+       
         $data = [
             'bestSellingProducts' => $this->getBestSellingProducts(),
             'popularCategories' => $this->getPopularCategories(),
             'goldenCustomers' => $this->getGoldenCustomers(),
             'orderStats' => $this->getOrderStats(),
             'stockStats' => $this->getStockStats(),
-            'revenueChartData' => $this->getRevenueChartData(),
-            'salesByCategoryData' => $this->getSalesByCategoryData(),
+            'revenueChartData' => $this->revenueChartData,
+            'categoryChartData' => $this->categoryChartData,
         ];
+         $this->prepareChartData();
 
         return view('livewire.admin.dashboard', $data)->layout('livewire.admin.layouts.app');
     }

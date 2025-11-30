@@ -3,35 +3,57 @@
 namespace App\Livewire\Frontend;
 
 use Livewire\Component;
-use App\Models\Product;
-use App\Traits\HandlesCartActions;
 use Illuminate\Support\Facades\Cache;
 
 class Welcome extends Component
 {
-    use HandlesCartActions;
-
-    public $products = [];
     public $featuredProducts = [];
-    public $bestSaleProducts = [];
+    public $categoryProducts = [];
+    public $featuredCategories = [];
+    public $perPage = 8;
+
+    public function mount()
+    {
+        $this->featuredCategories = Cache::get('categories', collect())
+            ->where('is_featured', 1)
+            ->values();
+
+        $this->loadProducts();
+    }
 
     public function loadProducts()
     {
-      
         $allProducts = Cache::get('products', collect());
 
-        // filter collection
-        $this->products = $allProducts;
-        $this->featuredProducts = $allProducts->where('is_featured', 1);
-        $this->bestSaleProducts = $allProducts;
+        $this->featuredProducts = $allProducts
+            ->where('is_featured', 1)
+            ->take($this->perPage);
+
+        foreach ($this->featuredCategories as $category) {
+            $this->categoryProducts[$category->id] = $allProducts
+                ->filter(fn($product) => $product['category_id'] == $category->id)
+                ->take($this->perPage)
+                ->values();
+        }
+    }
+
+    public function loadMore($categoryId)
+    {
+        $allProducts = Cache::get('products', collect());
+        
+        $currentProducts = $this->categoryProducts[$categoryId] ?? collect();
+        $currentCount = count($currentProducts);
+
+        $moreProducts = $allProducts
+            ->where('category_id', $categoryId)
+            ->slice($currentCount, $this->perPage)
+            ->values();
+
+        $this->categoryProducts[$categoryId] = $currentProducts->concat($moreProducts);
     }
 
     public function render()
     {
-        if (empty($this->products)) {
-            $this->loadProducts();
-        }
-
         return view('livewire.frontend.welcome')
             ->layout('livewire.frontend.layouts.app');
     }

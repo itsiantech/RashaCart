@@ -1,5 +1,5 @@
-<div >
-     <div class="card-header bg-primary text-white mb-3">Basic Settings</div>
+<div>
+    <div class="card-header bg-primary text-white mb-3">Basic Settings</div>
 
     <form wire:submit.prevent="update" enctype="multipart/form-data">
 
@@ -84,9 +84,9 @@
                     </div>
                 @endif
             </div>
-        </div> 
-        
-        
+        </div>
+
+
         <div class="row mb-3">
             <div class="col-md-6">
                 <label for="theme" class="form-label">Application Theme</label>
@@ -96,7 +96,7 @@
                     <option value="default">Default </option>
                     <option value="theme_1">Theme-1 </option>
                     <option value="theme_2">Theme-2 </option>
-                                    
+
                 </select>
                 @error('theme')
                     <div class="invalid-feedback">{{ $message }}</div>
@@ -114,7 +114,7 @@
             @enderror
         </div>
 
-         {{-- Items Per Page --}}
+        {{-- Items Per Page --}}
         <div class="row mb-3">
             <div class="col-md-6">
                 <label for="itemsPerPage" class="form-label">Items Per Page</label>
@@ -127,7 +127,7 @@
         </div>
 
 
-         {{-- Location --}}
+        {{-- Location --}}
         <div class="row mb-3">
             <div class="col-md-6">
                 <label for="google_map_location" class="form-label">Office Google Location</label>
@@ -139,7 +139,7 @@
             </div>
         </div>
 
-        
+
         <div class="mt-4">
             <button type="submit" class="btn btn-primary me-2" wire:loading.attr="disabled" wire:target="update">
                 <span wire:loading.remove wire:target="update">

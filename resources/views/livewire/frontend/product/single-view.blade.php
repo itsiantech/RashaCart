@@ -1,17 +1,14 @@
 <div>
-
-
     <section class="product-view">
         <div class="container">
             <div class="pv-grid">
-                <!-- Main Product Left -->
+
                 <div class="pv-main">
                     <div class="pv-card">
                         <div class="pv-flex">
 
                             <!-- Gallery -->
                             <div class="pv-gallery">
-                                {{-- Discount Badge --}}
                                 @if ($product->discount_type)
                                     <div class="pv-badge">
                                         @if ($product->discount_type == 'percent')
@@ -22,14 +19,12 @@
                                     </div>
                                 @endif
 
-                                {{-- Main Image --}}
                                 <div class="pv-image">
                                     <img id="pvMainImg"
                                         src="{{ $product->thumbnail ? asset('storage/' . $product->thumbnail) : 'https://placehold.co/500x500' }}"
                                         alt="{{ $product->name }}" loading="lazy">
                                 </div>
 
-                                {{-- Thumbnails --}}
                                 @if (!empty($product->gallery_image) && is_array($product->gallery_image))
                                     <div class="pv-thumbs">
                                         @foreach ($product->gallery_image as $key => $image)
@@ -47,7 +42,9 @@
                             <div class="pv-info">
                                 <h1 class="pv-title">{{ $product->name }}</h1>
                                 <p class="">{{ $product->short_description }}</p>
-
+                                <div class="product-rating">
+                                    <x-rating-stars :rating="$product->reviews_avg_rating" :count="$product->reviews_count" />
+                                </div>
                                 <div class="pv-pricing">
                                     <span class="pv-price">{{ setting('currency') }} {{ $product->sale_price }}</span>
                                     @if ($product->discount_type)
@@ -142,25 +139,24 @@
                                                 @endforeach
                                             </div>
                                         </div>
-                                    @endif                                    
+                                    @endif
                                 </div>
 
                                 <div class="pv-qty-actions">
-                                   <div class="pv-qty">
-                                        <button wire:loading.attr="disabled" 
-                                                wire:target="decreaseQty" 
-                                                wire:click="decreaseQty"
-                                                class="pv-qty-btn" @disabled($quantity <= 1)>
+                                    <div class="pv-qty">
+                                        <button wire:loading.attr="disabled" wire:target="decreaseQty"
+                                            wire:click="decreaseQty" class="pv-qty-btn" @disabled($quantity <= 1)>
                                             <span wire:loading.remove wire:target="decreaseQty">-</span>
-                                            <i wire:loading wire:target="decreaseQty" class="fa-solid fa-spinner fa-spin"></i>
+                                            <i wire:loading wire:target="decreaseQty"
+                                                class="fa-solid fa-spinner fa-spin"></i>
                                         </button>
-                                        
+
                                         <input type="number" wire:model="quantity" min="1">
-                                        <button wire:loading.attr="disabled" 
-                                                wire:target="increaseQty" 
-                                                wire:click="increaseQty" wire:click="increaseQty" class="pv-qty-btn">
-                                              <span wire:loading.remove wire:target="increaseQty">+</span>
-                                            <i wire:loading wire:target="increaseQty" class="fa-solid fa-spinner fa-spin"></i>
+                                        <button wire:loading.attr="disabled" wire:target="increaseQty"
+                                            wire:click="increaseQty" wire:click="increaseQty" class="pv-qty-btn">
+                                            <span wire:loading.remove wire:target="increaseQty">+</span>
+                                            <i wire:loading wire:target="increaseQty"
+                                                class="fa-solid fa-spinner fa-spin"></i>
                                         </button>
                                     </div>
 
@@ -169,8 +165,9 @@
 
                                     <div class="pv-actions">
                                         <!-- Add to Cart Button -->
-                                        <button style="width: 60px!important;" class="basket-btn" wire:click="addToCart({{ $product->id }})"
-                                            wire:loading.attr="disabled" wire:target="addToCart">
+                                        <button style="width: 60px!important;" class="basket-btn"
+                                            wire:click="addToCart({{ $product->id }})" wire:loading.attr="disabled"
+                                            wire:target="addToCart">
                                             <span wire:loading.remove wire:target="addToCart({{ $product->id }})">
                                                 <i class="fa fa-shopping-basket" aria-hidden="true"></i>
                                             </span>
@@ -192,12 +189,10 @@
                                     </div>
                                 </div>
 
-
-
-                                {{-- Category --}}
                                 <div class="pv-meta mt-3">
                                     <div class="pv-breadcrumbs">
-                                        <span>Category:</span> <a wire:navigate href="{{route('frontend.category.view',  $product->slug )}}">{{ $product->category->name }}</a>
+                                        <span>Category:</span> <a wire:navigate
+                                            href="{{ route('frontend.category.view', $product->slug) }}">{{ $product->category->name }}</a>
                                     </div>
                                 </div>
                             </div>
@@ -207,7 +202,9 @@
                         <div class="pv-tabs mt-4">
                             <div class="pv-tab-head">
                                 <button class="pv-tab-btn active" data-tab="desc">Description</button>
-                                <button class="pv-tab-btn" data-tab="rev">Review(0)</button>
+                                <button class="pv-tab-btn"
+                                    data-tab="rev">Review({{ $product->reviews_count }})</button>
+
                             </div>
 
                             <div class="pv-tab-body">
@@ -215,9 +212,71 @@
                                     {!! $product->long_description !!}
                                 </div>
                                 <div id="pvTab-rev" class="pv-tab-panel">
-                                    <div class="reviews-section">
-                                        <p>No reviews yet.</p>
+                                    {{-- Review List --}}
+                                    <div class="reviews-section mb-4">
+                                        @forelse ($reviews as $review)
+                                            <div class="card mb-3 border-0 shadow-sm">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <h6 class="card-title mb-0 fw-bold">{{ $review->user->name }}
+                                                        </h6>
+                                                        <small
+                                                            class="text-muted">{{ $review->created_at->format('M d, Y') }}</small>
+                                                    </div>
+
+                                                    <div class="mb-2">
+                                                        @for ($i = 1; $i <= 5; $i++)
+                                                            <i
+                                                                class="{{ $i <= $review->rating ? 'fas' : 'far' }} fa-star text-warning"></i>
+                                                        @endfor
+                                                    </div>
+
+                                                    <p class="card-text mb-0">{{ $review->comment }}</p>
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <div class="text-center py-4">
+                                                <i class="far fa-comment-dots fa-2x text-muted mb-2"></i>
+                                                <p class="text-muted mb-0">No reviews yet.</p>
+                                            </div>
+                                        @endforelse
                                     </div>
+
+                                    {{-- Pagination --}}
+                                    <div class="mt-3">
+                                        {{ $reviews->links() }}
+                                    </div>
+
+
+                                    {{-- Submit Review --}}
+                                    @auth
+                                        <div class="card border-0 shadow">
+                                            <div class="card-body">
+                                                <h6 class="card-title mb-3">Write a Review</h6>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Rating</label>
+                                                    <select class="form-select" wire:model="rating">
+                                                        <option value="">Choose rating</option>
+                                                        @for ($i = 1; $i <= 5; $i++)
+                                                            <option value="{{ $i }}">{{ $i }} Star
+                                                            </option>
+                                                        @endfor
+                                                    </select>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Your Review</label>
+                                                    <textarea class="form-control" wire:model="comment" placeholder="Share your experience with this product..."
+                                                        rows="4"></textarea>
+                                                </div>
+
+                                                <button class="btn btn-success px-4" wire:click="submitReview">
+                                                    <i class="fas fa-paper-plane me-2"></i>Submit Review
+                                                </button>
+                                            </div>
+                                        </div>
+                                    @endauth
                                 </div>
                             </div>
                         </div>
@@ -228,29 +287,31 @@
                 <aside class="pv-sidebar">
                     <div class="pv-side-card">
                         <h3 class="pv-side-title">Related Products</h3>
-                        
 
-                            @if(!isset($relatedProducts) || $relatedProducts->isEmpty())
-                               <div class="cart-empty">
-                                    <i class="fas fa-shopping-basket"></i>
-                                    <p>No releted product found!</p>
-                                    
-                                </div>
-                            @endif
+                        @if (!isset($relatedProducts) || $relatedProducts->isEmpty())
+                            <div class="cart-empty">
+                                <i class="fas fa-shopping-basket"></i>
+                                <p>No releted product found!</p>
 
-                         <ul class="pv-related-list">
+                            </div>
+                        @endif
+
+                        <ul class="pv-related-list">
                             @foreach ($relatedProducts as $rp)
-                            <li>
-                                <a wire:navigate href="{{ route('frontend.product.single.view', $rp->slug) }}" class="pv-related-item">
-                                    <img src="{{ $rp->thumbnail ? asset('storage/' . $rp->thumbnail) : 'https://placehold.co/150x150' }}" alt="{{ $rp->name }}">
-                                    <div>
-                                        <p class="pv-related-name">{{ $rp->name }}</p>
-                                        <div class="pv-related-meta">
-                                            <span class="pv-related-price">{{ setting('currency') }} {{ $rp->sale_price ?? $rp->price }}</span>
+                                <li>
+                                    <a wire:navigate href="{{ route('frontend.product.single.view', $rp->slug) }}"
+                                        class="pv-related-item">
+                                        <img src="{{ $rp->thumbnail ? asset('storage/' . $rp->thumbnail) : 'https://placehold.co/150x150' }}"
+                                            alt="{{ $rp->name }}">
+                                        <div>
+                                            <p class="pv-related-name">{{ $rp->name }}</p>
+                                            <div class="pv-related-meta">
+                                                <span class="pv-related-price">{{ setting('currency') }}
+                                                    {{ $rp->sale_price ?? $rp->price }}</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                </a>
-                            </li>
+                                    </a>
+                                </li>
                             @endforeach
                         </ul>
                     </div>
@@ -258,8 +319,8 @@
                     <div class="pv-side-card">
                         <h3 class="pv-side-title">Category</h3>
                         @include('livewire.frontend.layouts.partial.category.category-list', [
-                                            'categories' => $categories->where('parent_id', null),
-                                        ])
+                            'categories' => $categories->where('parent_id', null),
+                        ])
                     </div>
                 </aside>
             </div>
@@ -267,52 +328,52 @@
     </section>
 
     {{-- Scripts --}}
-@push('scripts')
-    <script>
-        function initProductViewScripts() {
-            // Thumbnail switcher
-            document.querySelectorAll('.pv-thumb').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const mainImg = document.getElementById('pvMainImg');
-                    if (mainImg) mainImg.src = btn.dataset.src;
-                    document.querySelectorAll('.pv-thumb').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
+    @push('scripts')
+        <script>
+            function initProductViewScripts() {
+                // Thumbnail switcher
+                document.querySelectorAll('.pv-thumb').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const mainImg = document.getElementById('pvMainImg');
+                        if (mainImg) mainImg.src = btn.dataset.src;
+                        document.querySelectorAll('.pv-thumb').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                    });
                 });
-            });
 
-            // Tabs
-            document.querySelectorAll('.pv-tab-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.pv-tab-btn').forEach(b => b.classList.remove('active'));
-                    document.querySelectorAll('.pv-tab-panel').forEach(p => p.classList.remove('active'));
-                    btn.classList.add('active');
-                    const id = btn.dataset.tab === 'desc' ? 'pvTab-desc' : 'pvTab-rev';
-                    document.getElementById(id)?.classList.add('active');
+                // Tabs
+                document.querySelectorAll('.pv-tab-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.pv-tab-btn').forEach(b => b.classList.remove('active'));
+                        document.querySelectorAll('.pv-tab-panel').forEach(p => p.classList.remove('active'));
+                        btn.classList.add('active');
+                        const id = btn.dataset.tab === 'desc' ? 'pvTab-desc' : 'pvTab-rev';
+                        document.getElementById(id)?.classList.add('active');
+                    });
                 });
-            });
 
-            // Qty controls
-            // const qtyInput = document.getElementById('pvQty');
-            // if (qtyInput) {
-            //     document.querySelectorAll('.pv-qty-btn').forEach(b => {
-            //         b.addEventListener('click', () => {
-            //             const act = b.dataset.act;
-            //             let v = parseInt(qtyInput.value || '1', 10);
-            //             if (act === 'minus') v = Math.max(1, v - 1);
-            //             if (act === 'plus') v = v + 1;
-            //             qtyInput.value = v;
-            //         });
-            //     });
-            // }
-        }
+                // Qty controls
+                // const qtyInput = document.getElementById('pvQty');
+                // if (qtyInput) {
+                //     document.querySelectorAll('.pv-qty-btn').forEach(b => {
+                //         b.addEventListener('click', () => {
+                //             const act = b.dataset.act;
+                //             let v = parseInt(qtyInput.value || '1', 10);
+                //             if (act === 'minus') v = Math.max(1, v - 1);
+                //             if (act === 'plus') v = v + 1;
+                //             qtyInput.value = v;
+                //         });
+                //     });
+                // }
+            }
 
-        // প্রথমবার পেজ লোডে চালাও
-        document.addEventListener('DOMContentLoaded', initProductViewScripts);
+            // প্রথমবার পেজ লোডে চালাও
+            document.addEventListener('DOMContentLoaded', initProductViewScripts);
 
-        // Livewire navigate করলে আবার চালাও
-        document.addEventListener('livewire:navigated', initProductViewScripts);
-    </script>
-@endpush
+            // Livewire navigate করলে আবার চালাও
+            document.addEventListener('livewire:navigated', initProductViewScripts);
+        </script>
+    @endpush
 
 
 </div>

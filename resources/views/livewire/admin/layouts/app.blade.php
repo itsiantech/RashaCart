@@ -45,7 +45,7 @@
 
     <!-- Toastr CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
-    @stack('styles')
+
     @livewireStyles
 </head>
 
@@ -82,7 +82,6 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
-<script src="https://www.gstatic.com/charts/loader.js"></script>
 
 
 <script>

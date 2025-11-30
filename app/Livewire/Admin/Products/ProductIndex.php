@@ -6,9 +6,11 @@ use Livewire\Component;
 use App\Models\Product;
 use App\Models\OrderItem;
 use App\Helpers\Settings;
-
+use Livewire\WithPagination;
+use Livewire\WithoutUrlPagination;
 class ProductIndex extends Component
 {
+    use WithPagination, WithoutUrlPagination;
     public $search = '';    
     
     public function render()
