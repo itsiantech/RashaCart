@@ -114,7 +114,7 @@
 
                                                             <!-- Price -->
                                                             <div class="text-success fw-bold small">
-                                                                {{ setting('currency') }}{{ number_format($variant->price_diff, 2) }}
+                                                                {{ setting('currency') }}{{ number_format($variant->varient_price, 2) }}
                                                             </div>
 
                                                             <div

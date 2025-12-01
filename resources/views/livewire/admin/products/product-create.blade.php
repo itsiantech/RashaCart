@@ -178,9 +178,7 @@
                                 <tbody>
                                     @foreach ($variants as $index => $variant)
                                         <tr>
-                                            <td>
-                                                <strong>{{ $variant['sku'] }}</strong>
-                                            </td>
+                                            <td><strong>{{ $variant['sku'] }}</strong></td>
                                             <td>
                                                 @foreach ($variant['values'] as $value)
                                                     @php
@@ -195,11 +193,8 @@
                                                 @endforeach
                                             </td>
                                             <td>
-                                                {{ number_format($variant['price_adjustment'], 2) }}
-                                            </td>
-                                            <td>
-                                                <strong>{{ number_format($price + $variant['price_adjustment'], 2) }}</strong>
-                                            </td>
+                                                {{ number_format($variant['varient_price'], 2) }}
+                                            </td>                                            
                                             <td>
                                                 {{ $variant['stock'] }}
                                             </td>
@@ -318,11 +313,11 @@
                                             <div class="input-group input-group-sm">
                                                 <span class="input-group-text"></span>
                                                 <input type="number" step="0.01"
-                                                    wire:model="newVariant.price_adjustment"
-                                                    class="form-control @if (isset($variantErrors['price_adjustment'])) is-invalid @endif">
+                                                    wire:model="newVariant.varient_price"
+                                                    class="form-control @if (isset($variantErrors['varient_price'])) is-invalid @endif">
                                             </div>
-                                            @if (isset($variantErrors['price_adjustment']))
-                                                <div class="invalid-feedback">{{ $variantErrors['price_adjustment'] }}
+                                            @if (isset($variantErrors['varient_price']))
+                                                <div class="invalid-feedback">{{ $variantErrors['varient_price'] }}
                                                 </div>
                                             @endif
                                         </div>

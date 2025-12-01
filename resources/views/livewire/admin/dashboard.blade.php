@@ -1,11 +1,11 @@
 <div>
-
-     <!-- Charts and Main Content -->
+    <!-- Charts and Main Content -->
     <div class="row">
         <div class="col-lg-8 mb-4">
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title m-0">Revenue Overview</h5>
+                    <small class="text-muted">Filtered Period</small>
                 </div>
                 <div class="card-body">
                     <div wire:ignore id="revenueChart" style="height: 300px;">                       
@@ -23,6 +23,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title m-0">Sales by Category</h5>
+                    <small class="text-muted">Filtered Period</small>
                 </div>
                 <div class="card-body">
                     <div wire:ignore id="categoryChart" style="height: 300px;">                       
@@ -37,13 +38,9 @@
         </div>
     </div>
 
-   
-   
     <!-- Global Filter Section -->
     <div class="row mb-4">
         <div class="col-12 position-relative">
-
-
             <!-- Loader -->
             <div wire:loading.flex wire:target="filterType, startDate, endDate, applyFilter"
                 class="loader-overlay justify-content-center align-items-center">
@@ -64,11 +61,9 @@
                 }
             </style>
 
-
             <div class="card">
                 <div class="card-body">
                     <div class="row">
-
                         <div class="col-md-3">
                             <label class="form-label">Filter Type</label>
                             <select class="form-select" wire:model.live="filterType">
@@ -105,13 +100,10 @@
                                 </small>
                             </div>
                         @endif
-
                     </div>
                 </div>
             </div>
         </div>
-
-
     </div>
 
     <!-- Top Cards -->
@@ -124,11 +116,17 @@
                         <div>
                             <span class="fw-semibold d-block mb-1">Total Revenue</span>
                             <h3 class="card-title mb-2">
-                                {{ setting('currency') }}{{ number_format($orderStats->total_revenue ?? 0, 2) }}</h3>
+                                {{ setting('currency') }}{{ number_format($orderStats->total_revenue ?? 0, 2) }}
+                            </h3>
                             <small class="text-success fw-semibold">
                                 <i class="bx bx-up-arrow-alt"></i>
                                 From {{ $orderStats->total_orders ?? 0 }} Orders
                             </small>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    All Time: {{ setting('currency') }}{{ number_format($totalStats['total_revenue_all_time'] ?? 0, 2) }}
+                                </small>
+                            </div>
                         </div>
                         <div class="avatar flex-shrink-0">
                             <span class="avatar-initial rounded bg-label-primary">
@@ -151,6 +149,11 @@
                             <small class="text-info fw-semibold">
                                 {{ $orderStats->delivered_orders ?? 0 }} Delivered
                             </small>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    All Time: {{ $totalStats['total_orders_all_time'] ?? 0 }}
+                                </small>
+                            </div>
                         </div>
                         <div class="avatar flex-shrink-0">
                             <span class="avatar-initial rounded bg-label-success">
@@ -162,21 +165,26 @@
             </div>
         </div>
 
-        <!-- Products Stock -->
+        <!-- Pending Orders -->
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <span class="fw-semibold d-block mb-1">Products Stock</span>
-                            <h3 class="card-title mb-2">{{ $stockStats->total_stock ?? 0 }}</h3>
+                            <span class="fw-semibold d-block mb-1">Pending Orders</span>
+                            <h3 class="card-title mb-2 text-warning">{{ $totalPendingOrders }}</h3>
                             <small class="text-warning fw-semibold">
-                                {{ $stockStats->low_stock ?? 0 }} Low, {{ $stockStats->out_of_stock ?? 0 }} Out
+                                Need Immediate Attention
                             </small>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    In Filter: {{ $orderStats->pending_orders ?? 0 }}
+                                </small>
+                            </div>
                         </div>
                         <div class="avatar flex-shrink-0">
                             <span class="avatar-initial rounded bg-label-warning">
-                                <i class="bx bx-package"></i>
+                                <i class="bx bx-time"></i>
                             </span>
                         </div>
                     </div>
@@ -184,21 +192,30 @@
             </div>
         </div>
 
-        <!-- Golden Customers -->
+        <!-- Products & Stock -->
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <span class="fw-semibold d-block mb-1">Golden Customers</span>
-                            <h3 class="card-title mb-2">{{ $goldenCustomers->count() }}</h3>
+                            <span class="fw-semibold d-block mb-1">Products & Stock</span>
+                            <h3 class="card-title mb-2">{{ $stockStats->total_products ?? 0 }}</h3>
                             <small class="text-success fw-semibold">
-                                Top Spenders
+                                {{ $stockStats->total_stock ?? 0 }} Total Stock
                             </small>
+                            <div class="mt-2">
+                                <small class="text-danger">
+                                    {{ $stockStats->out_of_stock ?? 0 }} Out of Stock
+                                </small>
+                                <br>
+                                <small class="text-warning">
+                                    {{ $stockStats->low_stock ?? 0 }} Low Stock
+                                </small>
+                            </div>
                         </div>
                         <div class="avatar flex-shrink-0">
                             <span class="avatar-initial rounded bg-label-info">
-                                <i class="bx bx-user"></i>
+                                <i class="bx bx-package"></i>
                             </span>
                         </div>
                     </div>
@@ -206,19 +223,25 @@
             </div>
         </div>
     </div>
-    <!-- Order Status Overview -->
+
+    <!-- Order Status & Stock Overview -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-title m-0">Order Status Overview</h5>
+                    <h5 class="card-title m-0">Order Status & Stock Overview</h5>
+                    <small class="text-muted">Filtered Period</small>
                 </div>
                 <div class="card-body">
                     <div class="row">
+                        <!-- Order Status -->
                         <div class="col-md-2 col-6 text-center mb-3">
                             <div class="border rounded p-3">
                                 <h4 class="text-primary">{{ $orderStats->pending_orders ?? 0 }}</h4>
                                 <small class="text-muted">Pending</small>
+                                <div class="mt-1">
+                                    <small class="text-danger">Total {{ $totalPendingOrders }}</small>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-2 col-6 text-center mb-3">
@@ -245,10 +268,17 @@
                                 <small class="text-muted">Cancelled</small>
                             </div>
                         </div>
+                        
+                        <!-- Stock Status -->
                         <div class="col-md-2 col-6 text-center mb-3">
                             <div class="border rounded p-3">
                                 <h4 class="text-secondary">{{ $stockStats->total_products ?? 0 }}</h4>
                                 <small class="text-muted">Total Products</small>
+                                <div class="mt-1">
+                                    <small class="text-danger">{{ $stockStats->out_of_stock ?? 0 }} Out</small>
+                                    <br>
+                                    <small class="text-warning">{{ $stockStats->low_stock ?? 0 }} Low</small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -264,6 +294,7 @@
             <div class="card h-100">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h5 class="card-title m-0 me-2">Best Selling Products</h5>
+                    <small class="text-muted">Filtered Period</small>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -298,7 +329,6 @@
                                     </tr>
                                 @endforelse
                             </tbody>
-
                         </table>
                     </div>
                 </div>
@@ -310,6 +340,7 @@
             <div class="card h-100">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h5 class="card-title m-0 me-2">Popular Categories</h5>
+                    <small class="text-muted">Filtered Period</small>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -336,7 +367,6 @@
                                     </tr>
                                 @endforelse
                             </tbody>
-
                         </table>
                     </div>
                 </div>
@@ -348,6 +378,7 @@
             <div class="card h-100">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h5 class="card-title m-0 me-2">Golden Customers</h5>
+                    <small class="text-muted">Filtered Period</small>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -385,7 +416,6 @@
                                     </tr>
                                 @endforelse
                             </tbody>
-
                         </table>
                     </div>
                 </div>
@@ -393,49 +423,43 @@
         </div>
     </div>
 </div>
+
+
 @push('scripts')
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-
     <script>
         let googleReady = false;
 
-        // Load Google only once
         google.charts.load("current", {
             packages: ["corechart"]
         });
 
-        // When google is loaded
         google.charts.setOnLoadCallback(() => {
             googleReady = true;
             drawCharts();
         });
 
-        // Livewire page loaded
         document.addEventListener("livewire:initialized", () => {
             if (googleReady) drawCharts();
         });
 
-        // SPA navigate inside Livewire
         document.addEventListener("livewire:navigated", () => {
             setTimeout(() => {
                 if (googleReady) drawCharts();
             }, 200);
         });
 
-        // Whenever Livewire updates DOM (filter changed, data refreshed, etc.)
         Livewire.hook("morph.updated", () => {
             if (googleReady) {
                 setTimeout(drawCharts, 150);
             }
         });
 
-        // Draw Both Charts
         function drawCharts() {
             drawRevenueChart();
             drawCategoryChart();
         }
 
-        // Revenue Chart
         function drawRevenueChart() {
             let el = document.getElementById("revenueChart");
             if (!el) return;
@@ -465,7 +489,6 @@
             new google.visualization.LineChart(el).draw(data, options);
         }
 
-        // Category Chart
         function drawCategoryChart() {
             let el = document.getElementById("categoryChart");
             if (!el) return;
@@ -490,7 +513,6 @@
             new google.visualization.PieChart(el).draw(data, options);
         }
 
-        // Redraw on resize
         window.addEventListener("resize", () => {
             if (googleReady) drawCharts();
         });

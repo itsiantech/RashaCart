@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\OrderItem;
+use App\Models\Inventory;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -17,7 +18,7 @@ class Dashboard extends Component
     public $endDate;
     public $filterType = 'this_month';
 
-    // Add these properties for chart data
+   
     public $revenueChartData = [];
     public $categoryChartData = [];
 
@@ -86,7 +87,7 @@ class Dashboard extends Component
         $this->dispatch('charts-updated');
     }
 
-    // Add this method to prepare chart data
+    
     protected function prepareChartData()
     {
         $this->revenueChartData = $this->formatRevenueChartData();
@@ -136,7 +137,7 @@ class Dashboard extends Component
         return $chartData;
     }
 
-    // Add a method to handle empty data scenarios
+    
     protected function ensureChartData($chartData)
     {
         if (!$chartData) {
@@ -145,7 +146,36 @@ class Dashboard extends Component
         return $chartData;
     }
 
-    // Your existing methods remain the same...
+    // New method to get total pending orders (all time)
+    public function getTotalPendingOrders()
+    {
+        return Order::where('status', 'pending')->count();
+    }
+
+    // New method to get total data (all time)
+    public function getTotalStats()
+    {
+        // Spatie role এর জন্য customer count - alternative approach
+        $totalCustomers = User::whereHas('roles', function($query) {
+            $query->where('name', 'customer');
+        })->count();
+
+        // Alternative: যদি specific role না থাকে, তাহলে admin/user role ব্যতীত সব user কে customer ধরা
+        if ($totalCustomers === 0) {
+            $totalCustomers = User::whereDoesntHave('roles', function($query) {
+                $query->whereIn('name', ['admin', 'super-admin']);
+            })->count();
+        }
+
+        return [
+            'total_revenue_all_time' => Order::where('status', '!=', 'cancelled')->sum('total_amount'),
+            'total_orders_all_time' => Order::count(),
+            'total_products_all_time' => Product::count(),
+            'total_customers_all_time' => $totalCustomers,
+        ];
+    }
+
+   
     public function getBestSellingProducts()
     {
         return OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
@@ -216,15 +246,88 @@ class Dashboard extends Component
             ->first();
     }
 
+    // Updated method to get stock stats from inventory
     public function getStockStats()
     {
-        return Product::select(
-                DB::raw('COUNT(*) as total_products'),
-                DB::raw('SUM(stock) as total_stock'),
-                DB::raw('COUNT(CASE WHEN stock = 0 THEN 1 END) as out_of_stock'),
-                DB::raw('COUNT(CASE WHEN stock < 10 AND stock > 0 THEN 1 END) as low_stock')
+        // Calculate main product stock from inventory
+        $mainProductStock = Inventory::where('variant_id', null)
+            ->select(
+                DB::raw('SUM(CASE WHEN type = "in" THEN quantity ELSE 0 END) - SUM(CASE WHEN type = "out" THEN quantity ELSE 0 END) as total_stock')
             )
             ->first();
+
+        // Calculate variant stock from inventory
+        $variantStock = Inventory::whereNotNull('variant_id')
+            ->select(
+                DB::raw('SUM(CASE WHEN type = "in" THEN quantity ELSE 0 END) - SUM(CASE WHEN type = "out" THEN quantity ELSE 0 END) as total_stock')
+            )
+            ->first();
+
+        $totalStock = ($mainProductStock->total_stock ?? 0) + ($variantStock->total_stock ?? 0);
+
+        // Get out of stock and low stock products
+        $outOfStockProducts = $this->getOutOfStockProductsCount();
+        $lowStockProducts = $this->getLowStockProductsCount();
+
+        return (object) [
+            'total_products' => Product::count(),
+            'total_stock' => $totalStock,
+            'out_of_stock' => $outOfStockProducts,
+            'low_stock' => $lowStockProducts,
+        ];
+    }
+
+    // Get count of out of stock products
+    protected function getOutOfStockProductsCount()
+    {
+        $outOfStockCount = 0;
+        $products = Product::with(['inventories', 'variants.inventories'])->get();
+
+        foreach ($products as $product) {
+            $totalStock = $this->calculateProductTotalStock($product);
+            if ($totalStock <= 0) {
+                $outOfStockCount++;
+            }
+        }
+
+        return $outOfStockCount;
+    }
+
+    // Get count of low stock products (less than 10)
+    protected function getLowStockProductsCount()
+    {
+        $lowStockCount = 0;
+        $products = Product::with(['inventories', 'variants.inventories'])->get();
+
+        foreach ($products as $product) {
+            $totalStock = $this->calculateProductTotalStock($product);
+            if ($totalStock > 0 && $totalStock < 10) {
+                $lowStockCount++;
+            }
+        }
+
+        return $lowStockCount;
+    }
+
+    // Calculate total stock for a product including variants
+    protected function calculateProductTotalStock($product)
+    {
+        // Calculate main product stock
+        $mainStock = $product->inventories
+            ->where('variant_id', null)
+            ->sum(function($inventory) {
+                return $inventory->type === 'in' ? $inventory->quantity : -$inventory->quantity;
+            });
+
+        // Calculate variant stock
+        $variantStock = 0;
+        foreach ($product->variants as $variant) {
+            $variantStock += $variant->inventories->sum(function($inventory) {
+                return $inventory->type === 'in' ? $inventory->quantity : -$inventory->quantity;
+            });
+        }
+
+        return $mainStock + $variantStock;
     }
 
     public function getRevenueChartData()
@@ -266,6 +369,8 @@ class Dashboard extends Component
             'stockStats' => $this->getStockStats(),
             'revenueChartData' => $this->revenueChartData,
             'categoryChartData' => $this->categoryChartData,
+            'totalPendingOrders' => $this->getTotalPendingOrders(),
+            'totalStats' => $this->getTotalStats(),
         ];
          $this->prepareChartData();
 

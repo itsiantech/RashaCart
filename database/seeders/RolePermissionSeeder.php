@@ -23,7 +23,7 @@ class RolePermissionSeeder extends Seeder
 
             'user' => ['user.view', 'user.create', 'user.update', 'user.delete'],
             'category' => ['category.view', 'category.create', 'category.update', 'category.delete'],
-            'product' => ['product.view', 'product.create', 'product.update', 'product.delete'],
+            'product' => ['product.view', 'product.create', 'product.update', 'product.delete', 'product.stock.manage'],
             'order' => ['order.view', 'order.create', 'order.update', 'order.delete'],
             'cupon' => ['cupon.view', 'cupon.create', 'cupon.update', 'cupon.delete'],
             'setting' => ['setting.view',  'setting.update',],

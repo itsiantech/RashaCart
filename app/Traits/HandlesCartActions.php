@@ -10,7 +10,7 @@ use App\Models\Favorite;
 
 trait HandlesCartActions
 {
-    // Quantity এখন পাবলিক property, যাতে Livewire থেকে bind করা যায়
+    
     public $quantity = 1;
 
     public function increaseQty($id = null)
@@ -51,60 +51,66 @@ trait HandlesCartActions
     }
 
     public function addToCart($productId)
-    {
-        $product = Product::findOrFail($productId);
-        $cart = session()->get('cart', []);
+{
+    $product = Product::findOrFail($productId);
+    $cart = session()->get('cart', []);
 
-        $key = $productId;
+    $key = $productId;
+    $qty = $this->quantity > 0 ? $this->quantity : 1;
 
-        // ✅ সঠিক quantity নাও
-        $qty = $this->quantity > 0 ? $this->quantity : 1;
+    // Default price
+    $price = $product->sale_price ?? $product->price;
+    $variantImage = null;
 
-        // ✅ price সেট
-        $price = $product->sale_price ?? $product->price;
-        $variantImage = null;
+    // Handle attribute system (variants)
+    if (setting('attribute_system', true)) {
+        $variantId = $this->selectedVariant ?? null;
 
-        if (setting('attribute_system', true)) {
-            $variantId = $this->selectedVariant ?? null;
-            if ($variantId) {
-                $variant = ProductVariant::find($variantId);
-                if ($variant) {
-                    $price = $variant->price_diff; // direct price_diff (final price)
-                    if (!empty($variant->image)) {
-                        $variantImage = asset('storage/' . $variant->image);
-                    }
-                }
-                $key .= '-v' . $variantId;
+        if ($variantId) {
+            $variant = ProductVariant::find($variantId);
+
+            if ($variant) {
+                $price = $variant->varient_price;
+                $variantImage = !empty($variant->image)
+                    ? asset('storage/' . $variant->image)
+                    : null;
             }
-        } elseif ($this->selectedColour || $this->selectedSize) {
-            $key .= '-c' . ($this->selectedColour ?? '') . '-s' . ($this->selectedSize ?? '');
+
+            // Unique key for variant
+            $key .= '-v' . $variantId;
         }
-
-        if (isset($cart[$key])) {
-            $cart[$key]['qty'] += $qty;
-        } else {
-            $cart[$key] = [
-                'id' => $product->id,
-                'variant_id' => $this->selectedVariant ?? null,
-                'title' => $product->name,
-                'price' => $price,
-                'img' => $variantImage ?? ($product->thumbnail ? asset('storage/' . $product->thumbnail) : 'https://placehold.co/500x500'),
-                'qty' => $qty,
-                'color' => $this->selectedColour ?? null,
-                'size' => $this->selectedSize ?? null,
-            ];
-        }
-
-        session()->put('cart', $cart);
-
-        // ✅ quantity reset না করে রাখতে চাইলে নিচের লাইন comment করে রাখো
-        $this->quantity = 1;
-
-        $cartCount = array_sum(array_column($cart, 'qty'));
-        $this->dispatch('cart-updated', count: $cartCount);
-        $this->dispatch('cartUpdated');
-        $this->dispatch('success', message: 'Product added to cart!');
     }
+
+    // Add or update cart item
+    if (isset($cart[$key])) {
+        $cart[$key]['qty'] += $qty;
+    } else {
+        $cart[$key] = [
+            'id'         => $product->id,
+            'variant_id' => $this->selectedVariant ?? null,
+            'title'      => $product->name,
+            'price'      => $price,
+            'img'        => $variantImage 
+                             ?? ($product->thumbnail 
+                                 ? asset('storage/' . $product->thumbnail) 
+                                 : 'https://placehold.co/500x500'),
+            'qty'        => $qty,
+        ];
+    }
+
+    session()->put('cart', $cart);
+
+    // Reset quantity
+    $this->quantity = 1;
+
+    // Update UI
+    $cartCount = array_sum(array_column($cart, 'qty'));
+
+    $this->dispatch('cart-updated', count: $cartCount);
+    $this->dispatch('cartUpdated');
+    $this->dispatch('success', message: 'Product added to cart!');
+}
+
 
     public function buyNow($productId)
     {

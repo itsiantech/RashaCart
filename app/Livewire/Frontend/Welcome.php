@@ -4,9 +4,10 @@ namespace App\Livewire\Frontend;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Cache;
-
+use App\Traits\HandlesCartActions;
 class Welcome extends Component
 {
+    use HandlesCartActions;
     public $featuredProducts = [];
     public $categoryProducts = [];
     public $featuredCategories = [];

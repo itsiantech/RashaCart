@@ -11,7 +11,6 @@ use App\Models\Attribute;
 use App\Models\ProductVariant;
 use App\Models\VariantAttributeValue;
 use DB;
-use Cache;
 use Storage;
 
 class ProductEdit extends Component
@@ -22,7 +21,7 @@ class ProductEdit extends Component
 
     // Basic fields
     public $name, $slug, $short_description, $long_description, $buying_price;
-    public $price, $discount_type, $discount_price, $stock;
+    public $price, $discount_type, $discount_price;
     public $category_id, $thumbnail, $video, $status, $is_featured;
     public $images = []; // new uploads
     public $existingImages = []; // old gallery images
@@ -41,14 +40,14 @@ class ProductEdit extends Component
     public $newVariant = [
         'attributes' => [],
         'sku' => '',
-        'price_adjustment' => 0,
-        'stock' => 0,
+        'varient_price' => 0,
         'image' => null,
     ];
 
     public function mount($id)
     {
-        $product = Product::with(['variants.values'])->findOrFail($id);
+        $product = Product::with(['variants.values', 'variants.inventories'])->findOrFail($id);
+
         $this->productId = $product->id;
 
         // Basic fields
@@ -60,7 +59,6 @@ class ProductEdit extends Component
         $this->price = $product->price;
         $this->discount_type = $product->discount_type;
         $this->discount_price = $product->discount_price;
-        $this->stock = $product->stock;
         $this->category_id = $product->category_id;
         $this->video = $product->video;
         $this->status = $product->status ? true : false;
@@ -70,41 +68,42 @@ class ProductEdit extends Component
         // Load attributes and variants
         $this->productAttributes = Attribute::with('values')->get();
 
-        $this->variants = $product->variants->map(function ($variant) {
-            return [
-                'id' => $variant->id,
-                'sku' => $variant->sku,
-                'price_adjustment' => $variant->price_diff,
-                'stock' => $variant->stock,
-                'values' => $variant->values->map(function ($v) {
-                    return [
-                        'attribute_id' => $v->attribute_id,
-                        'attribute_value_id' => $v->attribute_value_id,
-                    ];
-                })->toArray(),
-                'image' => $variant->image,
-                'new_image_file' => null,
-            ];
-        })->toArray();
+        $this->variants = $product->variants
+            ->map(function ($variant) {
+                return [
+                    'id' => $variant->id,
+                    'sku' => $variant->sku,
+                    'varient_price' => $variant->varient_price,
+                    'values' => $variant->values
+                        ->map(function ($v) {
+                            return [
+                                'attribute_id' => $v->attribute_id,
+                                'attribute_value_id' => $v->attribute_value_id,
+                            ];
+                        })
+                        ->toArray(),
+                    'image' => $variant->image,
+                    'new_image_file' => null,
+                ];
+            })
+            ->toArray();
 
         $this->generateSku();
+        $this->calculateSalePrice();
     }
 
-     public function updatedPrice()
+    public function updatedPrice()
     {
         $this->calculateSalePrice();
     }
-    
-     public function updatedDiscountType($value)
+
+    public function updatedDiscountType($value)
     {
         if ($value === '' || $value === null) {
             $this->discount_price = null;
         }
-
         $this->calculateSalePrice();
     }
-
-
 
     public function updatedDiscountPrice()
     {
@@ -117,7 +116,7 @@ class ProductEdit extends Component
             if ($this->discount_type === 'fixed') {
                 $this->sale_price = max(0, $this->price - $this->discount_price);
             } elseif ($this->discount_type === 'percentage') {
-                $this->sale_price = max(0, $this->price - ($this->price * ($this->discount_price / 100)));
+                $this->sale_price = max(0, $this->price - $this->price * ($this->discount_price / 100));
             }
         } else {
             $this->sale_price = $this->price;
@@ -134,7 +133,6 @@ class ProductEdit extends Component
         $this->newVariant['sku'] = 'SKU-' . strtoupper(Str::random(6));
     }
 
-    
     public function addAttributeToVariant($attributeId)
     {
         if (!in_array($attributeId, $this->selectedAttributes)) {
@@ -153,13 +151,13 @@ class ProductEdit extends Component
             $this->selectedAttributes = array_values($this->selectedAttributes);
             $this->variantErrors = [];
         }
-    }  
+    }
 
-    
-
-     public function addVariant()
+    public function addVariant()
     {
-        $this->validateVariant();
+        if (!$this->validateVariant()) {
+            return;
+        }
 
         // Check if variant with same attributes already exists
         if ($this->variantExists()) {
@@ -168,10 +166,9 @@ class ProductEdit extends Component
         }
 
         $variant = [
-            'id' => 'new_' . (++$this->variantCounter),
+            'id' => 'new_' . ++$this->variantCounter,
             'sku' => $this->newVariant['sku'],
-            'price_adjustment' => (float) $this->newVariant['price_adjustment'],
-            'stock' => (int) $this->newVariant['stock'],
+            'varient_price' => (float) $this->newVariant['varient_price'],
             'values' => [],
             'image' => null,
             'new_image_file' => null,
@@ -214,7 +211,7 @@ class ProductEdit extends Component
                 $missingValues[] = $attribute->name;
             }
         }
-        
+
         if (!empty($missingValues)) {
             $this->variantErrors['attribute_values'] = 'Please select values for: ' . implode(', ', $missingValues);
         }
@@ -233,13 +230,8 @@ class ProductEdit extends Component
         }
 
         // Validate price adjustment
-        if (!is_numeric($this->newVariant['price_adjustment'])) {
-            $this->variantErrors['price_adjustment'] = 'Price adjustment must be a number.';
-        }
-
-        // Validate stock
-        if (!is_numeric($this->newVariant['stock']) || $this->newVariant['stock'] < 0) {
-            $this->variantErrors['stock'] = 'Stock must be a non-negative number.';
+        if (!is_numeric($this->newVariant['varient_price'])) {
+            $this->variantErrors['varient_price'] = 'Price adjustment must be a number.';
         }
 
         return empty($this->variantErrors);
@@ -278,8 +270,13 @@ class ProductEdit extends Component
     public function removeVariant($index)
     {
         if (isset($this->variants[$index])) {
-            unset($this->variants[$index]);
-            $this->variants = array_values($this->variants);
+            // If it's an existing variant (not new), mark for deletion
+            if (is_numeric($this->variants[$index]['id'])) {
+                $this->variants[$index]['_delete'] = true;
+            } else {
+                unset($this->variants[$index]);
+                $this->variants = array_values($this->variants);
+            }
         }
     }
 
@@ -288,8 +285,7 @@ class ProductEdit extends Component
         $this->newVariant = [
             'attributes' => [],
             'sku' => '',
-            'price_adjustment' => 0,
-            'stock' => 0,
+            'varient_price' => 0,
             'image' => null,
         ];
         $this->newVariantImage = null;
@@ -304,15 +300,13 @@ class ProductEdit extends Component
         $this->resetVariantForm();
     }
 
-  
     public function update()
     {
         $this->validate([
             'name' => 'required|string|max:255',
             'slug' => 'required|string|unique:products,slug,' . $this->productId,
             'price' => 'required|numeric|min:0',
-            'stock' => 'required|numeric|min:0',
-            'discount_type'  => 'nullable|string|in:fixed,percentage|required_with:discount_price',
+            'discount_type' => 'nullable|string|in:fixed,percentage|required_with:discount_price',
             'discount_price' => 'nullable|numeric|min:0|required_with:discount_type',
             'category_id' => 'required|exists:categories,id',
             'thumbnail' => 'nullable|image|max:2048',
@@ -334,7 +328,6 @@ class ProductEdit extends Component
                 'discount_type' => $this->discount_type ?: null,
                 'discount_price' => $this->discount_price,
                 'sale_price' => $this->sale_price,
-                'stock' => $this->stock,
                 'category_id' => $this->category_id,
                 'video' => $this->video,
                 'status' => $this->status,
@@ -358,24 +351,47 @@ class ProductEdit extends Component
             $product->gallery_image = $galleryPaths;
             $product->save();
 
-            // Variants
-            ProductVariant::where('product_id', $product->id)->delete();
+            // Handle variants - Update existing and create new ones
+            $existingVariantIds = [];
 
             foreach ($this->variants as $variantData) {
-                $variant = ProductVariant::create([
-                    'product_id' => $product->id,
-                    'sku' => $variantData['sku'],
-                    'price_diff' => $variantData['price_adjustment'],
-                    'stock' => $variantData['stock'],
-                ]);
+                // Skip variants marked for deletion
+                if (isset($variantData['_delete']) && $variantData['_delete']) {
+                    if (is_numeric($variantData['id'])) {
+                        ProductVariant::find($variantData['id'])->delete();
+                    }
+                    continue;
+                }
 
+                if (is_numeric($variantData['id'])) {
+                    // Update existing variant
+                    $variant = ProductVariant::find($variantData['id']);
+                    $variant->update([
+                        'sku' => $variantData['sku'],
+                        'varient_price' => $variantData['varient_price'],
+                    ]);
+                } else {
+                    // Create new variant
+                    $variant = ProductVariant::create([
+                        'product_id' => $product->id,
+                        'sku' => $variantData['sku'],
+                        'varient_price' => $variantData['varient_price'],
+                    ]);
+                }
+
+                // Handle variant image
                 if (isset($variantData['new_image_file']) && $variantData['new_image_file']) {
                     $path = $variantData['new_image_file']->store('products/variants', 'public');
                     $variant->image = $path;
                     $variant->save();
-                } elseif (!empty($variantData['image'])) {
+                } elseif (!empty($variantData['image']) && is_numeric($variantData['id'])) {
                     $variant->image = $variantData['image'];
                     $variant->save();
+                }
+
+                // Delete existing attribute values and create new ones
+                if (is_numeric($variantData['id'])) {
+                    VariantAttributeValue::where('product_variant_id', $variant->id)->delete();
                 }
 
                 foreach ($variantData['values'] as $value) {
@@ -385,40 +401,39 @@ class ProductEdit extends Component
                         'attribute_value_id' => $value['attribute_value_id'],
                     ]);
                 }
+
+                $existingVariantIds[] = $variant->id;
             }
 
+            // Delete variants that were removed
+            ProductVariant::where('product_id', $product->id)->whereNotIn('id', $existingVariantIds)->delete();
+
             DB::commit();
-           $this->dispatch('success', message: 'Product Updated Successfully!');
-            return redirect()->route('admin.product.index');
+            $this->dispatch('success', message: 'Product Updated Successfully!');
+            return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('error', ['message' => $e->getMessage()]);
+            $this->dispatch('error', message: $e->getMessage());
         }
-    }  
-
-  public function deleteImage($index)
-{
-    if (isset($this->existingImages[$index])) {
-
-        $path = $this->existingImages[$index];    
-
-        Storage::delete('public/' . $path);
-
-        unset($this->existingImages[$index]);
-
-        $this->existingImages = array_values($this->existingImages);
-
-
-        $product = Product::find($this->productId);
-        if ($product) {
-            $product->gallery_image = $this->existingImages;
-            $product->save();
-        }
-
-       $this->dispatch('success', message: 'Image Deleted!');
     }
-}
 
+    public function deleteImage($index)
+    {
+        if (isset($this->existingImages[$index])) {
+            $path = $this->existingImages[$index];
+            Storage::delete('public/' . $path);
+            unset($this->existingImages[$index]);
+            $this->existingImages = array_values($this->existingImages);
+
+            $product = Product::find($this->productId);
+            if ($product) {
+                $product->gallery_image = $this->existingImages;
+                $product->save();
+            }
+
+            $this->dispatch('success', message: 'Image Deleted!');
+        }
+    }
 
     public function render()
     {
@@ -427,4 +442,3 @@ class ProductEdit extends Component
         ])->layout('livewire.admin.layouts.app');
     }
 }
-

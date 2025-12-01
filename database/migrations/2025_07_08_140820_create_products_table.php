@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade'); // for multivendor
             $table->foreignId('category_id')->constrained()->onDelete('cascade')->index();           
             $table->string('name')->index();
+            $table->string('sku')->unique();
             $table->string('slug')->unique();
             $table->text('short_description')->nullable();
             $table->longText('long_description')->nullable();

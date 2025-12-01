@@ -7,6 +7,7 @@ use Livewire\WithFileUploads;
 use Illuminate\Support\Str;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\Inventory;
 use App\Models\Attribute;
 use App\Models\AttributeValue;
 use App\Models\ProductVariant;
@@ -18,11 +19,13 @@ class ProductCreate extends Component
 {
     use WithFileUploads;
 
-    public $name, $slug, $short_description, $long_description, $buying_price;
+    public $name, $slug, $sku, $short_description, $long_description, $buying_price;
     public $price, $discount_type, $discount_price, $stock;
     public $sale_price = 0;
     public $category_id;
-    public $thumbnail, $video, $status = true;
+    public $thumbnail,
+        $video,
+        $status = true;
     public $images = [];
 
     public $productAttributes = [];
@@ -36,13 +39,11 @@ class ProductCreate extends Component
     public $newVariantImage;
     public $variantErrors = [];
     public $is_featured = false;
-    
-
 
     public $newVariant = [
         'attributes' => [],
         'sku' => '',
-        'price_adjustment' => 0,
+        'varient_price' => 0,
         'stock' => 0,
         'image' => null,
     ];
@@ -51,7 +52,7 @@ class ProductCreate extends Component
     {
         $this->productAttributes = Attribute::with('values')->get();
         $this->slug = '';
-        $this->generateSku();
+        $this->sku = 'SKU-' . strtoupper(Str::random(6));
     }
 
     public function updatedDiscountType($value)
@@ -62,19 +63,16 @@ class ProductCreate extends Component
 
         $this->calculateSalePrice();
     }
-    
 
     public function updatedPrice()
     {
         $this->calculateSalePrice();
     }
 
-
     public function updatedDiscountPrice()
     {
         $this->calculateSalePrice();
     }
-    
 
     public function calculateSalePrice()
     {
@@ -82,14 +80,14 @@ class ProductCreate extends Component
             if ($this->discount_type === 'fixed') {
                 $this->sale_price = max(0, $this->price - $this->discount_price);
             } elseif ($this->discount_type === 'percentage') {
-                $this->sale_price = max(0, $this->price - ($this->price * ($this->discount_price / 100)));
+                $this->sale_price = max(0, $this->price - $this->price * ($this->discount_price / 100));
             }
         } else {
             $this->sale_price = $this->price;
         }
     }
 
-     public function generateSku()
+    public function generateVarientSku()
     {
         $this->newVariant['sku'] = 'SKU-' . strtoupper(Str::random(6));
     }
@@ -104,7 +102,7 @@ class ProductCreate extends Component
         if (!in_array($attributeId, $this->selectedAttributes)) {
             $this->selectedAttributes[] = $attributeId;
             $this->newVariant['attributes'][$attributeId] = '';
-            $this->variantErrors = []; // Clear errors when adding attributes
+            $this->variantErrors = [];
         }
     }
 
@@ -115,7 +113,7 @@ class ProductCreate extends Component
             unset($this->selectedAttributes[$index]);
             unset($this->newVariant['attributes'][$attributeId]);
             $this->selectedAttributes = array_values($this->selectedAttributes);
-            $this->variantErrors = []; // Clear errors
+            $this->variantErrors = [];
         }
     }
 
@@ -130,9 +128,9 @@ class ProductCreate extends Component
         }
 
         $variant = [
-            'id' => 'new_' . (++$this->variantCounter),
+            'id' => 'new_' . ++$this->variantCounter,
             'sku' => $this->newVariant['sku'],
-            'price_adjustment' => (float) $this->newVariant['price_adjustment'],
+            'varient_price' => (float) $this->newVariant['varient_price'],
             'stock' => (int) $this->newVariant['stock'],
             'values' => [],
             'image' => null,
@@ -149,7 +147,6 @@ class ProductCreate extends Component
             }
         }
 
-        // Handle image upload
         if ($this->newVariantImage) {
             $variant['new_image_file'] = $this->newVariantImage;
         }
@@ -176,7 +173,7 @@ class ProductCreate extends Component
                 $missingValues[] = $attribute->name;
             }
         }
-        
+
         if (!empty($missingValues)) {
             $this->variantErrors['attribute_values'] = 'Please select values for: ' . implode(', ', $missingValues);
         }
@@ -195,8 +192,8 @@ class ProductCreate extends Component
         }
 
         // Validate price adjustment
-        if (!is_numeric($this->newVariant['price_adjustment'])) {
-            $this->variantErrors['price_adjustment'] = 'Price adjustment must be a number.';
+        if (!is_numeric($this->newVariant['varient_price'])) {
+            $this->variantErrors['varient_price'] = 'Price adjustment must be a number.';
         }
 
         // Validate stock
@@ -250,14 +247,14 @@ class ProductCreate extends Component
         $this->newVariant = [
             'attributes' => [],
             'sku' => '',
-            'price_adjustment' => 0,
+            'varient_price' => 0,
             'stock' => 0,
             'image' => null,
         ];
         $this->newVariantImage = null;
         $this->selectedAttributes = [];
         $this->showVariantForm = false;
-        $this->generateSku();
+        $this->generateVarientSku();
         $this->variantErrors = [];
     }
 
@@ -265,6 +262,102 @@ class ProductCreate extends Component
     {
         $this->resetVariantForm();
     }
+
+    // public function save()
+    // {
+    //     $this->validate([
+    //         'name' => 'required|string|max:255',
+    //         'slug' => 'required|string|unique:products,slug',
+    //         'price' => 'required|numeric|min:0',
+    //         'sale_price' => 'required|numeric|min:0',
+    //         'short_description' => 'required|string|max:255',
+    //         'category_id' => 'required|exists:categories,id',
+    //         'thumbnail' => 'required|image|max:2048',
+    //         'video' => 'nullable|string|max:255',
+    //         'discount_type'  => 'nullable|string|in:fixed,percentage|required_with:discount_price',
+    //         'discount_price' => 'nullable|numeric|min:0|required_with:discount_type',
+    //         'images.*' => 'nullable|image|max:2048',
+    //     ]);
+
+    //     DB::beginTransaction();
+
+    //     try {
+    //         $product = Product::create([
+    //             'name' => $this->name,
+    //             'sku' => $this->sku,
+    //             'slug' => $this->slug,
+    //             'short_description' => $this->short_description,
+    //             'long_description' => $this->long_description,
+    //             'buying_price' => $this->buying_price,
+    //             'price' => $this->price,
+    //             'discount_type' => $this->discount_type ?: null,
+    //             'discount_price' => $this->discount_price,
+    //             'sale_price' => $this->sale_price,
+    //             'category_id' => $this->category_id,
+    //             'video' => $this->video,
+    //             'status' => $this->status,
+    //             'is_featured' => $this->is_featured,
+    //             'has_variant' => $this->variantSystemEnabled && !empty($this->variants),
+    //         ]);
+
+    //         // Save thumbnail
+    //         if ($this->thumbnail) {
+    //             $path = $this->thumbnail->store('products/thumbnails', 'public');
+    //             $product->thumbnail = $path;
+    //             $product->save();
+    //         }
+
+    //         // Save variants
+    //         foreach ($this->variants as $variantData) {
+    //             $variant = ProductVariant::create([
+    //                 'product_id' => $product->id,
+    //                 'sku' => $variantData['sku'],
+    //                 'varient_price' => $variantData['varient_price'],
+    //                 'stock' => $variantData['stock'],
+    //                 'image' => $variantData['image'] ?? null,
+    //             ]);
+
+    //             // Handle image upload for new variants
+    //             if (isset($variantData['new_image_file']) && $variantData['new_image_file']) {
+    //                 $path = $variantData['new_image_file']->store('products/variants', 'public');
+    //                 $variant->image = $path;
+    //                 $variant->save();
+    //             }
+
+    //             // Save attribute values
+    //             foreach ($variantData['values'] as $value) {
+    //                 VariantAttributeValue::create([
+    //                     'product_variant_id' => $variant->id,
+    //                     'attribute_id' => $value['attribute_id'],
+    //                     'attribute_value_id' => $value['attribute_value_id'],
+    //                 ]);
+    //             }
+    //         }
+
+    //         // ✅ Save gallery images into JSON field
+    //         $galleryPaths = [];
+
+    //         foreach ($this->images as $img) {
+    //             $path = $img->store('products/images', 'public');
+    //             $galleryPaths[] = $path;
+    //         }
+
+    //         if (!empty($galleryPaths)) {
+    //             $product->gallery_image = $galleryPaths;
+    //             $product->save();
+    //         }
+
+    //         DB::commit();
+
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         $this->dispatch('error',  ['message' => $e->getMessage()]);
+    //         return;
+    //     }
+
+    //     $this->dispatch('success', message: 'Product Created Successfully!');
+    //     return redirect()->route('admin.product.index');
+    // }
 
     public function save()
     {
@@ -274,11 +367,10 @@ class ProductCreate extends Component
             'price' => 'required|numeric|min:0',
             'sale_price' => 'required|numeric|min:0',
             'short_description' => 'required|string|max:255',
-            'stock' => 'required|numeric|min:0',
             'category_id' => 'required|exists:categories,id',
             'thumbnail' => 'required|image|max:2048',
             'video' => 'nullable|string|max:255',
-            'discount_type'  => 'nullable|string|in:fixed,percentage|required_with:discount_price',
+            'discount_type' => 'nullable|string|in:fixed,percentage|required_with:discount_price',
             'discount_price' => 'nullable|numeric|min:0|required_with:discount_type',
             'images.*' => 'nullable|image|max:2048',
         ]);
@@ -288,6 +380,7 @@ class ProductCreate extends Component
         try {
             $product = Product::create([
                 'name' => $this->name,
+                'sku' => $this->sku,
                 'slug' => $this->slug,
                 'short_description' => $this->short_description,
                 'long_description' => $this->long_description,
@@ -296,7 +389,6 @@ class ProductCreate extends Component
                 'discount_type' => $this->discount_type ?: null,
                 'discount_price' => $this->discount_price,
                 'sale_price' => $this->sale_price,
-                'stock' => $this->stock,
                 'category_id' => $this->category_id,
                 'video' => $this->video,
                 'status' => $this->status,
@@ -311,24 +403,36 @@ class ProductCreate extends Component
                 $product->save();
             }
 
-            // Save variants
+            // 2️⃣ Create Inventory for main product (if no variants)
+            if (!$product->has_variant) {
+                Inventory::create([
+                    'product_id' => $product->id,
+                    'variant_id' => null,
+                    'type' => 'in',
+                    'quantity' => $this->stock,
+                    'current_stock' => $this->stock,
+                    'notes' => 'Initial stock for product',
+                    'user_id' => auth()->id(),
+                ]);
+            }
+
+            // 3️⃣ Handle variants
             foreach ($this->variants as $variantData) {
                 $variant = ProductVariant::create([
                     'product_id' => $product->id,
                     'sku' => $variantData['sku'],
-                    'price_diff' => $variantData['price_adjustment'],
-                    'stock' => $variantData['stock'],
+                    'varient_price' => $variantData['varient_price'],
                     'image' => $variantData['image'] ?? null,
                 ]);
 
-                // Handle image upload for new variants
+                // Save variant image
                 if (isset($variantData['new_image_file']) && $variantData['new_image_file']) {
                     $path = $variantData['new_image_file']->store('products/variants', 'public');
                     $variant->image = $path;
                     $variant->save();
                 }
 
-                // Save attribute values
+                // Save variant attribute values
                 foreach ($variantData['values'] as $value) {
                     VariantAttributeValue::create([
                         'product_variant_id' => $variant->id,
@@ -336,34 +440,40 @@ class ProductCreate extends Component
                         'attribute_value_id' => $value['attribute_value_id'],
                     ]);
                 }
+
+                // 4️⃣ Create inventory for this variant
+                Inventory::create([
+                    'product_id' => $product->id,
+                    'variant_id' => $variant->id,
+                    'type' => 'in',
+                    'quantity' => $variantData['stock'],
+                    'current_stock' => $variantData['stock'],
+                    'notes' => 'Initial stock for variant',
+                    'user_id' => auth()->id(),
+                ]);
             }
 
-            // ✅ Save gallery images into JSON field
+            // 5️⃣ Handle gallery images
             $galleryPaths = [];
-
             foreach ($this->images as $img) {
                 $path = $img->store('products/images', 'public');
                 $galleryPaths[] = $path;
             }
-
             if (!empty($galleryPaths)) {
                 $product->gallery_image = $galleryPaths;
                 $product->save();
             }
 
             DB::commit();
-
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('error',  ['message' => $e->getMessage()]);
+            $this->dispatch('error', ['message' => $e->getMessage()]);
             return;
         }
 
-        
         $this->dispatch('success', message: 'Product Created Successfully!');
         return redirect()->route('admin.product.index');
     }
-
 
     public function render()
     {

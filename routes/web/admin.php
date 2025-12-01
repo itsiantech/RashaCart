@@ -13,7 +13,7 @@ use App\Livewire\Admin\Banner\{BannerIndex, BannerCreate, BannerEdit};
 use App\Livewire\Admin\{Dashboard, Customer};
 use App\Livewire\Admin\Category\CategoryComponent;   
 use App\Livewire\Admin\Attribute\AttributeComponent;
-use App\Livewire\Admin\Products\{ProductIndex, ProductCreate, ProductEdit, ProductView};
+use App\Livewire\Admin\Products\{ProductIndex, ProductCreate, ProductEdit, ProductView, ProductStockManage};
 use App\Livewire\Admin\Order\{OrderIndex, OrderView, OrderEdit};
 use App\Livewire\Admin\Cupon\{CuponIndex, CuponCreate, CuponEdit};
 use App\Http\Middleware\AdminAccess;
@@ -45,6 +45,7 @@ use App\Http\Middleware\AdminAccess;
         Route::get('/product/create', ProductCreate::class)->name('product.create')->middleware('can:product.create');
         Route::get('/product/edit/{id}', ProductEdit::class)->name('product.edit')->middleware('can:product.update');
         Route::get('/product/view/{id}', ProductView::class)->name('product.view')->middleware('can:product.view');
+        Route::get('/product/stock/manage{id}', ProductStockManage::class)->name('product.stock.manage')->middleware('can:product.stock.manage');
 
 
         Route::get('/orders', OrderIndex::class)->name('order.index')->middleware('can:order.view');

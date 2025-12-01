@@ -34,7 +34,7 @@
         </li>
 
         <!-- Product Manage -->
-        <li class="menu-item {{ Route::is('admin.category.index', 'admin.attribute.index', 'admin.product.index', 'admin.product.create', 'admin.product.edit', 'admin.product.view') ? 'active open' : '' }}">
+        <li class="menu-item {{ Route::is('admin.category.index', 'admin.attribute.index', 'admin.product.index', 'admin.product.create', 'admin.product.edit', 'admin.product.view','admin.product.stock.manage') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-category-alt"></i>
                 <div data-i18n="Account Settings">Product Manage</div>
@@ -56,7 +56,7 @@
                             <div data-i18n="Analytics">Attributes</div>
                         </a>
                     </li>                
-                    <li class="menu-item {{ Route::is('admin.product.index','admin.product.create', 'admin.product.edit','admin.product.view') ? 'active' : '' }}">
+                    <li class="menu-item {{ Route::is('admin.product.index','admin.product.create', 'admin.product.edit','admin.product.view', 'admin.product.stock.manage') ? 'active' : '' }}">
                         <a href="{{ route('admin.product.index') }}" wire:navigate class="menu-link">
                             <i class='menu-icon tf-icons bx bxs-duplicate'></i>
                             <div data-i18n="Analytics">Product</div>
