@@ -115,6 +115,20 @@
                          @error('thumbnail')
                             <span class="text-danger small">{{ $message }}</span>
                         @enderror
+                            <!-- Progress Bar -->
+                        <div wire:loading wire:target="thumbnail" class="mt-2">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                                    role="progressbar" style="width: 0%" x-data="{ progress: 0 }"
+                                    x-on:livewire-upload-start="progress = 5"
+                                    x-on:livewire-upload-progress.window="progress = $event.detail.progress"
+                                    x-on:livewire-upload-finish="progress = 100" x-on:livewire-upload-error="progress = 0"
+                                    :style="`width: ${progress}%`">
+                                    <span x-text="progress + '%'"></span>
+                                </div>
+                            </div>
+                            <span class="mt-1 d-block">Uploading images...</span>
+                        </div>
                         @if ($thumbnail)
                             <div class="mt-2">
                                 <img src="{{ $thumbnail->temporaryUrl() }}" class="img-thumbnail" width="120">
@@ -133,6 +147,19 @@
                     <label class="form-label">Upload Images (Multiple)</label>
                     <input type="file" multiple wire:model="images" class="form-control">
                 </div>
+                 <div wire:loading wire:target="images" class="mt-2">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                                    role="progressbar" style="width: 0%" x-data="{ progress: 0 }"
+                                    x-on:livewire-upload-start="progress = 5"
+                                    x-on:livewire-upload-progress.window="progress = $event.detail.progress"
+                                    x-on:livewire-upload-finish="progress = 100" x-on:livewire-upload-error="progress = 0"
+                                    :style="`width: ${progress}%`">
+                                    <span x-text="progress + '%'"></span>
+                                </div>
+                            </div>
+                            <span class="mt-1 d-block">Uploading images...</span>
+                        </div>
 
                 @if (count($images) > 0)
                     <div class="d-flex flex-wrap gap-2 mt-2">

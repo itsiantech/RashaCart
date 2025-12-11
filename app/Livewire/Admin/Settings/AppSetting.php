@@ -96,7 +96,7 @@ class AppSetting extends Component
     public function update()
     {
         $validatedData = $this->validate((new SettingsRequest())->rules());
-
+      
        
         if ($this->app_logo) {
             $oldLogo = setting('app_logo');

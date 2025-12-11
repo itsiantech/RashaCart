@@ -216,11 +216,9 @@ class ProductEdit extends Component
             $this->variantErrors['attribute_values'] = 'Please select values for: ' . implode(', ', $missingValues);
         }
 
-        // Validate SKU
         if (empty($this->newVariant['sku'])) {
             $this->variantErrors['sku'] = 'SKU is required.';
         } else {
-            // Check if SKU already exists in current variants
             foreach ($this->variants as $variant) {
                 if ($variant['sku'] === $this->newVariant['sku']) {
                     $this->variantErrors['sku'] = 'This SKU is already used in another variant.';
@@ -229,7 +227,6 @@ class ProductEdit extends Component
             }
         }
 
-        // Validate price adjustment
         if (!is_numeric($this->newVariant['varient_price'])) {
             $this->variantErrors['varient_price'] = 'Price adjustment must be a number.';
         }
@@ -270,7 +267,6 @@ class ProductEdit extends Component
     public function removeVariant($index)
     {
         if (isset($this->variants[$index])) {
-            // If it's an existing variant (not new), mark for deletion
             if (is_numeric($this->variants[$index]['id'])) {
                 $this->variants[$index]['_delete'] = true;
             } else {
@@ -300,122 +296,133 @@ class ProductEdit extends Component
         $this->resetVariantForm();
     }
 
-    public function update()
-    {
-        $this->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|unique:products,slug,' . $this->productId,
-            'price' => 'required|numeric|min:0',
-            'discount_type' => 'nullable|string|in:fixed,percentage|required_with:discount_price',
-            'discount_price' => 'nullable|numeric|min:0|required_with:discount_type',
-            'category_id' => 'required|exists:categories,id',
-            'thumbnail' => 'nullable|image|max:2048',
-            'images.*' => 'nullable|image|max:2048',
+   public function update()
+{
+    $this->validate([
+        'name' => 'required|string|max:255',
+        'slug' => 'required|string|unique:products,slug,' . $this->productId,
+        'price' => 'required|numeric|min:0',
+        'discount_type' => 'nullable|string|in:fixed,percentage|required_with:discount_price',
+        'discount_price' => 'nullable|numeric|min:0|required_with:discount_type',
+        'category_id' => 'required|exists:categories,id',
+        'thumbnail' => 'nullable|image|max:2048',
+        'images.*' => 'nullable|image|max:2048',
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+        $product = Product::findOrFail($this->productId);
+
+        $product->update([
+            'name' => $this->name,
+            'slug' => $this->slug,
+            'short_description' => $this->short_description,
+            'long_description' => $this->long_description,
+            'buying_price' => $this->buying_price,
+            'price' => $this->price,
+            'discount_type' => $this->discount_type ?: null,
+            'discount_price' => $this->discount_price,
+            'sale_price' => $this->sale_price,
+            'category_id' => $this->category_id,
+            'video' => $this->video,
+            'status' => $this->status,
+            'is_featured' => $this->is_featured,
+            'has_variant' => $this->variantSystemEnabled && !empty($this->variants),
         ]);
 
-        DB::beginTransaction();
+        // Handle thumbnail update
+        if ($this->thumbnail) {
+            $path = $this->thumbnail->store('products/thumbnails', 'public');
+            $product->thumbnail = $path;
+            $product->save();
+        }
 
-        try {
-            $product = Product::findOrFail($this->productId);
-
-            $product->update([
-                'name' => $this->name,
-                'slug' => $this->slug,
-                'short_description' => $this->short_description,
-                'long_description' => $this->long_description,
-                'buying_price' => $this->buying_price,
-                'price' => $this->price,
-                'discount_type' => $this->discount_type ?: null,
-                'discount_price' => $this->discount_price,
-                'sale_price' => $this->sale_price,
-                'category_id' => $this->category_id,
-                'video' => $this->video,
-                'status' => $this->status,
-                'is_featured' => $this->is_featured,
-                'has_variant' => $this->variantSystemEnabled && !empty($this->variants),
-            ]);
-
-            if ($this->thumbnail) {
-                $path = $this->thumbnail->store('products/thumbnails', 'public');
-                $product->thumbnail = $path;
-                $product->save();
-            }
-
-            // Save new gallery images
+        // Handle gallery images update
+        $galleryPaths = [];
+        
+        // Keep existing images if they exist
+        if (!empty($this->existingImages) && is_array($this->existingImages)) {
             $galleryPaths = $this->existingImages;
+        }
+        
+        // Add new images
+        if (!empty($this->images) && is_array($this->images)) {
             foreach ($this->images as $img) {
                 $path = $img->store('products/images', 'public');
                 $galleryPaths[] = $path;
             }
+        }
+        
+        // Update gallery_image field
+        $product->gallery_image = $galleryPaths;
+        $product->save();
 
-            $product->gallery_image = $galleryPaths;
-            $product->save();
+        // Handle variants - Update existing and create new ones
+        $existingVariantIds = [];
 
-            // Handle variants - Update existing and create new ones
-            $existingVariantIds = [];
-
-            foreach ($this->variants as $variantData) {
-                // Skip variants marked for deletion
-                if (isset($variantData['_delete']) && $variantData['_delete']) {
-                    if (is_numeric($variantData['id'])) {
-                        ProductVariant::find($variantData['id'])->delete();
-                    }
-                    continue;
-                }
-
+        foreach ($this->variants as $variantData) {
+            // Skip variants marked for deletion
+            if (isset($variantData['_delete']) && $variantData['_delete']) {
                 if (is_numeric($variantData['id'])) {
-                    // Update existing variant
-                    $variant = ProductVariant::find($variantData['id']);
-                    $variant->update([
-                        'sku' => $variantData['sku'],
-                        'varient_price' => $variantData['varient_price'],
-                    ]);
-                } else {
-                    // Create new variant
-                    $variant = ProductVariant::create([
-                        'product_id' => $product->id,
-                        'sku' => $variantData['sku'],
-                        'varient_price' => $variantData['varient_price'],
-                    ]);
+                    ProductVariant::find($variantData['id'])->delete();
                 }
-
-                // Handle variant image
-                if (isset($variantData['new_image_file']) && $variantData['new_image_file']) {
-                    $path = $variantData['new_image_file']->store('products/variants', 'public');
-                    $variant->image = $path;
-                    $variant->save();
-                } elseif (!empty($variantData['image']) && is_numeric($variantData['id'])) {
-                    $variant->image = $variantData['image'];
-                    $variant->save();
-                }
-
-                // Delete existing attribute values and create new ones
-                if (is_numeric($variantData['id'])) {
-                    VariantAttributeValue::where('product_variant_id', $variant->id)->delete();
-                }
-
-                foreach ($variantData['values'] as $value) {
-                    VariantAttributeValue::create([
-                        'product_variant_id' => $variant->id,
-                        'attribute_id' => $value['attribute_id'],
-                        'attribute_value_id' => $value['attribute_value_id'],
-                    ]);
-                }
-
-                $existingVariantIds[] = $variant->id;
+                continue;
             }
 
-            // Delete variants that were removed
-            ProductVariant::where('product_id', $product->id)->whereNotIn('id', $existingVariantIds)->delete();
+            if (is_numeric($variantData['id'])) {
+                // Update existing variant
+                $variant = ProductVariant::find($variantData['id']);
+                $variant->update([
+                    'sku' => $variantData['sku'],
+                    'varient_price' => $variantData['varient_price'],
+                ]);
+            } else {
+                // Create new variant
+                $variant = ProductVariant::create([
+                    'product_id' => $product->id,
+                    'sku' => $variantData['sku'],
+                    'varient_price' => $variantData['varient_price'],
+                ]);
+            }
 
-            DB::commit();
-            $this->dispatch('success', message: 'Product Updated Successfully!');
-            return redirect()->back();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $this->dispatch('error', message: $e->getMessage());
+            // Handle variant image
+            if (isset($variantData['new_image_file']) && $variantData['new_image_file']) {
+                $path = $variantData['new_image_file']->store('products/variants', 'public');
+                $variant->image = $path;
+                $variant->save();
+            } elseif (!empty($variantData['image']) && is_numeric($variantData['id'])) {
+                $variant->image = $variantData['image'];
+                $variant->save();
+            }
+
+            // Delete existing attribute values and create new ones
+            if (is_numeric($variantData['id'])) {
+                VariantAttributeValue::where('product_variant_id', $variant->id)->delete();
+            }
+
+            foreach ($variantData['values'] as $value) {
+                VariantAttributeValue::create([
+                    'product_variant_id' => $variant->id,
+                    'attribute_id' => $value['attribute_id'],
+                    'attribute_value_id' => $value['attribute_value_id'],
+                ]);
+            }
+
+            $existingVariantIds[] = $variant->id;
         }
+
+        // Delete variants that were removed
+        ProductVariant::where('product_id', $product->id)->whereNotIn('id', $existingVariantIds)->delete();
+
+        DB::commit();
+        $this->dispatch('success', message: 'Product Updated Successfully!');
+        return redirect()->back();
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $this->dispatch('error', message: $e->getMessage());
     }
+}
 
     public function deleteImage($index)
     {

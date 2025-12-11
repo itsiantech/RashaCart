@@ -101,12 +101,28 @@
                     <div class="col-md-6">
                         <label>Change Thumbnail</label>
                         <input type="file" wire:model="thumbnail" class="form-control">
+                        @error('thumbnail')
+                            <span class="text-danger small">{{ $message }}</span>
+                        @enderror
                         <div class="mt-2">
                             @if ($thumbnail)
                                 <img src="{{ $thumbnail->temporaryUrl() }}" width="120" class="img-thumbnail">
                             @else
                                 <img src="{{ asset('storage/' . optional(App\Models\Product::find($productId))->thumbnail) }}" width="120" class="img-thumbnail">
                             @endif
+                        </div>
+                         <div wire:loading wire:target="thumbnail" class="mt-2">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                                    role="progressbar" style="width: 0%" x-data="{ progress: 0 }"
+                                    x-on:livewire-upload-start="progress = 5"
+                                    x-on:livewire-upload-progress.window="progress = $event.detail.progress"
+                                    x-on:livewire-upload-finish="progress = 100" x-on:livewire-upload-error="progress = 0"
+                                    :style="`width: ${progress}%`">
+                                    <span x-text="progress + '%'"></span>
+                                </div>
+                            </div>
+                            <span class="mt-1 d-block">Uploading images...</span>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -132,6 +148,9 @@
                     <div class="mt-3">
                         <label>Add More Images</label>
                         <input type="file" multiple wire:model="images" class="form-control">
+                        @error('images')
+                            <span class="text-danger small">{{ $message }}</span>
+                        @enderror
                         @if (count($images) > 0)
                             <div class="d-flex flex-wrap gap-2 mt-2">
                                 @foreach ($images as $img)
@@ -139,6 +158,20 @@
                                 @endforeach
                             </div>
                         @endif
+
+                         <div wire:loading wire:target="images" class="mt-2">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                                    role="progressbar" style="width: 0%" x-data="{ progress: 0 }"
+                                    x-on:livewire-upload-start="progress = 5"
+                                    x-on:livewire-upload-progress.window="progress = $event.detail.progress"
+                                    x-on:livewire-upload-finish="progress = 100" x-on:livewire-upload-error="progress = 0"
+                                    :style="`width: ${progress}%`">
+                                    <span x-text="progress + '%'"></span>
+                                </div>
+                            </div>
+                            <span class="mt-1 d-block">Uploading images...</span>
+                        </div>
                     </div>
                 </div>
             </div>

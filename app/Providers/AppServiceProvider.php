@@ -10,7 +10,7 @@ use Cache;
 use App\Models\Category;
 use App\Models\Banner;
 use App\Models\Product;
-
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,66 +28,58 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrap();
 
-         Paginator::useBootstrap();
        
-        // Dynamically override Google Socialite config no need service.php entry
-        config([
-            'services.google.client_id' => setting('GOOGLE_CLIENT_ID'),
-            'services.google.client_secret' => setting('GOOGLE_CLIENT_SECRET'),
-            'services.google.redirect' => url('/auth/google/callback'),
-        ]);
+        if (Schema::hasTable('settings')) {
+            config([
+                'services.google.client_id' => setting('GOOGLE_CLIENT_ID'),
+                'services.google.client_secret' => setting('GOOGLE_CLIENT_SECRET'),
+                'services.google.redirect' => url('/auth/google/callback'),
+            ]);
+        }
+
+        if (Schema::hasTable('categories') && Schema::hasTable('banners') && Schema::hasTable('products')) {
+            $categories = Cache::rememberForever('categories', function () {
+                return Category::with('allChildren')
+                    ->where('status', true)
+                    ->get();
+            });
+            View::share('categories', $categories);
+
+            $ads = Cache::rememberForever('ads', function () {
+                return Banner::where('status', true)->where('type', 'ads')->get();
+            });
+            View::share('ads', $ads);
+
+            $popup = Cache::rememberForever('popup', function () {
+                return Banner::where('status', true)->where('type', 'popup')->get();
+            });
+            View::share('popup', $popup);
+
+            $banners = Cache::rememberForever('banners', function () {
+                return Banner::where('status', true)->where('type', 'banner')->get();
+            });
+            View::share('banners', $banners);
+
+            $products = Cache::rememberForever('products', function () {
+                return Product::with([
+                        'category',
+                        'user',
+                        'coupons',
+                        'variants.variantAttributeValues.attribute',
+                        'variants.variantAttributeValues.attributeValue'
+                    ])
+                    ->withCount('reviews')
+                    ->withAvg('reviews', 'rating')
+                    ->where('status', true)
+                    ->get();
+            });
+            View::share('products', $products);
+        }
 
         Gate::before(function ($user, $ability) {
             return $user->hasRole('super-admin') ? true : null;
-        });       
-       
-
-        $categories = Cache::rememberForever('categories', function () {
-            return Category::with('allChildren') 
-                ->where('status', true)
-                ->get();
         });
-        View::share('categories', $categories);
-
-        
-        $ads = Cache::rememberForever('ads', function () {
-            return Banner::where('status', true)->where('type', 'ads')->get();
-        });
-        View::share('ads', $ads);
-
-        $popup = Cache::rememberForever('popup', function () {
-            return Banner::where('status', true)->where('type', 'popup')->get();
-        });
-        View::share('popup', $popup);
-
-
-   
-        $banners = Cache::rememberForever('banners', function () {
-            return Banner::where('status', true)->where('type', 'banner')->get();
-        });
-
-        View::share('banners', $banners);
-
-
-        $products = Cache::rememberForever('products', function () {
-            return Product::with([
-                    'category',
-                    'user',
-                    'coupons',
-                    'variants.variantAttributeValues.attribute',
-                    'variants.variantAttributeValues.attributeValue'
-                ])
-                ->withCount('reviews')               // reviews_count
-                ->withAvg('reviews', 'rating')       // reviews_avg_rating
-                ->where('status', true)
-                ->get();
-        });
-
-
-        View::share('products', $products);
-
-
-
     }
 }

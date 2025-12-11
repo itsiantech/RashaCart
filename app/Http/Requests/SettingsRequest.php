@@ -60,7 +60,7 @@ class SettingsRequest extends FormRequest
             'email_notification' => ['nullable', 'boolean'],
            
 
-           'selected_courier' => ['required', 'string', 'in:quirior,steedfast,available'],
+            'selected_courier' => ['nullable', 'string', 'in:quirior,steedfast,available'],
             'steedfast_api_base_url' => ['nullable', 'url', 'max:255'],
             'steedfast_api_key' => ['nullable', 'string', 'max:255'],
             'steedfast_api_secret' => ['nullable', 'string', 'max:255'],

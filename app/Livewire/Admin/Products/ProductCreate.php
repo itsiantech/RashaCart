@@ -263,102 +263,7 @@ class ProductCreate extends Component
         $this->resetVariantForm();
     }
 
-    // public function save()
-    // {
-    //     $this->validate([
-    //         'name' => 'required|string|max:255',
-    //         'slug' => 'required|string|unique:products,slug',
-    //         'price' => 'required|numeric|min:0',
-    //         'sale_price' => 'required|numeric|min:0',
-    //         'short_description' => 'required|string|max:255',
-    //         'category_id' => 'required|exists:categories,id',
-    //         'thumbnail' => 'required|image|max:2048',
-    //         'video' => 'nullable|string|max:255',
-    //         'discount_type'  => 'nullable|string|in:fixed,percentage|required_with:discount_price',
-    //         'discount_price' => 'nullable|numeric|min:0|required_with:discount_type',
-    //         'images.*' => 'nullable|image|max:2048',
-    //     ]);
-
-    //     DB::beginTransaction();
-
-    //     try {
-    //         $product = Product::create([
-    //             'name' => $this->name,
-    //             'sku' => $this->sku,
-    //             'slug' => $this->slug,
-    //             'short_description' => $this->short_description,
-    //             'long_description' => $this->long_description,
-    //             'buying_price' => $this->buying_price,
-    //             'price' => $this->price,
-    //             'discount_type' => $this->discount_type ?: null,
-    //             'discount_price' => $this->discount_price,
-    //             'sale_price' => $this->sale_price,
-    //             'category_id' => $this->category_id,
-    //             'video' => $this->video,
-    //             'status' => $this->status,
-    //             'is_featured' => $this->is_featured,
-    //             'has_variant' => $this->variantSystemEnabled && !empty($this->variants),
-    //         ]);
-
-    //         // Save thumbnail
-    //         if ($this->thumbnail) {
-    //             $path = $this->thumbnail->store('products/thumbnails', 'public');
-    //             $product->thumbnail = $path;
-    //             $product->save();
-    //         }
-
-    //         // Save variants
-    //         foreach ($this->variants as $variantData) {
-    //             $variant = ProductVariant::create([
-    //                 'product_id' => $product->id,
-    //                 'sku' => $variantData['sku'],
-    //                 'varient_price' => $variantData['varient_price'],
-    //                 'stock' => $variantData['stock'],
-    //                 'image' => $variantData['image'] ?? null,
-    //             ]);
-
-    //             // Handle image upload for new variants
-    //             if (isset($variantData['new_image_file']) && $variantData['new_image_file']) {
-    //                 $path = $variantData['new_image_file']->store('products/variants', 'public');
-    //                 $variant->image = $path;
-    //                 $variant->save();
-    //             }
-
-    //             // Save attribute values
-    //             foreach ($variantData['values'] as $value) {
-    //                 VariantAttributeValue::create([
-    //                     'product_variant_id' => $variant->id,
-    //                     'attribute_id' => $value['attribute_id'],
-    //                     'attribute_value_id' => $value['attribute_value_id'],
-    //                 ]);
-    //             }
-    //         }
-
-    //         // ✅ Save gallery images into JSON field
-    //         $galleryPaths = [];
-
-    //         foreach ($this->images as $img) {
-    //             $path = $img->store('products/images', 'public');
-    //             $galleryPaths[] = $path;
-    //         }
-
-    //         if (!empty($galleryPaths)) {
-    //             $product->gallery_image = $galleryPaths;
-    //             $product->save();
-    //         }
-
-    //         DB::commit();
-
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         $this->dispatch('error',  ['message' => $e->getMessage()]);
-    //         return;
-    //     }
-
-    //     $this->dispatch('success', message: 'Product Created Successfully!');
-    //     return redirect()->route('admin.product.index');
-    // }
-
+    
     public function save()
     {
         $this->validate([
@@ -368,11 +273,11 @@ class ProductCreate extends Component
             'sale_price' => 'required|numeric|min:0',
             'short_description' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
-            'thumbnail' => 'required|image|max:2048',
+            'thumbnail' => 'required|image|max:7048',
             'video' => 'nullable|string|max:255',
             'discount_type' => 'nullable|string|in:fixed,percentage|required_with:discount_price',
             'discount_price' => 'nullable|numeric|min:0|required_with:discount_type',
-            'images.*' => 'nullable|image|max:2048',
+            'images.*' => 'nullable|image|max:7048',
         ]);
 
         DB::beginTransaction();
@@ -396,14 +301,12 @@ class ProductCreate extends Component
                 'has_variant' => $this->variantSystemEnabled && !empty($this->variants),
             ]);
 
-            // Save thumbnail
             if ($this->thumbnail) {
                 $path = $this->thumbnail->store('products/thumbnails', 'public');
                 $product->thumbnail = $path;
                 $product->save();
             }
 
-            // 2️⃣ Create Inventory for main product (if no variants)
             if (!$product->has_variant) {
                 Inventory::create([
                     'product_id' => $product->id,
@@ -416,7 +319,6 @@ class ProductCreate extends Component
                 ]);
             }
 
-            // 3️⃣ Handle variants
             foreach ($this->variants as $variantData) {
                 $variant = ProductVariant::create([
                     'product_id' => $product->id,
@@ -425,14 +327,14 @@ class ProductCreate extends Component
                     'image' => $variantData['image'] ?? null,
                 ]);
 
-                // Save variant image
+               
                 if (isset($variantData['new_image_file']) && $variantData['new_image_file']) {
                     $path = $variantData['new_image_file']->store('products/variants', 'public');
                     $variant->image = $path;
                     $variant->save();
                 }
 
-                // Save variant attribute values
+               
                 foreach ($variantData['values'] as $value) {
                     VariantAttributeValue::create([
                         'product_variant_id' => $variant->id,
@@ -441,7 +343,6 @@ class ProductCreate extends Component
                     ]);
                 }
 
-                // 4️⃣ Create inventory for this variant
                 Inventory::create([
                     'product_id' => $product->id,
                     'variant_id' => $variant->id,
@@ -453,7 +354,6 @@ class ProductCreate extends Component
                 ]);
             }
 
-            // 5️⃣ Handle gallery images
             $galleryPaths = [];
             foreach ($this->images as $img) {
                 $path = $img->store('products/images', 'public');
