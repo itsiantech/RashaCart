@@ -37,12 +37,22 @@ class Category extends Model
         return $this->hasMany(Product::class);
     }
 
+ 
+
     protected static function booted()
     {
-        static::saved(fn() => Cache::forget('categories'));
-        static::deleted(fn() => Cache::forget('categories'));
-        
-    }    
+        static::saved(function () {
+            Cache::forget('categories');
+            Cache::forget('global_cache_ready');
+        });
+
+        static::deleted(function () {
+            Cache::forget('categories');
+            Cache::forget('global_cache_ready');
+        });
+    }
+
+  
 
 
 }

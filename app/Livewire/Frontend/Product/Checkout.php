@@ -76,7 +76,7 @@ class Checkout extends Component
     public function calculateTotals()
     {
         $this->subtotal = collect($this->cartItems)->sum(fn($item) => $item['price'] * $item['qty']);
-        $this->delivery_charge = $this->delivery_zone === 'inside' ? setting('dc_inside') : setting('dc_outside');
+        $this->delivery_charge = $this->delivery_zone === 'inside' ? setting('dc_inside', 60) : setting('dc_outside', 120);
         $this->total = $this->subtotal - $this->discount + $this->delivery_charge;
     }
    

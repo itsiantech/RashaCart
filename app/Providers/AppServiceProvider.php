@@ -5,81 +5,102 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Pagination\Paginator;
- use Laravel\Socialite\Facades\Socialite;
-use Cache;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\View;
 use App\Models\Category;
 use App\Models\Banner;
 use App\Models\Product;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\View;
+
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         $loader = \Illuminate\Foundation\AliasLoader::getInstance();
         $loader->alias('Debugbar', \Barryvdh\Debugbar\Facades\Debugbar::class);
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         Paginator::useBootstrap();
 
-       
+        /* ---------------- Settings ---------------- */
         if (Schema::hasTable('settings')) {
             config([
-                'services.google.client_id' => setting('GOOGLE_CLIENT_ID'),
+                'services.google.client_id'     => setting('GOOGLE_CLIENT_ID'),
                 'services.google.client_secret' => setting('GOOGLE_CLIENT_SECRET'),
-                'services.google.redirect' => url('/auth/google/callback'),
+                'services.google.redirect'      => url('/auth/google/callback'),
             ]);
         }
 
-        if (Schema::hasTable('categories') && Schema::hasTable('banners') && Schema::hasTable('products')) {
-            $categories = Cache::rememberForever('categories', function () {
-                return Category::with('allChildren')
-                    ->where('status', true)
-                    ->get();
-            });
-            View::share('categories', $categories);
+        /* ---------------- Global Cache ---------------- */
+        if (
+            Schema::hasTable('categories') &&
+            Schema::hasTable('banners') &&
+            Schema::hasTable('products')
+        ) {
 
-            $ads = Cache::rememberForever('ads', function () {
-                return Banner::where('status', true)->where('type', 'ads')->get();
-            });
-            View::share('ads', $ads);
+            // Rebuild ONLY if cache is missing
+            if (! Cache::has('global_cache_ready')) {
 
-            $popup = Cache::rememberForever('popup', function () {
-                return Banner::where('status', true)->where('type', 'popup')->get();
-            });
-            View::share('popup', $popup);
+                Cache::lock('rebuild-cache-lock', 30)->block(10, function () {
 
-            $banners = Cache::rememberForever('banners', function () {
-                return Banner::where('status', true)->where('type', 'banner')->get();
-            });
-            View::share('banners', $banners);
+                    Cache::remember('categories', now()->addDays(7), function () {
+                        return Category::with('allChildren')
+                            ->where('status', true)
+                            ->get();
+                    });
 
-            $products = Cache::rememberForever('products', function () {
-                return Product::with([
-                        'category',
-                        'user',
-                        'coupons',
-                        'variants.variantAttributeValues.attribute',
-                        'variants.variantAttributeValues.attributeValue'
-                    ])
-                    ->withCount('reviews')
-                    ->withAvg('reviews', 'rating')
-                    ->where('status', true)
-                    ->get();
-            });
-            View::share('products', $products);
+                    Cache::remember('banners', now()->addDays(7), function () {
+                        return Banner::where('status', true)
+                            ->where('type', 'banner')
+                            ->get();
+                    });
+
+                    Cache::remember('ads', now()->addDays(7), function () {
+                        return Banner::where('status', true)
+                            ->where('type', 'ads')
+                            ->get();
+                    });
+
+                    Cache::remember('popup', now()->addDays(7), function () {
+                        return Banner::where('status', true)
+                            ->where('type', 'popup')
+                            ->get();
+                    });
+
+                    Cache::remember('products', now()->addDays(7), function () {
+                        return Product::with([
+                            'category',
+                            'user',
+                            'coupons',
+                            'variants.variantAttributeValues.attribute',
+                            'variants.variantAttributeValues.attributeValue',
+                        ])
+                            ->withCount('reviews')
+                            ->withAvg('reviews', 'rating')
+                            ->where('status', true)
+                            ->get();
+                    });
+
+                    // Sentinel flag (VERY IMPORTANT)
+                    Cache::put('global_cache_ready', true, now()->addDays(7));
+                });
+            }
+
+            // Share cached data with all views
+            View::share([
+                'categories' => Cache::get('categories'),
+                'banners'    => Cache::get('banners'),
+                'ads'        => Cache::get('ads'),
+                'popup'      => Cache::get('popup'),
+                'products'   => Cache::get('products'),
+            ]);
         }
 
+        /* ---------------- Gates ---------------- */
         Gate::before(function ($user, $ability) {
-            return $user->hasRole('super-admin') ? true : null;
+            return $user?->hasRole('super-admin') ? true : null;
         });
     }
 }

@@ -18,12 +18,14 @@ class Banner extends Model
             Cache::forget('banners');
             Cache::forget('ads');
             Cache::forget('popup');
+            Cache::forget('global_cache_ready');
         });
 
         static::deleted(function($model) {
             Cache::forget('banners');
             Cache::forget('ads');
             Cache::forget('popup');
+            Cache::forget('global_cache_ready');
         });
     }
 

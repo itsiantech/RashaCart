@@ -8,6 +8,7 @@ use App\Traits\HandlesCartActions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
 use Livewire\WithPagination;
+use App\Models\Product;
 class SingleView extends Component
 {
     use HandlesCartActions, WithPagination;
@@ -28,7 +29,17 @@ class SingleView extends Component
    
     public function mount($slug)
     {
-        $allProducts = Cache::get('products', collect());
+        $allProducts = Product::with([
+                        'category',
+                        'user',
+                        'coupons',
+                        'variants.variantAttributeValues.attribute',
+                        'variants.variantAttributeValues.attributeValue'
+                    ])
+                    ->withCount('reviews')
+                    ->withAvg('reviews', 'rating')
+                    ->where('status', true)
+                    ->get();
 
         $this->product = $allProducts->where('slug', $slug)->firstOrFail();
 

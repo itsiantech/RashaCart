@@ -67,10 +67,17 @@ class Product extends Model
 
 
 
-    protected static function booted()
+       protected static function booted()
     {
-        static::saved(fn() => Cache::forget('products'));
-        static::deleted(fn() => Cache::forget('products'));
+        static::saved(function () {
+            Cache::forget('products');
+            Cache::forget('global_cache_ready');
+        });
+
+        static::deleted(function () {
+            Cache::forget('products');
+            Cache::forget('global_cache_ready');
+        });
     }
 
 

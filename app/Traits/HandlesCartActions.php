@@ -130,4 +130,12 @@ trait HandlesCartActions
         $this->dispatch('wishlistUpdated');
         $this->dispatch('success', message: 'Product added to favorites!');
     }
+
+    public function refreshCart()
+    {
+        $this->cartItems = session()->get('cart', []);
+        $cartCount = array_sum(array_column($this->cartItems, 'qty') ?: [0]);
+        $this->dispatch('cart-updated', count: $cartCount);
+    }
+
 }

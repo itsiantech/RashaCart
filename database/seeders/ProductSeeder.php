@@ -1,0 +1,26 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use App\Models\Category;
+use App\Models\Product;
+use Illuminate\Support\Str;
+
+class ProductSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $categoryIds = Category::whereNotNull('parent_id')->pluck('id')->toArray();
+
+        Product::factory()
+            ->count(1000)
+            ->state(function () use ($categoryIds) {
+                return [
+                    'category_id' => fake()->randomElement($categoryIds),
+                    'is_featured' => fake()->boolean(25),
+                ];
+            })
+            ->create();
+    }
+}
