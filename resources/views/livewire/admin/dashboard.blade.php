@@ -1,14 +1,66 @@
 <div>
-    <!-- Charts and Main Content -->
+    <!-- Full Page Loader during Refresh -->
+    @if($isRefreshing)
+    <div class="position-fixed top-0 start-0 w-100 h-100 bg-white bg-opacity-75 d-flex justify-content-center align-items-center" style="z-index: 9999;">
+        <div class="text-center">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Refreshing Dashboard...</span>
+            </div>
+            <p class="mt-3 text-primary fw-semibold">Refreshing dashboard data...</p>
+        </div>
+    </div>
+    @endif
+
+    <!-- Refresh Button and Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="card-title mb-0">Dashboard Overview</h4>
+                            <small class="text-muted">Showing data from
+                                {{ \Carbon\Carbon::parse($startDate)->format('M d, Y') }} to
+                                {{ \Carbon\Carbon::parse($endDate)->format('M d, Y') }}</small>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <!-- Last updated indicator -->
+                            <small class="text-muted me-2">
+                                <i class="bx bx-time"></i>
+                                Updated {{ $lastUpdated->diffForHumans() }}
+                            </small>
+
+                            <!-- Refresh Button -->
+                            <button wire:click="refreshDashboardData" 
+                                    wire:loading.attr="disabled"
+                                    wire:loading.class="disabled"
+                                    class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2">
+                                <span wire:loading.remove wire:target="refreshDashboardData">
+                                    <i class="bx bx-refresh"></i> Refresh Data
+                                </span>
+                                <span wire:loading wire:target="refreshDashboardData">
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    Refreshing...
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Charts Section -->
     <div class="row">
         <div class="col-lg-8 mb-4">
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title m-0">Revenue Overview</h5>
-                    <small class="text-muted">Filtered Period</small>
+                    <small class="text-muted">Only delivered orders count as revenue</small>
                 </div>
                 <div class="card-body">
-                    <div wire:ignore id="revenueChart" style="height: 300px;">                       
+                    <div wire:ignore id="revenueChart" style="height: 300px;">
                         <div class="d-flex justify-content-center align-items-center" style="height: 300px;">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading chart...</span>
@@ -23,10 +75,10 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title m-0">Sales by Category</h5>
-                    <small class="text-muted">Filtered Period</small>
+                    <small class="text-muted">Only delivered orders</small>
                 </div>
                 <div class="card-body">
-                    <div wire:ignore id="categoryChart" style="height: 300px;">                       
+                    <div wire:ignore id="categoryChart" style="height: 300px;">
                         <div class="d-flex justify-content-center align-items-center" style="height: 300px;">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading chart...</span>
@@ -42,7 +94,7 @@
     <div class="row mb-4">
         <div class="col-12 position-relative">
             <!-- Loader -->
-            <div wire:loading.flex wire:target="filterType, startDate, endDate, applyFilter"
+            <div wire:loading.flex wire:target="filterType, startDate, endDate, applyFilter, refreshDashboardData"
                 class="loader-overlay justify-content-center align-items-center">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
@@ -95,8 +147,7 @@
                         @else
                             <div class="col-md-6 d-flex align-items-end">
                                 <small class="text-muted">
-                                    Showing data from {{ \Carbon\Carbon::parse($startDate)->format('M d, Y') }}
-                                    to {{ \Carbon\Carbon::parse($endDate)->format('M d, Y') }}
+                                    Automatic filter applied. Use custom range for specific dates.
                                 </small>
                             </div>
                         @endif
@@ -106,9 +157,9 @@
         </div>
     </div>
 
-    <!-- Top Cards -->
+     <!-- Top Cards -->
     <div class="row">
-        <!-- Total Revenue -->
+        <!-- Total Revenue (Delivered Orders Only) -->
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="card">
                 <div class="card-body">
@@ -120,11 +171,12 @@
                             </h3>
                             <small class="text-success fw-semibold">
                                 <i class="bx bx-up-arrow-alt"></i>
-                                From {{ $orderStats->total_orders ?? 0 }} Orders
+                                From {{ $orderStats->delivered_orders ?? 0 }} Delivered Orders
                             </small>
                             <div class="mt-2">
                                 <small class="text-muted">
-                                    All Time: {{ setting('currency') }}{{ number_format($totalStats['total_revenue_all_time'] ?? 0, 2) }}
+                                    All Time:
+                                    {{ setting('currency') }}{{ number_format($totalStats['total_revenue_all_time'] ?? 0, 2) }}
                                 </small>
                             </div>
                         </div>
@@ -224,6 +276,203 @@
         </div>
     </div>
 
+    <!-- Revenue Breakdown by Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title m-0">Revenue Breakdown by Order Status</h5>
+                    <small class="text-muted">Filtered Period</small>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Pending Revenue -->
+                        <div class="col-xl-2 col-lg-4 col-md-6">
+                            <div class="card border border-warning">
+                                <div class="card-body text-center p-3">
+                                    <div class="mb-2">
+                                        <span class="avatar avatar-sm rounded bg-warning">
+                                            <i class="bx bx-time text-white"></i>
+                                        </span>
+                                    </div>
+                                    <h4 class="text-warning mb-1">
+                                        {{ setting('currency') }}{{ number_format($revenueByStatus->pending_amount ?? 0, 2) }}
+                                    </h4>
+                                    <small class="text-muted d-block">Pending</small>
+                                    <small class="text-warning fw-semibold">Unconfirmed</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Confirmed Revenue -->
+                        <div class="col-xl-2 col-lg-4 col-md-6">
+                            <div class="card border border-primary">
+                                <div class="card-body text-center p-3">
+                                    <div class="mb-2">
+                                        <span class="avatar avatar-sm rounded bg-primary">
+                                            <i class="bx bx-check-circle text-white"></i>
+                                        </span>
+                                    </div>
+                                    <h4 class="text-primary mb-1">
+                                        {{ setting('currency') }}{{ number_format($revenueByStatus->confirmed_amount ?? 0, 2) }}
+                                    </h4>
+                                    <small class="text-muted d-block">Confirmed</small>
+                                    <small class="text-primary fw-semibold">Earned Revenue</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Shipped Revenue -->
+                        <div class="col-xl-2 col-lg-4 col-md-6">
+                            <div class="card border border-info">
+                                <div class="card-body text-center p-3">
+                                    <div class="mb-2">
+                                        <span class="avatar avatar-sm rounded bg-info">
+                                            <i class="bx bx-package text-white"></i>
+                                        </span>
+                                    </div>
+                                    <h4 class="text-info mb-1">
+                                        {{ setting('currency') }}{{ number_format($revenueByStatus->shipped_amount ?? 0, 2) }}
+                                    </h4>
+                                    <small class="text-muted d-block">Shipped</small>
+                                    <small class="text-info fw-semibold">In Transit</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delivered Revenue -->
+                        <div class="col-xl-2 col-lg-4 col-md-6">
+                            <div class="card border border-success">
+                                <div class="card-body text-center p-3">
+                                    <div class="mb-2">
+                                        <span class="avatar avatar-sm rounded bg-success">
+                                            <i class="bx bx-check text-white"></i>
+                                        </span>
+                                    </div>
+                                    <h4 class="text-success mb-1">
+                                        {{ setting('currency') }}{{ number_format($revenueByStatus->delivered_amount ?? 0, 2) }}
+                                    </h4>
+                                    <small class="text-muted d-block">Delivered</small>
+                                    <small class="text-success fw-semibold">Completed</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cancelled Revenue -->
+                        <div class="col-xl-2 col-lg-4 col-md-6">
+                            <div class="card border border-danger">
+                                <div class="card-body text-center p-3">
+                                    <div class="mb-2">
+                                        <span class="avatar avatar-sm rounded bg-danger">
+                                            <i class="bx bx-x-circle text-white"></i>
+                                        </span>
+                                    </div>
+                                    <h4 class="text-danger mb-1">
+                                        {{ setting('currency') }}{{ number_format($revenueByStatus->cancelled_amount ?? 0, 2) }}
+                                    </h4>
+                                    <small class="text-muted d-block">Cancelled</small>
+                                    <small class="text-danger fw-semibold">Lost Revenue</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Returned Revenue -->
+                        <div class="col-xl-2 col-lg-4 col-md-6">
+                            <div class="card border border-secondary">
+                                <div class="card-body text-center p-3">
+                                    <div class="mb-2">
+                                        <span class="avatar avatar-sm rounded bg-secondary">
+                                            <i class="bx bx-undo text-white"></i>
+                                        </span>
+                                    </div>
+                                    <h4 class="text-secondary mb-1">
+                                        {{ setting('currency') }}{{ number_format($revenueByStatus->returned_amount ?? 0, 2) }}
+                                    </h4>
+                                    <small class="text-muted d-block">Returned</small>
+                                    <small class="text-secondary fw-semibold">Refunded</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary Row -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card bg-light">
+                                <div class="card-body p-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <h6 class="mb-0">Total Revenue in Filter Period:</h6>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div class="progress" style="height: 20px;">
+                                                @php
+                                                    $totalFilteredRevenue = $revenueByStatus->total_amount ?? 0;
+                                                    $deliveredPercent = $totalFilteredRevenue > 0 ? (($revenueByStatus->delivered_amount ?? 0) / $totalFilteredRevenue * 100) : 0;
+                                                    $confirmedPercent = $totalFilteredRevenue > 0 ? (($revenueByStatus->confirmed_amount ?? 0) / $totalFilteredRevenue * 100) : 0;
+                                                    $shippedPercent = $totalFilteredRevenue > 0 ? (($revenueByStatus->shipped_amount ?? 0) / $totalFilteredRevenue * 100) : 0;
+                                                    $pendingPercent = $totalFilteredRevenue > 0 ? (($revenueByStatus->pending_amount ?? 0) / $totalFilteredRevenue * 100) : 0;
+                                                @endphp
+
+                                                <div class="progress-bar bg-success" role="progressbar"
+                                                    style="width: {{ $deliveredPercent }}%"
+                                                    title="Delivered: {{ number_format($deliveredPercent, 1) }}%">
+                                                </div>
+                                                <div class="progress-bar bg-primary" role="progressbar"
+                                                    style="width: {{ $confirmedPercent }}%"
+                                                    title="Confirmed: {{ number_format($confirmedPercent, 1) }}%">
+                                                </div>
+                                                <div class="progress-bar bg-info" role="progressbar"
+                                                    style="width: {{ $shippedPercent }}%"
+                                                    title="Shipped: {{ number_format($shippedPercent, 1) }}%">
+                                                </div>
+                                                <div class="progress-bar bg-warning" role="progressbar"
+                                                    style="width: {{ $pendingPercent }}%"
+                                                    title="Pending: {{ number_format($pendingPercent, 1) }}%">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-md-4">
+                                            <h5 class="text-primary mb-0">
+                                                {{ setting('currency') }}{{ number_format($totalFilteredRevenue, 2) }}
+                                            </h5>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div class="d-flex flex-wrap gap-3">
+                                                <small>
+                                                    <span class="badge bg-success">●</span>
+                                                    Delivered:
+                                                    {{ setting('currency') }}{{ number_format($revenueByStatus->delivered_amount ?? 0, 2) }}
+                                                </small>
+                                                <small>
+                                                    <span class="badge bg-primary">●</span>
+                                                    Confirmed:
+                                                    {{ setting('currency') }}{{ number_format($revenueByStatus->confirmed_amount ?? 0, 2) }}
+                                                </small>
+                                                <small>
+                                                    <span class="badge bg-info">●</span>
+                                                    Shipped:
+                                                    {{ setting('currency') }}{{ number_format($revenueByStatus->shipped_amount ?? 0, 2) }}
+                                                </small>
+                                                <small>
+                                                    <span class="badge bg-warning">●</span>
+                                                    Pending:
+                                                    {{ setting('currency') }}{{ number_format($revenueByStatus->pending_amount ?? 0, 2) }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>  
+
     <!-- Order Status & Stock Overview -->
     <div class="row mb-4">
         <div class="col-12">
@@ -246,8 +495,8 @@
                         </div>
                         <div class="col-md-2 col-6 text-center mb-3">
                             <div class="border rounded p-3">
-                                <h4 class="text-info">{{ $orderStats->processing_orders ?? 0 }}</h4>
-                                <small class="text-muted">Processing</small>
+                                <h4 class="text-info">{{ $orderStats->confirmed_orders ?? 0 }}</h4>
+                                <small class="text-muted">Confirmed</small>
                             </div>
                         </div>
                         <div class="col-md-2 col-6 text-center mb-3">
@@ -268,17 +517,10 @@
                                 <small class="text-muted">Cancelled</small>
                             </div>
                         </div>
-                        
-                        <!-- Stock Status -->
                         <div class="col-md-2 col-6 text-center mb-3">
                             <div class="border rounded p-3">
-                                <h4 class="text-secondary">{{ $stockStats->total_products ?? 0 }}</h4>
-                                <small class="text-muted">Total Products</small>
-                                <div class="mt-1">
-                                    <small class="text-danger">{{ $stockStats->out_of_stock ?? 0 }} Out</small>
-                                    <br>
-                                    <small class="text-warning">{{ $stockStats->low_stock ?? 0 }} Low</small>
-                                </div>
+                                <h4 class="text-secondary">{{ $orderStats->returned_orders ?? 0 }}</h4>
+                                <small class="text-muted">Returned</small>
                             </div>
                         </div>
                     </div>
@@ -422,58 +664,109 @@
             </div>
         </div>
     </div>
+
 </div>
 
-
 @push('scripts')
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script>
-        let googleReady = false;
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script>
+    // Store chart instances globally
+    let revenueChart = null;
+    let categoryChart = null;
+    let chartsInitialized = false;
 
-        google.charts.load("current", {
-            packages: ["corechart"]
-        });
+    // Initialize Google Charts
+    google.charts.load("current", {
+        packages: ["corechart"]
+    });
 
-        google.charts.setOnLoadCallback(() => {
-            googleReady = true;
-            drawCharts();
-        });
+    google.charts.setOnLoadCallback(() => {
+        chartsInitialized = true;
+        drawCharts();
+    });
 
-        document.addEventListener("livewire:initialized", () => {
-            if (googleReady) drawCharts();
-        });
+    // Listen for Livewire events
+    document.addEventListener("livewire:initialized", () => {
+        if (chartsInitialized) {
+            setTimeout(drawCharts, 300);
+        }
+    });
 
-        document.addEventListener("livewire:navigated", () => {
+    document.addEventListener("livewire:navigated", () => {
+        if (chartsInitialized) {
+            setTimeout(drawCharts, 300);
+        }
+    });
+
+    // Handle chart updates from Livewire
+    Livewire.on('charts-data-updated', (data) => {
+        if (chartsInitialized) {
+            updateCharts(data);
+        }
+    });
+
+    // Listen for refresh complete
+    Livewire.on('refresh-complete', () => {
+        if (chartsInitialized) {
             setTimeout(() => {
-                if (googleReady) drawCharts();
-            }, 200);
-        });
+                drawCharts();
+            }, 500);
+        }
+    });
 
-        Livewire.hook("morph.updated", () => {
-            if (googleReady) {
-                setTimeout(drawCharts, 150);
+    // Draw all charts
+    function drawCharts() {
+        drawRevenueChart();
+        drawCategoryChart();
+    }
+
+    // Update charts with new data
+    function updateCharts(data) {
+        if (data.revenue) {
+            drawRevenueChartWithData(data.revenue);
+        }
+        if (data.category) {
+            drawCategoryChartWithData(data.category);
+        }
+    }
+
+    // Revenue chart function
+    function drawRevenueChart() {
+        let el = document.getElementById("revenueChart");
+        if (!el) return;
+
+        let rows = @json($revenueChartData);
+        drawRevenueChartWithData(rows);
+    }
+
+    function drawRevenueChartWithData(rows) {
+        let el = document.getElementById("revenueChart");
+        if (!el) return;
+
+        // Clear previous chart
+        if (revenueChart) {
+            try {
+                revenueChart.clearChart();
+            } catch (e) {
+                // Chart might not be initialized yet
             }
-        });
-
-        function drawCharts() {
-            drawRevenueChart();
-            drawCategoryChart();
         }
 
-        function drawRevenueChart() {
-            let el = document.getElementById("revenueChart");
-            if (!el) return;
+        if (!rows || rows.length < 2 || rows[1][0] === 'Loading...') {
+            el.innerHTML = "<div class='text-center text-muted mt-5'>Loading revenue data...</div>";
+            return;
+        }
 
-            let rows = @json($revenueChartData);
-            if (rows.length < 2) {
-                el.innerHTML = "<p class='text-center text-muted mt-5'>No revenue data</p>";
-                return;
-            }
+        if (rows.length === 2 && rows[1][1] === 0) {
+            el.innerHTML = "<div class='text-center text-muted mt-5'>No revenue data available</div>";
+            return;
+        }
 
+        try {
             let data = google.visualization.arrayToDataTable(rows);
 
             let options = {
-                title: "Revenue Overview",
+                title: "Revenue Overview (Delivered Orders Only)",
                 curveType: "function",
                 legend: {
                     position: "bottom"
@@ -483,38 +776,91 @@
                 chartArea: {
                     width: '85%',
                     height: '70%'
+                },
+                vAxis: {
+                    format: 'currency',
+                    title: 'Revenue'
+                },
+                hAxis: {
+                    title: 'Date'
                 }
             };
 
-            new google.visualization.LineChart(el).draw(data, options);
+            revenueChart = new google.visualization.LineChart(el);
+            revenueChart.draw(data, options);
+        } catch (error) {
+            console.error("Error drawing revenue chart:", error);
+            el.innerHTML = "<div class='text-center text-danger mt-5'>Error loading chart</div>";
+        }
+    }
+
+    // Category chart function
+    function drawCategoryChart() {
+        let el = document.getElementById("categoryChart");
+        if (!el) return;
+
+        let rows = @json($categoryChartData);
+        drawCategoryChartWithData(rows);
+    }
+
+    function drawCategoryChartWithData(rows) {
+        let el = document.getElementById("categoryChart");
+        if (!el) return;
+
+        // Clear previous chart
+        if (categoryChart) {
+            try {
+                categoryChart.clearChart();
+            } catch (e) {
+                // Chart might not be initialized yet
+            }
         }
 
-        function drawCategoryChart() {
-            let el = document.getElementById("categoryChart");
-            if (!el) return;
+        if (!rows || rows.length < 2 || rows[1][0] === 'Loading...') {
+            el.innerHTML = "<div class='text-center text-muted mt-5'>Loading category data...</div>";
+            return;
+        }
 
-            let rows = @json($categoryChartData);
-            if (rows.length < 2) {
-                el.innerHTML = "<p class='text-center text-muted mt-5'>No category data</p>";
-                return;
-            }
+        if (rows.length === 2 && rows[1][0] === 'No Data') {
+            el.innerHTML = "<div class='text-center text-muted mt-5'>No category data available</div>";
+            return;
+        }
 
+        try {
             let data = google.visualization.arrayToDataTable(rows);
 
             let options = {
-                title: "Sales by Category",
+                title: "Sales by Category (Delivered Orders Only)",
                 pieHole: 0.4,
                 chartArea: {
                     width: "90%",
                     height: "80%"
+                },
+                legend: {
+                    position: 'labeled'
                 }
             };
 
-            new google.visualization.PieChart(el).draw(data, options);
+            categoryChart = new google.visualization.PieChart(el);
+            categoryChart.draw(data, options);
+        } catch (error) {
+            console.error("Error drawing category chart:", error);
+            el.innerHTML = "<div class='text-center text-danger mt-5'>Error loading chart</div>";
         }
+    }
 
-        window.addEventListener("resize", () => {
-            if (googleReady) drawCharts();
-        });
-    </script>
+    // Handle window resize
+    window.addEventListener("resize", () => {
+        if (chartsInitialized) {
+            setTimeout(drawCharts, 100);
+        }
+    });
+
+    // Handle page visibility change
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden && chartsInitialized) {
+            setTimeout(drawCharts, 100);
+        }
+    });
+</script>
 @endpush

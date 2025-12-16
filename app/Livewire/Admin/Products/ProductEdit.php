@@ -46,6 +46,7 @@ class ProductEdit extends Component
 
     public function mount($id)
     {
+        $this->variantSystemEnabled = setting('attribute_system');
         $product = Product::with(['variants.values', 'variants.inventories'])->findOrFail($id);
 
         $this->productId = $product->id;

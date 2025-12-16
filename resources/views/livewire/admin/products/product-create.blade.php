@@ -182,10 +182,10 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0">Product Variations</h5>
                         @if (!$showVariantForm)
-                            <button type="button" wire:click="$set('showVariantForm', true)"
-                                class="btn btn-primary btn-sm">
+                            <button type="button" wire:click="openVariantForm" class="btn btn-primary btn-sm">
                                 <i class="fas fa-plus me-1"></i> Add Variation
                             </button>
+
                         @endif
                     </div>
 

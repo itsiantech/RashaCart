@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\OrderItem;
 use App\Models\Inventory;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class Dashboard extends Component
@@ -17,28 +18,45 @@ class Dashboard extends Component
     public $startDate;
     public $endDate;
     public $filterType = 'this_month';
-
-   
     public $revenueChartData = [];
     public $categoryChartData = [];
+    
+    // Cache configuration
+    protected $cachePrefix = 'dashboard_';
+    protected $cacheDuration = 300; // 5 minutes
+    public $lastUpdated;
+    public $isRefreshing = false;
 
     protected function getListeners()
     {
         return [
-            'refreshCharts' => 'prepareChartData',
+            'refreshCharts' => '$refresh',
+            'refreshDashboard' => 'refreshDashboardData',
         ];
     }
 
     public function mount()
     {
         $this->setDefaultDateRange();
-        $this->prepareChartData();
+        $this->initializeCharts();
+        $this->lastUpdated = Cache::get('dashboard_last_updated', now());
+
     }
 
     protected function setDefaultDateRange()
     {
         $this->startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->endDate = Carbon::now()->endOfMonth()->format('Y-m-d');
+    }
+
+    public function initializeCharts()
+    {
+        // Initialize with loading state
+        $this->revenueChartData = [['Date', 'Revenue'], ['Loading...', 0]];
+        $this->categoryChartData = [['Category', 'Sales'], ['Loading...', 1]];
+        
+        // Load actual data
+        $this->prepareChartData();
     }
 
     public function updatedFilterType($value)
@@ -77,24 +95,83 @@ class Dashboard extends Component
                 break;
         }
         
-        $this->prepareChartData();
-        $this->dispatch('charts-updated');
+        $this->refreshDashboardData();
     }
 
     public function applyFilter()
     {
-        $this->prepareChartData();
-        $this->dispatch('charts-updated');
+        $this->refreshDashboardData();
     }
 
+   public function refreshDashboardData()
+    {
+        $this->isRefreshing = true;
+
+        $this->clearAllCache();
     
+        $this->prepareChartData();
+
+    
+        $this->lastUpdated = Cache::remember('dashboard_last_updated', $this->cacheDuration, function () {
+            return now();
+        });
+
+        $this->dispatch('charts-updated');
+        $this->dispatch('refresh-complete');
+
+        $this->isRefreshing = false;
+    }
+
+
+    protected function clearAllCache()
+    {
+        // Get all cache keys for this dashboard
+        $cacheKeys = [
+            'chart_data',
+            'stats',
+            'pending_orders',
+            'total_stats',
+            'revenue_by_status',
+            'best_selling',
+            'popular_categories',
+            'golden_customers',
+            'order_stats',
+            'stock_stats'
+        ];
+        
+        foreach ($cacheKeys as $key) {
+            $fullKey = $this->getCacheKey($key);
+            Cache::forget($fullKey);
+        }
+        
+        // Also clear any other dashboard-related cache
+        Cache::forget('dashboard_last_updated');
+    }
+
+    protected function getCacheKey($type)
+    {
+        return $this->cachePrefix . $type . '_' . $this->filterType . '_' . $this->startDate . '_' . $this->endDate;
+    }
+
     protected function prepareChartData()
     {
-        $this->revenueChartData = $this->formatRevenueChartData();
-        $this->categoryChartData = $this->formatCategoryChartData();
+        $chartDataCacheKey = $this->getCacheKey('chart_data');
         
-        // Dispatch browser event to refresh charts
-        $this->dispatch('charts-updated');
+        $chartData = Cache::remember($chartDataCacheKey, $this->cacheDuration, function () {
+            return [
+                'revenue' => $this->formatRevenueChartData(),
+                'category' => $this->formatCategoryChartData(),
+            ];
+        });
+
+        $this->revenueChartData = $chartData['revenue'];
+        $this->categoryChartData = $chartData['category'];
+        
+        // Dispatch event for charts
+        $this->dispatch('charts-data-updated', [
+            'revenue' => $this->revenueChartData,
+            'category' => $this->categoryChartData
+        ]);
     }
 
     protected function formatRevenueChartData()
@@ -109,7 +186,6 @@ class Dashboard extends Component
             ];
         }
         
-        // Ensure we have at least some data
         if (count($chartData) === 1) {
             $chartData[] = [Carbon::now()->format('M d'), 0];
         }
@@ -129,7 +205,6 @@ class Dashboard extends Component
             ];
         }
         
-        // Ensure we have at least some data
         if (count($chartData) === 1) {
             $chartData[] = ['No Data', 1];
         }
@@ -137,147 +212,181 @@ class Dashboard extends Component
         return $chartData;
     }
 
-    
-    protected function ensureChartData($chartData)
-    {
-        if (!$chartData) {
-            return [['No Data', 'Value'], ['No Data', 1]];
-        }
-        return $chartData;
-    }
-
-    // New method to get total pending orders (all time)
+    // Get all data with caching
     public function getTotalPendingOrders()
     {
-        return Order::where('status', 'pending')->count();
+        $cacheKey = $this->getCacheKey('pending_orders');
+        
+        return Cache::remember($cacheKey, $this->cacheDuration, function () {
+            return Order::where('status', 'pending')->count();
+        });
     }
 
-    // New method to get total data (all time)
     public function getTotalStats()
     {
-        // Spatie role এর জন্য customer count - alternative approach
-        $totalCustomers = User::whereHas('roles', function($query) {
-            $query->where('name', 'customer');
-        })->count();
-
-        // Alternative: যদি specific role না থাকে, তাহলে admin/user role ব্যতীত সব user কে customer ধরা
-        if ($totalCustomers === 0) {
-            $totalCustomers = User::whereDoesntHave('roles', function($query) {
-                $query->whereIn('name', ['admin', 'super-admin']);
+        $cacheKey = $this->getCacheKey('total_stats');
+        
+        return Cache::remember($cacheKey, $this->cacheDuration, function () {
+            $totalCustomers = User::whereHas('roles', function($query) {
+                $query->where('name', 'customer');
             })->count();
-        }
 
-        return [
-            'total_revenue_all_time' => Order::where('status', '!=', 'cancelled')->sum('total_amount'),
-            'total_orders_all_time' => Order::count(),
-            'total_products_all_time' => Product::count(),
-            'total_customers_all_time' => $totalCustomers,
-        ];
+            if ($totalCustomers === 0) {
+                $totalCustomers = User::whereDoesntHave('roles', function($query) {
+                    $query->whereIn('name', ['admin', 'super-admin']);
+                })->count();
+            }
+
+            return [
+                'total_revenue_all_time' => Order::where('status', 'delivered')->sum('total_amount'),
+                'total_orders_all_time' => Order::count(),
+                'total_products_all_time' => Product::count(),
+                'total_customers_all_time' => $totalCustomers,
+            ];
+        });
     }
 
-   
+    // NEW: Get revenue breakdown by status
+    public function getRevenueByStatus()
+    {
+        $cacheKey = $this->getCacheKey('revenue_by_status');
+        
+        return Cache::remember($cacheKey, $this->cacheDuration, function () {
+            return Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
+                ->select(
+                    DB::raw('SUM(CASE WHEN status = "pending" THEN total_amount ELSE 0 END) as pending_amount'),
+                    DB::raw('SUM(CASE WHEN status = "confirmed" THEN total_amount ELSE 0 END) as confirmed_amount'),
+                    DB::raw('SUM(CASE WHEN status = "shipped" THEN total_amount ELSE 0 END) as shipped_amount'),
+                    DB::raw('SUM(CASE WHEN status = "delivered" THEN total_amount ELSE 0 END) as delivered_amount'),
+                    DB::raw('SUM(CASE WHEN status = "cancelled" THEN total_amount ELSE 0 END) as cancelled_amount'),
+                    DB::raw('SUM(CASE WHEN status = "returned" THEN total_amount ELSE 0 END) as returned_amount'),
+                    DB::raw('SUM(total_amount) as total_amount')
+                )
+                ->first();
+        });
+    }
+
     public function getBestSellingProducts()
     {
-        return OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->whereBetween('orders.created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
-            ->where('orders.status', '!=', 'cancelled')
-            ->select(
-                'products.name',
-                'products.thumbnail',
-                DB::raw('SUM(order_items.quantity) as total_sold'),
-                DB::raw('SUM(order_items.quantity * order_items.unit_price) as total_revenue')
-            )
-            ->groupBy('products.id', 'products.name', 'products.thumbnail')
-            ->orderByDesc('total_sold')
-            ->limit(10)
-            ->get();
+        $cacheKey = $this->getCacheKey('best_selling');
+        
+        return Cache::remember($cacheKey, $this->cacheDuration, function () {
+            return OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+                ->join('products', 'order_items.product_id', '=', 'products.id')
+                ->whereBetween('orders.created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
+                ->where('orders.status', '!=', 'cancelled')
+                ->where('orders.status', '!=', 'returned')
+                ->select(
+                    'products.name',
+                    'products.thumbnail',
+                    DB::raw('SUM(order_items.quantity) as total_sold'),
+                    DB::raw('SUM(order_items.quantity * order_items.unit_price) as total_revenue')
+                )
+                ->groupBy('products.id', 'products.name', 'products.thumbnail')
+                ->orderByDesc('total_sold')
+                ->limit(10)
+                ->get();
+        });
     }
 
     public function getPopularCategories()
     {
-        return OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->join('categories', 'products.category_id', '=', 'categories.id')
-            ->whereBetween('orders.created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
-            ->where('orders.status', '!=', 'cancelled')
-            ->select(
-                'categories.name',
-                DB::raw('COUNT(DISTINCT orders.id) as order_count'),
-                DB::raw('SUM(order_items.quantity) as total_sold')
-            )
-            ->groupBy('categories.id', 'categories.name')
-            ->orderByDesc('total_sold')
-            ->limit(10)
-            ->get();
+        $cacheKey = $this->getCacheKey('popular_categories');
+        
+        return Cache::remember($cacheKey, $this->cacheDuration, function () {
+            return OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+                ->join('products', 'order_items.product_id', '=', 'products.id')
+                ->join('categories', 'products.category_id', '=', 'categories.id')
+                ->whereBetween('orders.created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
+                ->where('orders.status', '!=', 'cancelled')
+                ->where('orders.status', '!=', 'returned')
+                ->select(
+                    'categories.name',
+                    DB::raw('COUNT(DISTINCT orders.id) as order_count'),
+                    DB::raw('SUM(order_items.quantity) as total_sold')
+                )
+                ->groupBy('categories.id', 'categories.name')
+                ->orderByDesc('total_sold')
+                ->limit(10)
+                ->get();
+        });
     }
 
     public function getGoldenCustomers()
     {
-        return Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
-            ->where('status', '!=', 'cancelled')
-            ->select(
-                'user_id',
-                DB::raw('COUNT(*) as total_orders'),
-                DB::raw('SUM(total_amount) as total_spent')
-            )
-            ->with('user:id,name,email')
-            ->groupBy('user_id')
-            ->orderByDesc('total_spent')
-            ->limit(10)
-            ->get()
-            ->filter(function ($order) {
-                return $order->user !== null;
-            });
+        $cacheKey = $this->getCacheKey('golden_customers');
+        
+        return Cache::remember($cacheKey, $this->cacheDuration, function () {
+            return Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
+                ->where('status', '!=', 'cancelled')
+                ->where('status', '!=', 'returned')
+                ->select(
+                    'user_id',
+                    DB::raw('COUNT(*) as total_orders'),
+                    DB::raw('SUM(total_amount) as total_spent')
+                )
+                ->with('user:id,name,email')
+                ->groupBy('user_id')
+                ->orderByDesc('total_spent')
+                ->limit(10)
+                ->get()
+                ->filter(function ($order) {
+                    return $order->user !== null;
+                });
+        });
     }
 
     public function getOrderStats()
     {
-        return Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
-            ->select(
-                DB::raw('COUNT(*) as total_orders'),
-                DB::raw('SUM(total_amount) as total_revenue'),
-                DB::raw('COUNT(CASE WHEN status = "pending" THEN 1 END) as pending_orders'),
-                DB::raw('COUNT(CASE WHEN status = "processing" THEN 1 END) as processing_orders'),
-                DB::raw('COUNT(CASE WHEN status = "shipped" THEN 1 END) as shipped_orders'),
-                DB::raw('COUNT(CASE WHEN status = "delivered" THEN 1 END) as delivered_orders'),
-                DB::raw('COUNT(CASE WHEN status = "cancelled" THEN 1 END) as cancelled_orders')
-            )
-            ->first();
+        $cacheKey = $this->getCacheKey('order_stats');
+        
+        return Cache::remember($cacheKey, $this->cacheDuration, function () {
+            return Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
+                ->select(
+                    DB::raw('COUNT(*) as total_orders'),
+                    DB::raw('SUM(CASE WHEN status = "delivered" THEN total_amount ELSE 0 END) as total_revenue'),
+                    DB::raw('COUNT(CASE WHEN status = "pending" THEN 1 END) as pending_orders'),
+                    DB::raw('COUNT(CASE WHEN status = "confirmed" THEN 1 END) as confirmed_orders'),
+                    DB::raw('COUNT(CASE WHEN status = "shipped" THEN 1 END) as shipped_orders'),
+                    DB::raw('COUNT(CASE WHEN status = "delivered" THEN 1 END) as delivered_orders'),
+                    DB::raw('COUNT(CASE WHEN status = "cancelled" THEN 1 END) as cancelled_orders'),
+                    DB::raw('COUNT(CASE WHEN status = "returned" THEN 1 END) as returned_orders')
+                )
+                ->first();
+        });
     }
 
-    // Updated method to get stock stats from inventory
     public function getStockStats()
     {
-        // Calculate main product stock from inventory
-        $mainProductStock = Inventory::where('variant_id', null)
-            ->select(
-                DB::raw('SUM(CASE WHEN type = "in" THEN quantity ELSE 0 END) - SUM(CASE WHEN type = "out" THEN quantity ELSE 0 END) as total_stock')
-            )
-            ->first();
+        $cacheKey = $this->getCacheKey('stock_stats');
+        
+        return Cache::remember($cacheKey, $this->cacheDuration, function () {
+            $mainProductStock = Inventory::where('variant_id', null)
+                ->select(
+                    DB::raw('SUM(CASE WHEN type = "in" THEN quantity ELSE 0 END) - SUM(CASE WHEN type = "out" THEN quantity ELSE 0 END) as total_stock')
+                )
+                ->first();
 
-        // Calculate variant stock from inventory
-        $variantStock = Inventory::whereNotNull('variant_id')
-            ->select(
-                DB::raw('SUM(CASE WHEN type = "in" THEN quantity ELSE 0 END) - SUM(CASE WHEN type = "out" THEN quantity ELSE 0 END) as total_stock')
-            )
-            ->first();
+            $variantStock = Inventory::whereNotNull('variant_id')
+                ->select(
+                    DB::raw('SUM(CASE WHEN type = "in" THEN quantity ELSE 0 END) - SUM(CASE WHEN type = "out" THEN quantity ELSE 0 END) as total_stock')
+                )
+                ->first();
 
-        $totalStock = ($mainProductStock->total_stock ?? 0) + ($variantStock->total_stock ?? 0);
+            $totalStock = ($mainProductStock->total_stock ?? 0) + ($variantStock->total_stock ?? 0);
 
-        // Get out of stock and low stock products
-        $outOfStockProducts = $this->getOutOfStockProductsCount();
-        $lowStockProducts = $this->getLowStockProductsCount();
+            $outOfStockProducts = $this->getOutOfStockProductsCount();
+            $lowStockProducts = $this->getLowStockProductsCount();
 
-        return (object) [
-            'total_products' => Product::count(),
-            'total_stock' => $totalStock,
-            'out_of_stock' => $outOfStockProducts,
-            'low_stock' => $lowStockProducts,
-        ];
+            return (object) [
+                'total_products' => Product::count(),
+                'total_stock' => $totalStock,
+                'out_of_stock' => $outOfStockProducts,
+                'low_stock' => $lowStockProducts,
+            ];
+        });
     }
 
-    // Get count of out of stock products
     protected function getOutOfStockProductsCount()
     {
         $outOfStockCount = 0;
@@ -293,7 +402,6 @@ class Dashboard extends Component
         return $outOfStockCount;
     }
 
-    // Get count of low stock products (less than 10)
     protected function getLowStockProductsCount()
     {
         $lowStockCount = 0;
@@ -309,17 +417,14 @@ class Dashboard extends Component
         return $lowStockCount;
     }
 
-    // Calculate total stock for a product including variants
     protected function calculateProductTotalStock($product)
     {
-        // Calculate main product stock
         $mainStock = $product->inventories
             ->where('variant_id', null)
             ->sum(function($inventory) {
                 return $inventory->type === 'in' ? $inventory->quantity : -$inventory->quantity;
             });
 
-        // Calculate variant stock
         $variantStock = 0;
         foreach ($product->variants as $variant) {
             $variantStock += $variant->inventories->sum(function($inventory) {
@@ -333,7 +438,7 @@ class Dashboard extends Component
     public function getRevenueChartData()
     {
         return Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
-            ->where('status', '!=', 'cancelled')
+            ->where('status', 'delivered') // Only delivered orders count for revenue
             ->select(
                 DB::raw('DATE(created_at) as date'),
                 DB::raw('SUM(total_amount) as revenue')
@@ -349,7 +454,7 @@ class Dashboard extends Component
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->join('categories', 'products.category_id', '=', 'categories.id')
             ->whereBetween('orders.created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
-            ->where('orders.status', '!=', 'cancelled')
+            ->where('orders.status', 'delivered') // Only delivered orders
             ->select(
                 'categories.name',
                 DB::raw('SUM(order_items.quantity * order_items.unit_price) as total_sales')
@@ -360,7 +465,6 @@ class Dashboard extends Component
 
     public function render()
     {
-       
         $data = [
             'bestSellingProducts' => $this->getBestSellingProducts(),
             'popularCategories' => $this->getPopularCategories(),
@@ -371,8 +475,9 @@ class Dashboard extends Component
             'categoryChartData' => $this->categoryChartData,
             'totalPendingOrders' => $this->getTotalPendingOrders(),
             'totalStats' => $this->getTotalStats(),
+            'revenueByStatus' => $this->getRevenueByStatus(),
+            'isRefreshing' => $this->isRefreshing,
         ];
-         $this->prepareChartData();
 
         return view('livewire.admin.dashboard', $data)->layout('livewire.admin.layouts.app');
     }

@@ -246,11 +246,11 @@
                                                     @if(isset($variant['_delete']) && $variant['_delete'])
                                                         <span class="badge bg-danger">Marked for deletion</span>
                                                         <button type="button" wire:click="removeVariant({{ $index }})" class="btn btn-success btn-sm" title="Restore">
-                                                            <i class="fas fa-undo"></i>
+                                                            <i class="fas fa-undo"></i>Restore
                                                         </button>
                                                     @else
                                                         <button type="button" wire:click="removeVariant({{ $index }})" class="btn btn-danger btn-sm" title="Remove">
-                                                            <i class="fas fa-trash"></i>
+                                                            <i class="fas fa-trash"></i>Remove
                                                         </button>
                                                     @endif
                                                 </div>

@@ -12,7 +12,6 @@ use App\Models\Attribute;
 use App\Models\AttributeValue;
 use App\Models\ProductVariant;
 use App\Models\VariantAttributeValue;
-use Cache;
 use DB;
 
 class ProductCreate extends Component
@@ -21,11 +20,9 @@ class ProductCreate extends Component
 
     public $name, $slug, $sku, $short_description, $long_description, $buying_price;
     public $price, $discount_type, $discount_price, $stock;
-    public $sale_price = 0;
+    public $sale_price;
     public $category_id;
-    public $thumbnail,
-        $video,
-        $status = true;
+    public $thumbnail, $video, $status = true;
     public $images = [];
 
     public $productAttributes = [];
@@ -43,36 +40,24 @@ class ProductCreate extends Component
     public $newVariant = [
         'attributes' => [],
         'sku' => '',
-        'varient_price' => 0,
+        'varient_price' => null,
         'stock' => 0,
         'image' => null,
     ];
 
     public function mount()
     {
+        $this->variantSystemEnabled = setting('attribute_system');
         $this->productAttributes = Attribute::with('values')->get();
         $this->slug = '';
         $this->sku = 'SKU-' . strtoupper(Str::random(6));
-    }
-
-    public function updatedDiscountType($value)
-    {
-        if ($value === '' || $value === null) {
-            $this->discount_price = null;
-        }
-
         $this->calculateSalePrice();
     }
 
-    public function updatedPrice()
-    {
-        $this->calculateSalePrice();
-    }
-
-    public function updatedDiscountPrice()
-    {
-        $this->calculateSalePrice();
-    }
+    // ----------------------- Price Calculations -----------------------
+    public function updatedDiscountType($value) { $this->calculateSalePrice(); }
+    public function updatedPrice() { $this->calculateSalePrice(); }
+    public function updatedDiscountPrice() { $this->calculateSalePrice(); }
 
     public function calculateSalePrice()
     {
@@ -87,14 +72,26 @@ class ProductCreate extends Component
         }
     }
 
-    public function generateVarientSku()
-    {
-        $this->newVariant['sku'] = 'SKU-' . strtoupper(Str::random(6));
-    }
-
     public function updatedName($value)
     {
         $this->slug = Str::slug($value);
+    }
+
+    // ----------------------- Variant Methods -----------------------
+    public function openVariantForm()
+    {
+        $this->newVariant = [
+            'attributes' => [],
+            'sku' => 'SKU-' . strtoupper(Str::random(6)),
+            'varient_price' => $this->sale_price ?? 0,
+            'stock' => 0,
+            'image' => null,
+        ];
+
+        $this->selectedAttributes = [];
+        $this->variantErrors = [];
+        $this->showVariantForm = true;
+        $this->newVariantImage = null;
     }
 
     public function addAttributeToVariant($attributeId)
@@ -119,9 +116,9 @@ class ProductCreate extends Component
 
     public function addVariant()
     {
-        $this->validateVariant();
+        if (!$this->validateVariant()) return;
 
-        // Check if variant with same attributes already exists
+        // Check duplicate
         if ($this->variantExists()) {
             $this->variantErrors['duplicate'] = 'A variant with these attributes already exists.';
             return;
@@ -130,14 +127,13 @@ class ProductCreate extends Component
         $variant = [
             'id' => 'new_' . ++$this->variantCounter,
             'sku' => $this->newVariant['sku'],
-            'varient_price' => (float) $this->newVariant['varient_price'],
-            'stock' => (int) $this->newVariant['stock'],
+            'varient_price' => (float)$this->newVariant['varient_price'],
+            'stock' => (int)$this->newVariant['stock'],
             'values' => [],
             'image' => null,
-            'new_image_file' => null,
+            'new_image_file' => $this->newVariantImage,
         ];
 
-        // Store attribute values
         foreach ($this->newVariant['attributes'] as $attrId => $valueId) {
             if (!empty($valueId)) {
                 $variant['values'][] = [
@@ -147,25 +143,18 @@ class ProductCreate extends Component
             }
         }
 
-        if ($this->newVariantImage) {
-            $variant['new_image_file'] = $this->newVariantImage;
-        }
-
         $this->variants[] = $variant;
         $this->resetVariantForm();
-        $this->variantErrors = [];
     }
 
     protected function validateVariant()
     {
         $this->variantErrors = [];
 
-        // Validate attributes
         if (count($this->selectedAttributes) === 0) {
             $this->variantErrors['attributes'] = 'Please select at least one attribute.';
         }
 
-        // Validate attribute values
         $missingValues = [];
         foreach ($this->newVariant['attributes'] as $attrId => $valueId) {
             if (empty($valueId)) {
@@ -178,11 +167,9 @@ class ProductCreate extends Component
             $this->variantErrors['attribute_values'] = 'Please select values for: ' . implode(', ', $missingValues);
         }
 
-        // Validate SKU
         if (empty($this->newVariant['sku'])) {
             $this->variantErrors['sku'] = 'SKU is required.';
         } else {
-            // Check if SKU already exists in current variants
             foreach ($this->variants as $variant) {
                 if ($variant['sku'] === $this->newVariant['sku']) {
                     $this->variantErrors['sku'] = 'This SKU is already used in another variant.';
@@ -191,12 +178,10 @@ class ProductCreate extends Component
             }
         }
 
-        // Validate price adjustment
         if (!is_numeric($this->newVariant['varient_price'])) {
-            $this->variantErrors['varient_price'] = 'Price adjustment must be a number.';
+            $this->variantErrors['varient_price'] = 'Variant price must be a number.';
         }
 
-        // Validate stock
         if (!is_numeric($this->newVariant['stock']) || $this->newVariant['stock'] < 0) {
             $this->variantErrors['stock'] = 'Stock must be a non-negative number.';
         }
@@ -207,28 +192,21 @@ class ProductCreate extends Component
     protected function variantExists()
     {
         foreach ($this->variants as $variant) {
-            if (count($variant['values']) !== count($this->newVariant['attributes'])) {
-                continue;
-            }
+            if (count($variant['values']) !== count($this->newVariant['attributes'])) continue;
 
             $match = true;
             foreach ($this->newVariant['attributes'] as $attrId => $valueId) {
                 $found = false;
-                foreach ($variant['values'] as $value) {
-                    if ($value['attribute_id'] == $attrId && $value['attribute_value_id'] == $valueId) {
+                foreach ($variant['values'] as $v) {
+                    if ($v['attribute_id'] == $attrId && $v['attribute_value_id'] == $valueId) {
                         $found = true;
                         break;
                     }
                 }
-                if (!$found) {
-                    $match = false;
-                    break;
-                }
+                if (!$found) { $match = false; break; }
             }
 
-            if ($match) {
-                return true;
-            }
+            if ($match) return true;
         }
 
         return false;
@@ -254,7 +232,6 @@ class ProductCreate extends Component
         $this->newVariantImage = null;
         $this->selectedAttributes = [];
         $this->showVariantForm = false;
-        $this->generateVarientSku();
         $this->variantErrors = [];
     }
 
@@ -263,7 +240,7 @@ class ProductCreate extends Component
         $this->resetVariantForm();
     }
 
-    
+    // ----------------------- Save Product -----------------------
     public function save()
     {
         $this->validate([
@@ -281,7 +258,6 @@ class ProductCreate extends Component
         ]);
 
         DB::beginTransaction();
-
         try {
             $product = Product::create([
                 'name' => $this->name,
@@ -324,17 +300,15 @@ class ProductCreate extends Component
                     'product_id' => $product->id,
                     'sku' => $variantData['sku'],
                     'varient_price' => $variantData['varient_price'],
-                    'image' => $variantData['image'] ?? null,
+                    'image' => null,
                 ]);
 
-               
                 if (isset($variantData['new_image_file']) && $variantData['new_image_file']) {
                     $path = $variantData['new_image_file']->store('products/variants', 'public');
                     $variant->image = $path;
                     $variant->save();
                 }
 
-               
                 foreach ($variantData['values'] as $value) {
                     VariantAttributeValue::create([
                         'product_variant_id' => $variant->id,
@@ -356,9 +330,9 @@ class ProductCreate extends Component
 
             $galleryPaths = [];
             foreach ($this->images as $img) {
-                $path = $img->store('products/images', 'public');
-                $galleryPaths[] = $path;
+                $galleryPaths[] = $img->store('products/images', 'public');
             }
+
             if (!empty($galleryPaths)) {
                 $product->gallery_image = $galleryPaths;
                 $product->save();
