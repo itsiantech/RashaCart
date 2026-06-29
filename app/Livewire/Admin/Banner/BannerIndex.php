@@ -2,13 +2,13 @@
 
 namespace App\Livewire\Admin\Banner;
 
-use Livewire\Component;
 use App\Models\Banner;
-use Storage;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Component;
 
 class BannerIndex extends Component
 {
-    protected $listeners = ['delete' => 'delete'];
+
     public $banners;
     public function render()
     {
@@ -18,10 +18,6 @@ class BannerIndex extends Component
 
     public function delete($id)
     {
-        if (!auth()->user()->can('banner.delete')) {
-            $this->dispatch('toast', type: 'error', message: 'You do not have permission to delete banners!');
-            return;
-        }
         $banner = Banner::findOrFail($id);
         if ($banner->image) {
             Storage::disk('public')->delete($banner->image);
@@ -29,6 +25,5 @@ class BannerIndex extends Component
         $banner->delete();
 
        $this->dispatch('success', message: 'Banner Deleted!');
-        return;
     }
 }

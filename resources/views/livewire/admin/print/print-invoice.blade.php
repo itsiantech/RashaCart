@@ -71,6 +71,7 @@
         <p>📞 <a href="tel:{{ $order->phone }}">{{ $order->phone }}</a></p>
         <p>📦 {{ $order->shipping_address }}</p>
         <p>Status: <strong>{{ ucfirst($order->status) }}</strong></p>
+        <p>Shop Name: {{ $order->items->first()?->product?->user?->vendorDetails?->shop_name ?? 'N/A' }}</p>
     </div>
 
     <table>

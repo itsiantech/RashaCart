@@ -48,13 +48,11 @@
                             <div class="flex-grow-1" style="min-width: 150px;">
                                 <input type="text" class="form-control" wire:model.live="search" placeholder="Search attributes...">
                             </div>
-                            @can('attribute.add')
                             <div class="flex-shrink-0">
                                 <button class="btn btn-primary d-flex align-items-center" wire:click="showAddForm" style="white-space: nowrap;">
                                     <i class="bx bx-plus me-1"></i> Add New
                                 </button>
                             </div>
-                            @endcan
                         </div>
                     </div>
                 </div>
@@ -62,7 +60,7 @@
 
             <div class="table-responsive text-nowrap">
                 <table class="table table-hover">
-                   <thead>
+                    <thead>
                         <tr>
                             <th>SL</th>
                             <th>Attribute</th>
@@ -71,28 +69,24 @@
                         </tr>
                     </thead>
 
-                   <tbody>
+                    <tbody>
                         @forelse($attributeList as $key => $attribute)
                         <tr>
                             <td>{{ $loop->iteration }}</td> <!-- SL Column -->
                             <td><strong>{{ $attribute->name }}</strong></td>
                             <td>{{ $attribute->slug }}</td>
                             <td class="d-flex align-items-center gap-1">
-                                @can('attribute.edit')
                                 <button class="btn btn-sm btn-primary" wire:click="showEditForm({{ $attribute->id }})">
                                     <i class="bx bx-edit"></i>
                                 </button>
-                                @endcan
-                                @can('attribute.delete')
+
                                 <button class="btn btn-sm btn-danger" wire:click="confirmDelete({{ $attribute->id }})">
                                     <i class="bx bx-trash"></i>
                                 </button>
-                                @endcan
-                                @can('attribute.add')
+
                                 <button class="btn btn-sm btn-success" wire:click="toggleValueForm({{ $attribute->id }})">
                                     <i class="bx bx-plus"></i>
                                 </button>
-                                @endcan
                             </td>
                         </tr>
 
@@ -109,11 +103,10 @@
                                     <button class="btn btn-sm btn-outline-primary me-1" wire:click="editValue({{ $value->id }})">
                                         <i class="bx bx-edit"></i>
                                     </button>
-                                    <button 
+                                    <button
                                         class="btn btn-sm btn-outline-danger"
                                         wire:confirm="Are you sure you want to delete this value?"
-                                        wire:click="deleteValue({{ $value->id }})"
-                                    >
+                                        wire:click="deleteValue({{ $value->id }})">
                                         <i class="bx bx-trash"></i>
                                     </button>
                                 </div>

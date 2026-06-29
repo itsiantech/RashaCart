@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+
 use Cache;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,14 +15,16 @@ class Category extends Model
         'parent_id',
         'is_featured'
     ];
-    
-    public function parent() {
+
+    public function parent()
+    {
         return $this->belongsTo(Category::class, 'parent_id');
     }
-    
-    public function children() {
+
+    public function children()
+    {
         return $this->hasMany(Category::class, 'parent_id');
-    } 
+    }
 
     public function allChildren()
     {
@@ -33,11 +36,12 @@ class Category extends Model
         return $this->children()->count() === 0;
     }
 
-    public function products() {
+    public function products()
+    {
         return $this->hasMany(Product::class);
     }
 
- 
+
 
     protected static function booted()
     {
@@ -51,8 +55,4 @@ class Category extends Model
             Cache::forget('global_cache_ready');
         });
     }
-
-  
-
-
 }

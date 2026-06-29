@@ -24,6 +24,7 @@
 
         <div class="card-body">
             <form wire:submit.prevent="update" enctype="multipart/form-data">
+                @csrf
                 {{-- Title --}}
                 <div class="row mb-3">
                     <label class="col-sm-2 col-form-label" for="title">Title</label>

@@ -24,7 +24,7 @@ class RolePermissionIndex extends Component
     public function render()
     {
         abort_unless(auth()->user()->can('settings.edit'), 403);
-        abort_unless(auth()->user()->hasRole('super-admin|admin'), 403);
+        abort_unless(auth()->user()->hasRole('admin'), 403);
         
         $roles = Role::with('permissions')
             ->when($this->search, fn($query) => 
@@ -58,7 +58,7 @@ class RolePermissionIndex extends Component
     public function roleStore()
     {
         abort_unless(auth()->user()->can('settings.edit'), 403);
-        abort_unless(auth()->user()->hasRole('super-admin|admin'), 403);
+        abort_unless(auth()->user()->hasRole('admin'), 403);
         
         $validated = $this->validate([
             'RoleName' => 'required|string|min:3|unique:roles,name',
@@ -86,7 +86,7 @@ class RolePermissionIndex extends Component
     {
 
         abort_unless(auth()->user()->can('settings.edit'), 403);
-        abort_unless(auth()->user()->hasRole('super-admin|admin'), 403);
+        abort_unless(auth()->user()->hasRole('admin'), 403);
         
         $this->validate([
             'RoleName' => 'required|string|min:3|unique:roles,name,' . $this->editingRoleId,
@@ -104,7 +104,7 @@ class RolePermissionIndex extends Component
     public function deleteRole($id)
     {
         abort_unless(auth()->user()->can('settings.edit'), 403);
-        abort_unless(auth()->user()->hasRole('super-admin|admin'), 403);
+        abort_unless(auth()->user()->hasRole('admin'), 403);
         
         try {
             $role = Role::findOrFail($id);

@@ -57,7 +57,7 @@ class RolePermissionAssign extends Component
     public function updatePermission()
     {
         abort_unless(auth()->user()->can('settings.edit'), 403);
-        abort_unless(auth()->user()->hasRole('super-admin|admin'), 403);
+        abort_unless(auth()->user()->hasRole('admin'), 403);
         
         $this->currentRole->syncPermissions($this->selectedPermissions);
         $this->dispatch('success', message: 'Permission Updated!');

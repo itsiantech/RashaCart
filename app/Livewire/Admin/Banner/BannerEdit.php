@@ -32,10 +32,6 @@ class BannerEdit extends Component
     }
     public function update()
     {
-        if (!auth()->user()->can('banner.update')) {
-            $this->dispatch('toast', type: 'error', message: 'You do not have permission to update banners!');
-            return;
-        }
         $this->validate([
             'title' => 'nullable|string|max:255',
             'image' => 'nullable|image|max:1028',

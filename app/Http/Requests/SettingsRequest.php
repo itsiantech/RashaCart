@@ -25,15 +25,15 @@ class SettingsRequest extends FormRequest
             'app_name' => ['nullable', 'string', 'max:255'],
             'app_description' => ['nullable', 'string'],
             'items_per_page' => ['nullable', 'numeric', 'min:1', 'max:100'],
-            'app_logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'], 
-            'theme' => ['nullable','string', 'max:255'],
-            'currency' => ['nullable','string', 'max:255'],
-            'google_map_location' => ['nullable','string'],
+            'app_logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
+            'theme' => ['nullable', 'string', 'max:255'],
+            'currency' => ['nullable', 'string', 'max:255'],
+            'google_map_location' => ['nullable', 'string'],
 
 
             'dc_inside' => ['nullable', 'numeric', 'min:1', 'max:500'],
             'dc_outside' => ['nullable', 'numeric', 'min:1', 'max:500'],
-            
+
             // ✅ Contact settings validation
             'contact_phone' => ['nullable', 'string', 'max:50'],
             'contact_email' => ['nullable', 'email'],
@@ -54,17 +54,23 @@ class SettingsRequest extends FormRequest
             // ✅ OTP validation
             'sms_notification' => ['nullable', 'boolean'],
             'sms_api_key' => 'nullable|string|max:255',
-            'sms_api_url' => 'nullable|string|max:255', 
-            'sms_sender_id' => 'nullable|string|max:255',   
+            'sms_api_url' => 'nullable|string|max:255',
+            'sms_sender_id' => 'nullable|string|max:255',
 
             'email_notification' => ['nullable', 'boolean'],
-           
+
 
             'selected_courier' => ['nullable', 'string', 'in:quirior,steedfast,available'],
             'steedfast_api_base_url' => ['nullable', 'url', 'max:255'],
             'steedfast_api_key' => ['nullable', 'string', 'max:255'],
             'steedfast_api_secret' => ['nullable', 'string', 'max:255'],
-    
+
+            'pathao_client_id'     => 'nullable|string',
+            'pathao_client_secret' => 'nullable|string',
+            'pathao_username'      => 'nullable|email',
+            'pathao_password'      => 'nullable|string',
+            'pathao_store_id'      => 'nullable|string',
+
             'GOOGLE_CLIENT_SECRET' => ['nullable', 'string', 'max:255'],
             'GOOGLE_CLIENT_ID' => ['nullable', 'string', 'max:255'],
         ];

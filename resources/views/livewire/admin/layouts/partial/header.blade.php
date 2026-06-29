@@ -1,8 +1,8 @@
-<nav
+<nav wire:ignore
   class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme"
   id="layout-navbar">
-  
-  <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
+
+  <div wire:ignore class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
     <a class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
       <i class="bx bx-menu bx-sm"></i>
     </a>
@@ -17,8 +17,7 @@
           type="text"
           class="form-control border-0 shadow-none"
           placeholder="Search..."
-          aria-label="Search..."
-        />
+          aria-label="Search..." />
       </div>
     </div>
     <!-- /Search -->
@@ -41,8 +40,21 @@
       <li class="nav-item navbar-dropdown dropdown-user dropdown">
         <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
           <div class="avatar avatar-online">
-            <img src="{{ Auth::user()->profile_image ? asset('storage/' . Auth::user()->profile_image) : asset('assets/admin/img/avatars/user-avater.png') }}" alt class="w-px-40 rounded-circle">
-            
+            @php
+            $profileRoute = auth()->user()->hasRole('admin')
+            ? route('admin.dashboard') 
+            : route('admin.vendor.profile', auth()->id()); 
+            @endphp
+
+            <a href="{{ $profileRoute }}">
+              <img src="{{ auth()->user()->vendorDetails?->profile_image 
+                    ? Storage::url(auth()->user()->vendorDetails->profile_image) 
+                    : asset('images/default-avatar.png') }}"
+                class="rounded-circle mb-3"
+                width="150"
+                height="150"
+                style="object-fit: cover; border:4px solid #f8f9fa;">
+            </a>
           </div>
         </a>
         <ul class="dropdown-menu dropdown-menu-end">
@@ -89,15 +101,47 @@
             <div class="dropdown-divider"></div>
           </li>
           <li>
-          <form method="POST" action="{{ route('logout') }}">
+            <form method="POST" action="{{ route('logout') }}">
               @csrf
               <button class="dropdown-item" type="submit"><i class="bx bx-power-off me-2"></i>Log Out</button>
-          </form>                    
+            </form>
           </li>
         </ul>
       </li>
       <!--/ User -->
     </ul>
   </div>
+  <script>
+    function initHamburger() {
+        const toggleBtns = document.querySelectorAll('.layout-menu-toggle');
+        
+        toggleBtns.forEach(btn => {
+            btn.replaceWith(btn.cloneNode(true)); // remove old listeners
+        });
+
+        document.querySelectorAll('.layout-menu-toggle').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const html = document.documentElement;
+                const menu = document.getElementById('layout-menu');
+                const overlay = document.querySelector('.layout-overlay');
+
+                html.classList.toggle('layout-menu-expanded');
+
+                if (overlay) {
+                    overlay.classList.toggle('layout-overlay-show');
+                    overlay.addEventListener('click', function() {
+                        html.classList.remove('layout-menu-expanded');
+                        if (overlay) overlay.classList.remove('layout-overlay-show');
+                    }, { once: true });
+                }
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', initHamburger);
+    document.addEventListener('livewire:navigated', initHamburger);
+</script>
 </nav>
-  

@@ -13,7 +13,7 @@ class RolePermissionSeeder extends Seeder
    
     public function run(): void
     {
-        $rolesToCreate = ['super-admin', 'admin','user'];
+        $rolesToCreate = ['admin', 'vendor', 'user'];
 
         foreach ($rolesToCreate as $roleName) {
             Role::create(['name' => $roleName]);
@@ -24,10 +24,15 @@ class RolePermissionSeeder extends Seeder
             'user' => ['user.view', 'user.create', 'user.update', 'user.delete'],
             'category' => ['category.view', 'category.create', 'category.update', 'category.delete'],
             'product' => ['product.view', 'product.create', 'product.update', 'product.delete', 'product.stock.manage'],
-            'order' => ['order.view', 'order.create', 'order.update', 'order.delete'],
+            'order' => ['order.view','order.vendor.view', 'order.create', 'order.update', 'order.delete'],
+            'order.bulk.invoice.print' => ['order.bulk.invoice.print'],
+            'free-shipping' => ['free.shipping.view'],
             'cupon' => ['cupon.view', 'cupon.create', 'cupon.update', 'cupon.delete'],
             'setting' => ['setting.view',  'setting.update',],
             'RolesAndPermissions' => ['r&p.view', 'r&p.manage','r&p.create','r&p.update','r&p.delete'],
+            'flash-sale' => ['flash.sales.view', 'flash.sales.create', 'flash.sales.update', 'flash.sales.stock.manage'],
+            'for-you' => ['for.you.view'],
+            'vendor' => ['vendor.view', 'vendor.payout', 'vendor.profile'],
             
         ];
     

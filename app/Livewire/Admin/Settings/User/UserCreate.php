@@ -13,6 +13,7 @@ class UserCreate extends Component
 
     public $name;
     public $email;
+    public $phone;
     public $password;
     public $password_confirmation;
     public $selectedRole;

@@ -7,7 +7,6 @@
                   <span class="app-brand-logo demo">
                     <img src="{{ asset('storage/logo/' . setting('app_logo')) }}" class="img-fluid" style="max-width: 150px; max-height: 50px;">
                   </span> 
-                  {{-- <h3 class="text-body fw-bolder">{{ setting('app_name') ?: config('app.name') }}</h3> --}}
                 </a>
               </div>
               <!-- /Logo -->
@@ -70,7 +69,7 @@
                
                 <p class="text-center">
                   
-                  <a wire:navigate href="{{route('register')}}"> or
+                  <a wire:navigate href="{{route('register')}}">
                     <span>Create an account</span>
                   </a>
                 </p>

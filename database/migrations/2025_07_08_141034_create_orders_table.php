@@ -14,19 +14,22 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('vendor_id')->nullable()->constrained('users')->onDelete('cascade'); // for multivendor
             $table->string('invoice_no')->unique();
             $table->string('name');
             $table->string('phone');
             $table->string('delivery_zone');
             $table->decimal('delivery_charge', 10, 2)->default(0);
             $table->string('payment_method');
-            $table->string('pay_amt')->nullable();      
-            $table->string('coupon_code')->nullable();    
-            $table->decimal('coupon_discount_amount')->nullable();      
+            $table->string('pay_amt')->nullable();
+            $table->string('coupon_code')->nullable();
+            $table->decimal('coupon_discount_amount')->nullable();
             $table->text('shipping_address');
             $table->text('note')->nullable();
             $table->decimal('total_amount', 10, 2);
-            $table->enum('status', ['pending', 'confiemed', 'shipped', 'delivered', 'cancelled','returned']);
+            $table->enum('status', ['pending', 'Call Not Received', 'completed', 'confirmed', 'shipped', 'delivered', 'cancelled', 'returned', 'Pending Return', 'Pending Cancelled']);
+            $table->string('transaction_id')->nullable();
+            $table->string('payment_status')->default('unpaid');
             $table->timestamps();
         });
     }

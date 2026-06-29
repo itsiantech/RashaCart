@@ -18,14 +18,12 @@
                         placeholder="Search attributes...">
                 </div>
 
-                @can('banner.create')
                     <div class="col-12 col-md-auto ms-md-auto text-md-end">
                         <a href="{{ route('admin.banner.create') }}" wire:navigate
                             class="btn btn-primary btn-sm d-inline-flex align-items-center">
                             <i class="bx bx-plus me-1"></i> Add New
                         </a>
                     </div>
-                @endcan
             </div>
         </div>
 
@@ -67,18 +65,14 @@
                                 </td>
                                 <td>
                                     <div class="d-flex">
-                                        @can('banner.update')
                                             <a wire:navigate href="{{ route('admin.banner.edit', $banner->id) }}"
                                                 class="btn btn-sm btn-primary me-1">
                                                 <i class="bx bx-edit"></i> Edit
                                             </a>
-                                        @endcan
-                                        @can('banner.delete')
-                                            <button onclick="confirmDelete({{ $banner->id }})"
+                                            <button wire:click="delete({{ $banner->id }})"
                                                 class="btn btn-sm btn-danger">
                                                 <i class="bx bx-trash"></i> Delete
                                             </button>
-                                        @endcan
                                     </div>
                                 </td>
                             </tr>

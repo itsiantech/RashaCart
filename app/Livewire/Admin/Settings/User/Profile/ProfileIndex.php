@@ -84,7 +84,7 @@ class ProfileIndex extends Component
 
     public function deleteAccount()
     {
-        if (Auth::user()->hasRole('super-admin')) {
+        if (Auth::user()->hasRole('admin')) {
             $this->dispatch('toast', message: 'Super Admin cannot be deleted!', type: 'error');
             return;
         }

@@ -17,11 +17,17 @@ class AdminAccess
     {
        $user = Auth::user();
 
-        if (!$user || ! $user->hasAnyRole(['admin', 'super-admin'])) {
-            // যদি user না থাকে বা role match না করে
-            if ($request->expectsJson()) {
-                return response()->json(['message' => 'Access Denied'], 403);
-            }
+        if (!$user || $user->role !== 'admin') {
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Access Denied'], 403);
+        }
+
+        // if (!$user || ! $user->hasAnyRole(['admin', 'super-admin'])) {
+        //     // যদি user না থাকে বা role match না করে
+        //     if ($request->expectsJson()) {
+        //         return response()->json(['message' => 'Access Denied'], 403);
+        //     }
 
             session()->flash('error', 'Access Denied');
             return redirect(route('home'));

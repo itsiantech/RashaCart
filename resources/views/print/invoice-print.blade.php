@@ -122,7 +122,7 @@
     <div class="label-container">
 
         <div class="company-header">
-            <p class="company-name">{{setting('app_name') ?? config(app.name) }}</p>
+            <p class="company-name">{{setting('app_name') ?? config('app.name') }}</p>
             <p style="margin: 0; font-size: 9px;">Phone: +1234567890</p>
         </div>
 
@@ -134,6 +134,8 @@
             <div>
                 Status: {{ strtoupper($order->status) }}<br>
                 Payment: {{ $order->payment_method }}
+                <br>
+                Shop Name: {{ $order->items->first()?->product?->user?->vendorDetails?->shop_name ?? 'N/A' }}
             </div>
         </div>
 
