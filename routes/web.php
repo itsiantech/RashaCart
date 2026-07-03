@@ -35,6 +35,13 @@ Route::get('/linkstorage', function () {
   return 'Symlink process successfully completed';
 });
 
+Route::get('/clear-cache', function () {
+  Artisan::call('config:clear');
+  Artisan::call('cache:clear');
+  Artisan::call('view:clear');
+  return 'Configuration, cache, and views cleared successfully!';
+});
+
 
 Route::prefix('frontend')->name('frontend.')->group(function () {
 
