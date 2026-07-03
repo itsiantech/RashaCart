@@ -35,24 +35,6 @@ Route::get('/linkstorage', function () {
   return 'Symlink process successfully completed';
 });
 
-Route::get('/clear-cache', function () {
-  Artisan::call('config:clear');
-  Artisan::call('cache:clear');
-  Artisan::call('view:clear');
-  return 'Configuration, cache, and views cleared successfully!';
-});
-
-Route::get('/view-logs', function () {
-  $path = storage_path('logs/laravel.log');
-  if (!file_exists($path)) {
-    return 'No log file found at ' . $path;
-  }
-  $content = file_get_contents($path);
-  $lines = explode("\n", $content);
-  $lastLines = array_slice($lines, -150);
-  return '<pre>' . implode("\n", $lastLines) . '</pre>';
-});
-
 
 Route::prefix('frontend')->name('frontend.')->group(function () {
 
