@@ -3,7 +3,7 @@
 
     <a wire:navigate href="{{ route('frontend.category.products.view', $category->slug) }}">
         @if($category->image)
-        <img src="{{ asset('storage/'.$category->image) }}" width="20">
+        <img src="{{ asset('storage/'.$category->image) }}" width="20" onerror="this.style.display='none'">
         @endif
 
         {{ $category->name }}

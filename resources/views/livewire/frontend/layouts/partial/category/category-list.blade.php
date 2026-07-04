@@ -9,7 +9,7 @@ $brands = $brands ?? collect();
         <li class="{{ $category->allChildren->count() ? 'cat-submenu' : '' }}">
             <a wire:navigate href="{{ route('frontend.category.products.view', $category->slug) }}">
                 @if($category->image)
-                <img src="{{ asset('storage/'.$category->image) }}" alt="{{ $category->name }}" width="20" height="20" style="object-fit:cover; margin-right:5px;">
+                <img src="{{ asset('storage/'.$category->image) }}" alt="{{ $category->name }}" width="20" height="20" style="object-fit:cover; margin-right:5px;" onerror="this.style.display='none'">
                 @endif
                 {{ $category->name }}
 
@@ -42,7 +42,7 @@ $brands = $brands ?? collect();
                     alt="{{ $brand->name }}"
                     width="20"
                     height="20"
-                    style="object-fit:cover; margin-right:5px;">
+                    style="object-fit:cover; margin-right:5px;" onerror="this.style.display='none'">
                 @endif
 
                 {{ $brand->name }}
