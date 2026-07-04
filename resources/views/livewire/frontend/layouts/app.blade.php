@@ -74,7 +74,7 @@
     @php
     $theme = setting('theme') ?? 'default';
     @endphp
-    <link rel="stylesheet" href="{{ asset("assets/frontend/themes/$theme/assets/style.css?v=2.0.0.0") }}">
+    <link rel="stylesheet" href="{{ asset("assets/frontend/themes/$theme/assets/style.css?v=2.0.0.1") }}">
 
     <!-- Material Components -->
     <link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css">
