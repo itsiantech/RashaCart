@@ -1,0 +1,102 @@
+name: 🔒 Security Audit
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Run every Monday at 07:00 UTC
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+jobs:
+  # ============================================================
+  # PHP dependency vulnerability audit
+  # ============================================================
+  composer-audit:
+    name: 🐘 Composer Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, bcmath
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Run Composer audit
+        run: composer audit --format=plain
+
+  # ============================================================
+  # JavaScript dependency vulnerability audit
+  # ============================================================
+  npm-audit:
+    name: 🟢 npm Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit (high severity only)
+        run: npm audit --audit-level=high
+
+  # ============================================================
+  # Static analysis with PHPStan (via Larastan if available)
+  # ============================================================
+  static-analysis:
+    name: 🔬 Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, bcmath, pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-security-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-security-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Check if PHPStan is installed
+        id: phpstan-check
+        run: |
+          if [ -f vendor/bin/phpstan ]; then
+            echo "installed=true" >> $GITHUB_OUTPUT
+          else
+            echo "installed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run PHPStan static analysis
+        if: steps.phpstan-check.outputs.installed == 'true'
+        run: vendor/bin/phpstan analyse --memory-limit=512M --no-progress

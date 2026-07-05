@@ -1,0 +1,67 @@
+version: 2
+updates:
+  # ── PHP / Composer ──────────────────────────────────────────
+  - package-ecosystem: composer
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Dhaka
+    open-pull-requests-limit: 10
+    groups:
+      laravel-ecosystem:
+        patterns:
+          - "laravel/*"
+          - "livewire/*"
+          - "spatie/*"
+    ignore:
+      # Never auto-update major Laravel framework versions
+      - dependency-name: "laravel/framework"
+        update-types: ["version-update:semver-major"]
+    labels:
+      - "dependencies"
+      - "php"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # ── JavaScript / npm ────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Dhaka
+    open-pull-requests-limit: 5
+    groups:
+      vite-stack:
+        patterns:
+          - "vite"
+          - "laravel-vite-plugin"
+          - "@vitejs/*"
+      tailwind-stack:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
+          - "autoprefixer"
+          - "postcss"
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # ── GitHub Actions ──────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Dhaka
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(actions)"
