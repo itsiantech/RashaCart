@@ -18,7 +18,7 @@ class ProductFactory extends Factory
             'sku' => strtoupper(Str::random(10)),
             'category_id' => null, // Seeder will assign
             'name' => $name,
-            'slug' => Str::slug($name),
+            'slug' => Str::slug($name) . '-' . Str::random(5),
             'short_description' => $this->faker->sentence(),
             'long_description' => $this->faker->paragraph(5),
             'buying_price' => $this->faker->numberBetween(100, 300),
