@@ -68,7 +68,10 @@
                             @endphp
                             <tr>
                                 <td>
-                                    <div class="position-relative">
+                                    <a href="{{ route('frontend.product.single.view', $product->slug) }}"
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       class="position-relative">
                                         <img src="{{ $product->thumbnail ? asset('storage/' . $product->thumbnail) : asset('assets/admin/img/avatars/user-avater.png') }}" 
                                              alt="{{ $product->name }}" 
                                              class="rounded" 
@@ -78,7 +81,7 @@
                                                 <i class="bx bx-star"></i>
                                             </span>
                                         @endif
-                                    </div>
+                                    </a>
                                 </td>
                                
                                 <td>
@@ -88,6 +91,9 @@
                                     </div>
                                     <div class="text-muted small">
                                         {{ $product->category->name ?? 'No Category' }}
+                                    </div>
+                                    <div class="text-muted small">
+                                        Brand: {{ $product->brand->name ?? 'No Brand' }}
                                     </div>
                                     <div class="text-muted small">
                                         Added: {{ $product->created_at->format('d M Y') }}

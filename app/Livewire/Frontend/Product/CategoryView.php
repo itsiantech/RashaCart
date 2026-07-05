@@ -2,12 +2,13 @@
 
 namespace App\Livewire\Frontend\Product;
 
+use App\Livewire\Admin\Category\CategoryComponent;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Category;
 use App\Models\Product;
-
 use App\Traits\HandlesCartActions;
+
 class CategoryView extends Component
 {
     use WithPagination;
@@ -15,6 +16,8 @@ class CategoryView extends Component
 
     public $category = null;
     public $selectedPrice = null;
+    public $allCategories = []; // For sidebar filters
+
 
     protected $queryString = [
         'selectedPrice' => ['except' => null],
@@ -22,40 +25,53 @@ class CategoryView extends Component
 
     public function mount($slug = null)
     {
+
         if ($slug) {
-            $this->category = Category::where('slug', $slug)->first();
+            $this->category = Category::where('slug', $slug)->firstOrFail();
         }
+
+        // Load all categories for sidebar filters (not paginated)
+        $this->allCategories = Category::where('status', 1)
+            ->orderBy('name')
+            ->get();
     }
+
 
     public function togglePrice($price)
     {
-        // যদি একই প্রাইস আবার ক্লিক করা হয় → আনসিলেক্ট
         $this->selectedPrice = ($this->selectedPrice === $price) ? null : $price;
+    }
+
+    public function getCategoriesProperty()
+    {
+        return Category::with('allChildren')->where('status', 1)
+            ->orderBy('name')
+            ->paginate(16);
     }
 
     public function getProductsProperty()
     {
         $query = Product::query();
 
-        // Category filter
         if ($this->category) {
             $query->where('category_id', $this->category->id);
         }
 
-        // Single price filter
         if ($this->selectedPrice) {
             [$min, $max] = explode('-', $this->selectedPrice);
             $query->whereBetween('price', [(int)$min, (int)$max]);
         }
 
-        return $query->paginate(12);
+        return $query->paginate(20);
     }
 
     public function render()
     {
         return view('livewire.frontend.product.category-view', [
+            'category' => $this->category,
+            'categories' => $this->categories,
+            'allCategories' => $this->allCategories,
             'products' => $this->products,
         ])->layout('livewire.frontend.layouts.app');
     }
 }
-

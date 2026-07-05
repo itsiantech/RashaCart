@@ -38,7 +38,7 @@
         </div>
 
         <div class="col-12 col-sm-6">
-          <label for="phone" class="form-label">Full Name</label>
+          <label for="phone" class="form-label">Mobile Number</label>
           <input 
             type="text" 
             id="phone" 

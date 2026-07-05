@@ -1,15 +1,4 @@
 <div class="product-card">
-    @if ($product->discount_price)
-        <div class="product-badge">
-            @php
-                $discountPercent =
-                    $product->discount_type === 'percent'
-                        ? $product->discount_price
-                        : round(($product->discount_price / $product->price) * 100);
-            @endphp
-            {{ $discountPercent }}% OFF
-        </div>
-    @endif
 
     <div class="product-image">
         <a wire:navigate href="{{ route('frontend.product.single.view', $product->slug) }}">
@@ -17,48 +6,60 @@
                 alt="{{ $product->name }}" loading="lazy">
         </a>
 
-        <button class="wishlist-heart" wire:click="addToWishlist({{ $product->id }})" aria-label="Add to wishlist">
-            <i class="far fa-heart"></i>
-        </button>
+        @if (\App\Models\FreeShipping::hasProductFreeShipping($product->id, $product->category_id))
+        <div class="free-shipping-badge" style="background-color: orangered; top: 0px; left:0px;">
+            <i class="fas fa-truck"></i> FREE
+        </div>
+        @endif
+
+
 
     </div>
 
     <div class="product-info">
-        <div class="product-rating">
-            <x-rating-stars 
-                :rating="$product->reviews_avg_rating"
-                :count="$product->reviews_count"
-            />
-        </div>
+
         <h3 class="product-title">{{ $product->name }}</h3>
 
-        <div class="product-price">
-            <span class="current-price">
-                {{ setting('currency') }}{{ number_format($product->sale_price ?? $product->price, 2) }}
-            </span>
-            @if ($product->sale_price)
-                <span class="original-price">${{ number_format($product->price, 2) }}</span>
-            @endif
+        <div class="product-price d-flex justify-content-between gap-1">
+            <div class="">
+                <span class="current-price">
+                    {{ setting('currency') }}{{ number_format($product->sale_price ?? $product->price, 2) }}
+                </span>
+                @if ($product->sale_price)
+                <span class="original-price">{{ number_format($product->price, 2) }}</span>
+                @endif
+            </div>
+
+            @if ($product->sale_price && $product->sale_price < $product->price)
+                <div class="product-badge">
+                    @php
+                    $discountPercent = round((($product->price - $product->sale_price) / $product->price) * 100);
+                    @endphp
+                    -{{ $discountPercent }}%
+                </div>
+                @endif
         </div>
 
         <div class="product-cta">
-            <!-- Add to Cart Button -->
-            <button class="basket-btn" wire:click="addToCart({{ $product->id }})" wire:loading.attr="disabled" wire:target="addToCart">
-                <span wire:loading.remove wire:target="addToCart({{ $product->id }})">
-                    <i class="fa fa-shopping-basket" aria-hidden="true"></i>
-                </span>
-                <span wire:loading wire:target="addToCart({{ $product->id }})">
-                    <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
-                </span>
-            </button>
-
             <!-- Buy Now Button -->
             <button class="btn-order-now" wire:click="buyNow({{ $product->id }})" wire:loading.attr="disabled" wire:target="buyNow">
                 <span wire:loading.remove wire:target="buyNow({{ $product->id }})">
-                    অর্ডার করুন
+                    Buy Now
                 </span>
                 <span wire:loading wire:target="buyNow({{ $product->id }})">
-                    <i class="fa fa-spinner fa-spin" aria-hidden="true"></i> অপেক্ষা করুন...
+                    <i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Please wait...
+                </span>
+            </button>
+
+            <button class="cart-button"
+                wire:click="addToCart({{ $product->id }})" wire:loading.attr="disabled"
+                wire:target="addToCart({{ $product->id }})">
+
+                <span wire:loading.remove wire:target="addToCart({{ $product->id }})">
+                    <i class="fas fa-shopping-cart"></i>
+                </span>
+                <span wire:loading wire:target="addToCart({{ $product->id }})">
+                    <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
                 </span>
             </button>
         </div>

@@ -57,7 +57,7 @@ class ProfileController extends Controller
     public function destroy(Request $request): RedirectResponse
     {
        
-        if (Auth::user()->hasRole('super-admin')) {  
+        if (Auth::user()->hasRole('admin')) {  
             return redirect()->back()->with('error', 'Super Admin cannot be deleted!');
            
         } else {

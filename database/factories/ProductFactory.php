@@ -3,6 +3,7 @@
 namespace Database\Factories;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -13,7 +14,7 @@ class ProductFactory extends Factory
         $name = $this->faker->words(3, true);
 
         return [
-            'user_id' => 1,
+            'user_id' => User::factory(),
             'sku' => strtoupper(Str::random(10)),
             'category_id' => null, // Seeder will assign
             'name' => $name,

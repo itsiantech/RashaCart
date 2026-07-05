@@ -8,8 +8,10 @@ use Illuminate\Support\Str;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Attribute;
+use App\Models\Brand;
 use App\Models\ProductVariant;
 use App\Models\VariantAttributeValue;
+use App\Models\Inventory;
 use DB;
 use Storage;
 
@@ -17,14 +19,24 @@ class ProductEdit extends Component
 {
     use WithFileUploads;
 
+    public $meta_title;
+    public $meta_description;
+    public $meta_keywords;
+    public $meta_tags;
+
     public $productId;
 
     // Basic fields
     public $name, $slug, $short_description, $long_description, $buying_price;
     public $price, $discount_type, $discount_price;
-    public $category_id, $thumbnail, $video, $status, $is_featured;
+    public $category_id, $brand_id, $thumbnail, $video, $status, $is_featured;
     public $images = []; // new uploads
     public $existingImages = []; // old gallery images
+
+    public bool $is_preorder = false;
+    public ?string $preorder_start_date = null;
+    public ?string $preorder_end_date = null;
+    public ?string $expected_release_date = null;
 
     // Variant system
     public $productAttributes = [];
@@ -40,9 +52,17 @@ class ProductEdit extends Component
     public $newVariant = [
         'attributes' => [],
         'sku' => '',
-        'varient_price' => 0,
+        'variant_price' => 0,
+        'stock' => 0, 
         'image' => null,
     ];
+
+    protected $listeners = ['longDescriptionUpdated' => 'setLongDescription'];
+
+    public function setLongDescription($html)
+    {
+        $this->long_description = $html;
+    }
 
     public function mount($id)
     {
@@ -54,6 +74,10 @@ class ProductEdit extends Component
         // Basic fields
         $this->name = $product->name;
         $this->slug = $product->slug;
+        $this->meta_title = $product->meta_title;
+        $this->meta_description = $product->meta_description;
+        $this->meta_keywords = $product->meta_keywords;
+        $this->meta_tags = $product->meta_tags;
         $this->short_description = $product->short_description;
         $this->long_description = $product->long_description;
         $this->buying_price = $product->buying_price;
@@ -61,20 +85,27 @@ class ProductEdit extends Component
         $this->discount_type = $product->discount_type;
         $this->discount_price = $product->discount_price;
         $this->category_id = $product->category_id;
+        $this->brand_id = $product->brand_id;
         $this->video = $product->video;
         $this->status = $product->status ? true : false;
         $this->is_featured = $product->is_featured ? true : false;
         $this->existingImages = $product->gallery_image ?? [];
+        $this->is_preorder           = $product->is_preorder ?? false;
+        $this->preorder_start_date   = $product->preorder_start_date?->format('Y-m-d\TH:i');
+        $this->preorder_end_date     = $product->preorder_end_date?->format('Y-m-d\TH:i');
+        $this->expected_release_date = $product->expected_release_date?->format('Y-m-d\TH:i');
 
         // Load attributes and variants
         $this->productAttributes = Attribute::with('values')->get();
 
         $this->variants = $product->variants
             ->map(function ($variant) {
+                $currentStock = $variant->inventories->sortByDesc('id')->first()?->current_stock ?? 0;
                 return [
                     'id' => $variant->id,
                     'sku' => $variant->sku,
-                    'varient_price' => $variant->varient_price,
+                    'variant_price' => $variant->variant_price,
+                    'stock'          => $currentStock,
                     'values' => $variant->values
                         ->map(function ($v) {
                             return [
@@ -169,7 +200,8 @@ class ProductEdit extends Component
         $variant = [
             'id' => 'new_' . ++$this->variantCounter,
             'sku' => $this->newVariant['sku'],
-            'varient_price' => (float) $this->newVariant['varient_price'],
+            'variant_price' => (float) $this->newVariant['variant_price'],
+            'stock'          => (int) ($this->newVariant['stock'] ?? 0),
             'values' => [],
             'image' => null,
             'new_image_file' => null,
@@ -228,8 +260,8 @@ class ProductEdit extends Component
             }
         }
 
-        if (!is_numeric($this->newVariant['varient_price'])) {
-            $this->variantErrors['varient_price'] = 'Price adjustment must be a number.';
+        if (!is_numeric($this->newVariant['variant_price'])) {
+            $this->variantErrors['variant_price'] = 'Price adjustment must be a number.';
         }
 
         return empty($this->variantErrors);
@@ -282,7 +314,7 @@ class ProductEdit extends Component
         $this->newVariant = [
             'attributes' => [],
             'sku' => '',
-            'varient_price' => 0,
+            'variant_price' => 0,
             'image' => null,
         ];
         $this->newVariantImage = null;
@@ -302,12 +334,21 @@ class ProductEdit extends Component
         $this->validate([
             'name' => 'required|string|max:255',
             'slug' => 'required|string|unique:products,slug,' . $this->productId,
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string|max:255',
+            'meta_keywords' => 'nullable|string|max:255',
+            'meta_tags' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
             'discount_type' => 'nullable|string|in:fixed,percentage|required_with:discount_price',
             'discount_price' => 'nullable|numeric|min:0|required_with:discount_type',
             'category_id' => 'required|exists:categories,id',
+            'brand_id' => 'nullable|exists:brands,id',
             'thumbnail' => 'nullable|image|max:2048',
             'images.*' => 'nullable|image|max:2048',
+            'is_preorder'           => 'boolean',
+            'preorder_start_date'   => 'nullable|date|required_if:is_preorder,true',
+            'preorder_end_date'     => 'nullable|date|after_or_equal:preorder_start_date',
+            'expected_release_date' => 'nullable|date',
         ]);
 
         DB::beginTransaction();
@@ -318,6 +359,10 @@ class ProductEdit extends Component
             $product->update([
                 'name' => $this->name,
                 'slug' => $this->slug,
+                'meta_title' => $this->meta_title,
+                'meta_description' => $this->meta_description,
+                'meta_keywords' => $this->meta_keywords,
+                'meta_tags' => $this->meta_tags,
                 'short_description' => $this->short_description,
                 'long_description' => $this->long_description,
                 'buying_price' => $this->buying_price,
@@ -326,10 +371,15 @@ class ProductEdit extends Component
                 'discount_price' => $this->discount_price,
                 'sale_price' => $this->sale_price,
                 'category_id' => $this->category_id,
+                'brand_id' => $this->brand_id,
                 'video' => $this->video,
                 'status' => $this->status,
                 'is_featured' => $this->is_featured,
                 'has_variant' => $this->variantSystemEnabled && !empty($this->variants),
+                'is_preorder'           => $this->is_preorder,
+                'preorder_start_date'   => $this->is_preorder ? $this->preorder_start_date : null,
+                'preorder_end_date'     => $this->is_preorder ? $this->preorder_end_date : null,
+                'expected_release_date' => $this->is_preorder ? $this->expected_release_date : null,
             ]);
 
             // Handle thumbnail update
@@ -341,12 +391,12 @@ class ProductEdit extends Component
 
             // Handle gallery images update
             $galleryPaths = [];
-            
+
             // Keep existing images if they exist
             if (!empty($this->existingImages) && is_array($this->existingImages)) {
                 $galleryPaths = $this->existingImages;
             }
-            
+
             // Add new images
             if (!empty($this->images) && is_array($this->images)) {
                 foreach ($this->images as $img) {
@@ -354,7 +404,7 @@ class ProductEdit extends Component
                     $galleryPaths[] = $path;
                 }
             }
-            
+
             // Update gallery_image field
             $product->gallery_image = $galleryPaths;
             $product->save();
@@ -366,24 +416,39 @@ class ProductEdit extends Component
                 // Skip variants marked for deletion
                 if (isset($variantData['_delete']) && $variantData['_delete']) {
                     if (is_numeric($variantData['id'])) {
-                        ProductVariant::find($variantData['id'])->delete();
+                        $variantToDelete = ProductVariant::find($variantData['id']);
+                        if ($variantToDelete) {
+                            $variantToDelete->delete();
+                        }
                     }
                     continue;
                 }
 
-                if (is_numeric($variantData['id'])) {
+                if (is_numeric($variantData['id']) && !str_starts_with((string) $variantData['id'], 'new_')) {
                     // Update existing variant
                     $variant = ProductVariant::find($variantData['id']);
-                    $variant->update([
-                        'sku' => $variantData['sku'],
-                        'varient_price' => $variantData['varient_price'],
-                    ]);
+                    if ($variant) {
+                        $variant->update([
+                            'sku' => $variantData['sku'],
+                            'variant_price' => $variantData['variant_price'],
+                        ]);
+                    }
                 } else {
                     // Create new variant
                     $variant = ProductVariant::create([
                         'product_id' => $product->id,
+                        'stock'         => $variantData['stock'] ?? 0,
                         'sku' => $variantData['sku'],
-                        'varient_price' => $variantData['varient_price'],
+                        'variant_price' => $variantData['variant_price'],
+                    ]);
+
+                    // Create inventory record for new variant
+                    Inventory::create([
+                        'product_id' => $product->id,
+                        'variant_id' => $variant->id,
+                        'type' => 'in',
+                        'quantity'      => $variantData['stock'] ?? 0,
+                        'current_stock' => $variantData['stock'] ?? 0,
                     ]);
                 }
 
@@ -447,6 +512,7 @@ class ProductEdit extends Component
     {
         return view('livewire.admin.products.product-edit', [
             'categories' => Category::whereDoesntHave('children')->get(),
+            'brands' => Brand::all(),
         ])->layout('livewire.admin.layouts.app');
     }
 }

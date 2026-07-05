@@ -2,32 +2,44 @@
 
 namespace App\Livewire\Admin\Products;
 
-use Livewire\Component;
-use App\Models\Product;
+use App\Helpers\Settings;
 use App\Models\Inventory;
 use App\Models\OrderItem;
-use App\Helpers\Settings;
-use Livewire\WithPagination;
-use Livewire\WithoutUrlPagination;
+use App\Models\Product;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Component;
+use Livewire\WithoutUrlPagination;
+use Livewire\WithPagination;
 
 class ProductIndex extends Component
 {
     use WithPagination, WithoutUrlPagination;
-    public $search = '';    
-    
+    public $search = '';
+
     public function render()
     {
-        $products = Product::with([
-                'orderitems', 
-                'inventories', 
-                'variants.inventories'
-            ])
-            ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
+        $query = Product::with([
+            'orderitems',
+            'inventories',
+            'variants.inventories'
+        ]);
+
+        $user = Auth::user();
+
+        if (! $user->hasRole('admin')) {
+            $query->where('user_id', $user->id);
+        }
+
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where('name', 'like', '%' . $this->search . '%')
                     ->orWhere('short_description', 'like', '%' . $this->search . '%')
                     ->orWhere('sku', 'like', '%' . $this->search . '%');
-            })
+            });
+        }
+
+        $products = $query
             ->latest()
             ->paginate(setting('items_per_page'));
 
@@ -35,23 +47,21 @@ class ProductIndex extends Component
             ->layout('livewire.admin.layouts.app');
     }
 
-    // Calculate product stock from inventory
     private function calculateProductStock($product)
     {
         $inventoryIn = $product->inventories
             ->where('variant_id', null)
             ->where('type', 'in')
             ->sum('quantity');
-        
+
         $inventoryOut = $product->inventories
             ->where('variant_id', null)
             ->where('type', 'out')
             ->sum('quantity');
-        
+
         return $inventoryIn - $inventoryOut;
     }
 
-    // Calculate variant stock from inventory
     private function calculateVariantStock($variant)
     {
         $inventoryIn = $variant->inventories->where('type', 'in')->sum('quantity');
@@ -59,20 +69,18 @@ class ProductIndex extends Component
         return $inventoryIn - $inventoryOut;
     }
 
-    // Calculate total stock including variants
     public function getTotalStock($product)
     {
         $mainStock = $this->calculateProductStock($product);
-        
+
         $variantStock = 0;
         foreach ($product->variants as $variant) {
             $variantStock += $this->calculateVariantStock($variant);
         }
-        
+
         return $mainStock + $variantStock;
     }
 
-    // Get stock badge class based on quantity
     public function getStockBadgeClass($totalStock)
     {
         if ($totalStock > 10) {
@@ -85,25 +93,36 @@ class ProductIndex extends Component
     }
 
     public function deleteProduct($id)
-    {       
-        $product = Product::findOrFail($id);
-        
-        // Delete related data
-        $product->variants()->delete();
-        $product->inventories()->delete();
-        
-        // Delete images from storage
-        if ($product->thumbnail) {
-            Storage::delete('public/' . $product->thumbnail);
-        }
-        
-        if ($product->gallery_image) {
-            foreach ($product->gallery_image as $image) {
-                Storage::delete('public/' . $image);
-            }
-        }
-        
-        $product->delete();
-        $this->dispatch('success', message: 'Product deleted successfully!');
+{
+    $user = Auth::user();
+    $product = Product::where('id', $id)
+        ->when(! $user->hasRole('admin'), function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+        ->firstOrFail();
+
+    $variantIds = $product->variants()->pluck('id');
+    if ($variantIds->isNotEmpty()) {
+        OrderItem::whereIn('product_variant_id', $variantIds)
+            ->update(['product_variant_id' => null]);
     }
+
+    // Delete related data
+    $product->variants()->delete();
+    $product->inventories()->delete();
+
+    if ($product->thumbnail) {
+        Storage::delete('public/' . $product->thumbnail);
+    }
+
+    if ($product->gallery_image) {
+        foreach ($product->gallery_image as $image) {
+            Storage::delete('public/' . $image);
+        }
+    }
+
+    $product->delete();
+
+    $this->dispatch('success', message: 'Product deleted successfully!');
+}
 }

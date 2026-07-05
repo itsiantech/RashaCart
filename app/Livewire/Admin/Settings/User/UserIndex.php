@@ -3,22 +3,77 @@
 namespace App\Livewire\Admin\Settings\User;
 
 use Livewire\Component;
-use Spatie\Permission\Models\Role;
-
 use App\Models\User;
 use Livewire\WithPagination;
+
 class UserIndex extends Component
 {
-     use WithPagination;
+    use WithPagination;
 
     public $search = '';
+    public $deleteUserId = null;
+
+    protected $listeners = ['deleteConfirmed'];
+
+    public function confirmDelete($userId)
+{
+    $this->deleteUserId = $userId;
+    $this->dispatch('success', message: 'confirmDelete called with ID: ' . $userId);
+    $this->js("window.dispatchEvent(new CustomEvent('showDeleteConfirmation'))");
+}
+
+    public function deleteConfirmed()
+    {
+        if (!$this->deleteUserId) return;
+
+        $user = User::find($this->deleteUserId);
+
+        if (!$user) {
+            $this->dispatch('error', message: 'User not found.');
+            $this->deleteUserId = null;
+            return;
+        }
+
+        if ($user->id === auth()->id()) {
+            $this->dispatch('error', message: 'You cannot delete yourself.');
+            $this->deleteUserId = null;
+            return;
+        }
+
+        // if ($user->hasRole('admin')) {
+        //     $this->dispatch('error', message: 'Admin account cannot be deleted.');
+        //     $this->deleteUserId = null;
+        //     return;
+        // }
+
+        $user->delete();
+        $this->deleteUserId = null;
+        $this->dispatch('success', message: 'Staff deleted successfully.');
+    }
+
+    public function toggleStatus($userId)
+    {
+        $user = User::find($userId);
+        if ($user && !$user->hasRole('admin')) {
+            $user->update(['status' => !$user->status]);
+            $this->dispatch('success', message: 'Status updated.');
+        }
+    }
 
     public function render()
     {
-        $admins = User::whereDoesntHave('roles', fn($q) => $q->where('name', 'user'))
+        $admins = User::whereDoesntHave('roles', function ($q) {
+            $q->where('name', 'vendor');
+        })
             ->with('roles')
-            ->when($this->search, fn($query) => 
-                $query->where('name', 'like', '%' . $this->search . '%')
+            ->when(
+                $this->search,
+                fn($query) =>
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhere('email', 'like', '%' . $this->search . '%')
+                        ->orWhere('phone', 'like', '%' . $this->search . '%');
+                })
             )
             ->latest()
             ->paginate(10);
@@ -26,39 +81,4 @@ class UserIndex extends Component
         return view('livewire.admin.settings.user.user-index', compact('admins'))
             ->layout('livewire.admin.layouts.app');
     }
-
-    public function toggleStatus($userId)
-    {
-        abort_unless(auth()->user()->can('user.update'), 403);
-
-        $user = User::findOrFail($userId);        
-        $user->status = $user->status === 1 ? 0 : 1;
-        $user->save();
-
-        $statusText = $user->status === 1 ? 'active' : 'inactive';
-        $this->dispatch('success', message: 'User status ' . ucfirst($statusText), type: 'success');
-    }
-
-
-    public function deleteadmin($id)
-    {
-        try {
-            $admin = User::findOrFail($id);
-            
-            if ($admin->id === auth()->id()) {
-                $this->dispatch('toast', message: 'You cannot delete yourself!', type: 'error');
-                return;
-            }
-
-            if ($admin->hasRole('super-admin')) {
-                $this->dispatch('success', message: 'You cannot delete a Super Admin!', type: 'error');
-                return;
-            }
-            $admin->delete();
-            $this->dispatch('success', message: 'Admin deleted successfully.', type: 'success');
-        } catch (\Exception $e) {
-            $this->dispatch('error', message: 'Failed to delete admin: ' . $e->getMessage(), type: 'error');
-        }
-    }
-  
 }

@@ -2,59 +2,74 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
+use App\Services\Couriers\CourierDriverInterface;
+use App\Services\Couriers\SteadfastDriver;
+use App\Services\Couriers\PathaoDriver;
 
 class CourierService
 {
-    protected $baseUrl;
-    protected $apiKey;
-    protected $secretKey;
-    protected $dryRun = true;
+    protected CourierDriverInterface $driver;
+    protected bool $dryRun;
 
-    public function __construct($dryRun = true)
+    public function __construct($dryRun = null)
     {
-        $this->baseUrl = setting('steedfast_api_base_url');
-        $this->apiKey = setting('steedfast_api_key');   
-        $this->secretKey = setting('steedfast_api_secret');
-        $this->dryRun = $dryRun;
+        if ($dryRun === null) {
+            // Set dryRun to true if not in production, false in production
+            $this->dryRun = app()->environment() !== 'production';
+        } else {
+            $this->dryRun = $dryRun;
+        }
+        $this->driver = $this->resolveDriver();
+    }
+
+    private function resolveDriver(): CourierDriverInterface
+    {
+        return match (setting('selected_courier')) {
+            'pathao' => new PathaoDriver(),
+            default  => new SteadfastDriver(), // keeps all existing behaviour
+        };
     }
 
     public function canSend(): bool
     {
-        return $this->baseUrl && $this->apiKey && $this->secretKey;
+        return $this->driver->canSend();
     }
 
-    public function createOrder(array $data)
+    public function createOrder(array $data): array
     {
         if (!$this->canSend()) {
             return [
-                'status' => false,
-                'message' => 'Courier API credentials not set.'
+                'status'  => false,
+                'message' => 'Courier API credentials not set.',
             ];
         }
 
         if ($this->dryRun) {
-            
             return [
-                'status' => 'dry_run',
+                'status'  => 'dry_run',
                 'message' => 'This is a test payload, not sent to courier.',
-                'payload' => $data
+                'payload' => $data,
             ];
         }
 
-        $response = Http::withHeaders([
-            'Api-Key' => $this->apiKey,
-            'Secret-Key' => $this->secretKey,
-            'Content-Type' => 'application/json'
-        ])->post($this->baseUrl . '/create_order', $data);
+        return $this->driver->createOrder($data);
+    }
 
-        if ($response->successful()) {
-            return $response->json();
+    public function trackOrder(string $trackingCode): array
+    {
+        if (!$this->canSend()) {
+            return [
+                'status'  => false,
+                'message' => 'Courier API credentials not set.',
+            ];
         }
 
-        return [
-            'status' => false,
-            'message' => $response->body()
-        ];
+        return $this->driver->trackOrder($trackingCode);
+    }
+
+    // Use this when you need Pathao-specific methods like getCities()
+    public function driver(): CourierDriverInterface
+    {
+        return $this->driver;
     }
 }

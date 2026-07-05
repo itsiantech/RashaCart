@@ -4,11 +4,14 @@ namespace App\Livewire\Auth;
 
 use Livewire\Component;
 use Livewire\Attributes\Validate;
+use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+
+#[Layout('livewire.auth.layouts.app')]
 class Login extends Component
 {
     #[Validate('required|string|email')]
@@ -19,35 +22,44 @@ class Login extends Component
 
     public bool $remember = false;
 
-    
     public function login(): void
     {
         $this->validate();
 
-        $this->ensureIsNotRateLimited();
-
-        $user = \App\Models\User::where('email', $this->email)->first();
-            if ($user && ! $user->status) {
-            throw ValidationException::withMessages([
-                'email' => __('Your account is inactive. Please contact administrator.'),
-            ]);
-    
-
-        }
-
-
-        if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
-            RateLimiter::hit($this->throttleKey());
-
+        if (!Auth::attempt([
+            'email' => $this->email,
+            'password' => $this->password,
+        ])) {
             throw ValidationException::withMessages([
                 'email' => __('auth.failed'),
             ]);
         }
 
-        RateLimiter::clear($this->throttleKey());
-        Session::regenerate();
+        session()->regenerate();
 
-        $this->redirectIntended(default: route('admin.dashboard', absolute: false), navigate: true);
+        $user = Auth::user();
+
+        // Check if vendor is approved (Spatie role check)
+        if ($user->hasRole('vendor') && !$user->is_vendor_approved) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => 'Your vendor account is pending approval.',
+            ]);
+        }
+
+        // 🔑 ROLE-BASED REDIRECT (using Spatie hasRole)
+        if ($user->hasRole('admin')) {
+            $this->redirect(route('admin.dashboard'), navigate: true);
+            return;
+        }
+
+        if ($user->hasRole('vendor')) {
+            $this->redirect(route('admin.vendor.profile', $user->id), navigate: true);
+            return;
+        }
+
+        // customer - regular user
+        $this->redirect(route('home'), navigate: true);
     }
 
 
@@ -78,10 +90,10 @@ class Login extends Component
      */
     protected function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->email).'|'.request()->ip());
+        return Str::transliterate(Str::lower($this->email) . '|' . request()->ip());
     }
     public function render()
     {
-        return view('livewire.auth.login')->layout('livewire.auth.layouts.app');;;
+        return view('livewire.auth.login');
     }
 }

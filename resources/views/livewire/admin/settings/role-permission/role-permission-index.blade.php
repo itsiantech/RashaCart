@@ -93,7 +93,7 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-2">
-                                        @if ($role->name !== 'super-admin')
+                                        @if ($role->name !== 'admin')
                                             <button wire:click="editRole({{ $role->id }})"
                                                 class="btn btn-sm btn-primary" aria-label="Edit Role" title="Edit Role">
                                                 <i class="bx bx-pencil"></i>

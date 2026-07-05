@@ -2,45 +2,96 @@
 
 namespace App\Livewire\Admin\Products;
 
-use Livewire\Component;
-use Livewire\WithFileUploads;
-use Illuminate\Support\Str;
-use App\Models\Product;
+use App\Models\Attribute;
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Inventory;
-use App\Models\Attribute;
-use App\Models\AttributeValue;
+use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\VariantAttributeValue;
 use DB;
+use Illuminate\Support\Str;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class ProductCreate extends Component
 {
     use WithFileUploads;
 
-    public $name, $slug, $sku, $short_description, $long_description, $buying_price;
-    public $price, $discount_type, $discount_price, $stock;
+    public $name;
+
+    public $slug;
+
+    public $sku;
+
+    public $short_description;
+
+    public $long_description;
+
+    public $buying_price;
+
+    public $price;
+
+    public $discount_type;
+
+    public $discount_price;
+
+    public $stock;
+
     public $sale_price;
+
     public $category_id;
-    public $thumbnail, $video, $status = true;
+
+    public $brand_id;
+
+    public $thumbnail;
+
+    public $video;
+
+    public $status = true;
+
     public $images = [];
+    public $uploadedImages = []; // permanent storage
+
+    public $meta_title;
+
+    public $meta_description;
+
+    public $meta_keywords;
+
+    public $meta_tags;
 
     public $productAttributes = [];
+
     public $selectedAttributes = [];
 
     public $variants = [];
+
     public $variantCounter = 0;
+
     public $showVariantForm = false;
+
     public $variantSystemEnabled = true;
 
     public $newVariantImage;
+
     public $variantErrors = [];
+
     public $is_featured = false;
+
+    public bool $is_preorder = false;
+    public ?string $preorder_start_date = null;
+    public ?string $preorder_end_date = null;
+    public ?string $expected_release_date = null;
+
+    public $subcategory_id;
+
+    public $subcategories = [];
 
     public $newVariant = [
         'attributes' => [],
         'sku' => '',
-        'varient_price' => null,
+        'variant_price' => null,
         'stock' => 0,
         'image' => null,
     ];
@@ -55,9 +106,20 @@ class ProductCreate extends Component
     }
 
     // ----------------------- Price Calculations -----------------------
-    public function updatedDiscountType($value) { $this->calculateSalePrice(); }
-    public function updatedPrice() { $this->calculateSalePrice(); }
-    public function updatedDiscountPrice() { $this->calculateSalePrice(); }
+    public function updatedDiscountType($value)
+    {
+        $this->calculateSalePrice();
+    }
+
+    public function updatedPrice()
+    {
+        $this->calculateSalePrice();
+    }
+
+    public function updatedDiscountPrice()
+    {
+        $this->calculateSalePrice();
+    }
 
     public function calculateSalePrice()
     {
@@ -75,6 +137,15 @@ class ProductCreate extends Component
     public function updatedName($value)
     {
         $this->slug = Str::slug($value);
+
+        // Auto-fill SEO fields only if they are currently empty
+        if (empty($this->meta_title)) {
+            $this->meta_title = $value;
+        }
+
+        if (empty($this->meta_description)) {
+            $this->meta_description = $value;
+        }
     }
 
     // ----------------------- Variant Methods -----------------------
@@ -83,7 +154,7 @@ class ProductCreate extends Component
         $this->newVariant = [
             'attributes' => [],
             'sku' => 'SKU-' . strtoupper(Str::random(6)),
-            'varient_price' => $this->sale_price ?? 0,
+            'variant_price' => $this->sale_price ?? 0,
             'stock' => 0,
             'image' => null,
         ];
@@ -96,7 +167,7 @@ class ProductCreate extends Component
 
     public function addAttributeToVariant($attributeId)
     {
-        if (!in_array($attributeId, $this->selectedAttributes)) {
+        if (! in_array($attributeId, $this->selectedAttributes)) {
             $this->selectedAttributes[] = $attributeId;
             $this->newVariant['attributes'][$attributeId] = '';
             $this->variantErrors = [];
@@ -116,26 +187,29 @@ class ProductCreate extends Component
 
     public function addVariant()
     {
-        if (!$this->validateVariant()) return;
+        if (! $this->validateVariant()) {
+            return;
+        }
 
         // Check duplicate
         if ($this->variantExists()) {
             $this->variantErrors['duplicate'] = 'A variant with these attributes already exists.';
+
             return;
         }
 
         $variant = [
             'id' => 'new_' . ++$this->variantCounter,
             'sku' => $this->newVariant['sku'],
-            'varient_price' => (float)$this->newVariant['varient_price'],
-            'stock' => (int)$this->newVariant['stock'],
+            'variant_price' => (float) $this->newVariant['variant_price'],
+            'stock' => (int) $this->newVariant['stock'],
             'values' => [],
             'image' => null,
             'new_image_file' => $this->newVariantImage,
         ];
 
         foreach ($this->newVariant['attributes'] as $attrId => $valueId) {
-            if (!empty($valueId)) {
+            if (! empty($valueId)) {
                 $variant['values'][] = [
                     'attribute_id' => $attrId,
                     'attribute_value_id' => $valueId,
@@ -163,7 +237,7 @@ class ProductCreate extends Component
             }
         }
 
-        if (!empty($missingValues)) {
+        if (! empty($missingValues)) {
             $this->variantErrors['attribute_values'] = 'Please select values for: ' . implode(', ', $missingValues);
         }
 
@@ -178,11 +252,15 @@ class ProductCreate extends Component
             }
         }
 
-        if (!is_numeric($this->newVariant['varient_price'])) {
-            $this->variantErrors['varient_price'] = 'Variant price must be a number.';
+        if (! is_numeric($this->newVariant['variant_price'])) {
+            $this->variantErrors['variant_price'] = 'Variant price must be a number.';
         }
 
-        if (!is_numeric($this->newVariant['stock']) || $this->newVariant['stock'] < 0) {
+        if (! is_numeric($this->newVariant['stock']) || $this->newVariant['stock'] < 0) {
+            $this->variantErrors['stock'] = 'Stock must be a non-negative number.';
+        }
+
+        if (!isset($this->newVariant['stock']) || !is_numeric($this->newVariant['stock']) || $this->newVariant['stock'] < 0) {
             $this->variantErrors['stock'] = 'Stock must be a non-negative number.';
         }
 
@@ -192,7 +270,9 @@ class ProductCreate extends Component
     protected function variantExists()
     {
         foreach ($this->variants as $variant) {
-            if (count($variant['values']) !== count($this->newVariant['attributes'])) continue;
+            if (count($variant['values']) !== count($this->newVariant['attributes'])) {
+                continue;
+            }
 
             $match = true;
             foreach ($this->newVariant['attributes'] as $attrId => $valueId) {
@@ -203,10 +283,15 @@ class ProductCreate extends Component
                         break;
                     }
                 }
-                if (!$found) { $match = false; break; }
+                if (! $found) {
+                    $match = false;
+                    break;
+                }
             }
 
-            if ($match) return true;
+            if ($match) {
+                return true;
+            }
         }
 
         return false;
@@ -225,7 +310,7 @@ class ProductCreate extends Component
         $this->newVariant = [
             'attributes' => [],
             'sku' => '',
-            'varient_price' => 0,
+            'variant_price' => 0,
             'stock' => 0,
             'image' => null,
         ];
@@ -246,23 +331,37 @@ class ProductCreate extends Component
         $this->validate([
             'name' => 'required|string|max:255',
             'slug' => 'required|string|unique:products,slug',
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string|max:255',
+            'meta_keywords' => 'nullable|string|max:255',
+            'meta_tags' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
             'sale_price' => 'required|numeric|min:0',
             'short_description' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
+            'category_id' => 'nullable|exists:categories,id',
+            'brand_id' => 'nullable|exists:brands,id',
             'thumbnail' => 'required|image|max:7048',
             'video' => 'nullable|string|max:255',
             'discount_type' => 'nullable|string|in:fixed,percentage|required_with:discount_price',
             'discount_price' => 'nullable|numeric|min:0|required_with:discount_type',
             'images.*' => 'nullable|image|max:7048',
+            'is_preorder'           => 'boolean',
+            'preorder_start_date'   => 'nullable|date|required_if:is_preorder,true',
+            'preorder_end_date'     => 'nullable|date|after_or_equal:preorder_start_date',
+            'expected_release_date' => 'nullable|date',
         ]);
 
         DB::beginTransaction();
         try {
             $product = Product::create([
+                'user_id' => auth()->id(),
                 'name' => $this->name,
                 'sku' => $this->sku,
                 'slug' => $this->slug,
+                'meta_title' => $this->meta_title,
+                'meta_description' => $this->meta_description,
+                'meta_keywords' => $this->meta_keywords,
+                'meta_tags' => $this->meta_tags,
                 'short_description' => $this->short_description,
                 'long_description' => $this->long_description,
                 'buying_price' => $this->buying_price,
@@ -271,10 +370,15 @@ class ProductCreate extends Component
                 'discount_price' => $this->discount_price,
                 'sale_price' => $this->sale_price,
                 'category_id' => $this->category_id,
+                'brand_id' => $this->brand_id,
                 'video' => $this->video,
                 'status' => $this->status,
                 'is_featured' => $this->is_featured,
-                'has_variant' => $this->variantSystemEnabled && !empty($this->variants),
+                'has_variant' => $this->variantSystemEnabled && ! empty($this->variants),
+                'is_preorder'           => $this->is_preorder,
+                'preorder_start_date'   => $this->is_preorder ? $this->preorder_start_date : null,
+                'preorder_end_date'     => $this->is_preorder ? $this->preorder_end_date : null,
+                'expected_release_date' => $this->is_preorder ? $this->expected_release_date : null,
             ]);
 
             if ($this->thumbnail) {
@@ -283,7 +387,7 @@ class ProductCreate extends Component
                 $product->save();
             }
 
-            if (!$product->has_variant) {
+            if (! $product->has_variant) {
                 Inventory::create([
                     'product_id' => $product->id,
                     'variant_id' => null,
@@ -298,8 +402,9 @@ class ProductCreate extends Component
             foreach ($this->variants as $variantData) {
                 $variant = ProductVariant::create([
                     'product_id' => $product->id,
+                    'stock'         => $variantData['stock'] ?? 0,
                     'sku' => $variantData['sku'],
-                    'varient_price' => $variantData['varient_price'],
+                    'variant_price' => $variantData['variant_price'],
                     'image' => null,
                 ]);
 
@@ -321,15 +426,15 @@ class ProductCreate extends Component
                     'product_id' => $product->id,
                     'variant_id' => $variant->id,
                     'type' => 'in',
-                    'quantity' => $variantData['stock'],
-                    'current_stock' => $variantData['stock'],
+                    'quantity'      => $variantData['stock'] ?? 0,
+                    'current_stock' => $variantData['stock'] ?? 0,
                     'notes' => 'Initial stock for variant',
                     'user_id' => auth()->id(),
                 ]);
             }
 
             $galleryPaths = [];
-            foreach ($this->images as $img) {
+            foreach ($this->uploadedImages as $img) {
                 $galleryPaths[] = $img->store('products/images', 'public');
             }
 
@@ -342,17 +447,44 @@ class ProductCreate extends Component
         } catch (\Exception $e) {
             DB::rollBack();
             $this->dispatch('error', ['message' => $e->getMessage()]);
+
             return;
         }
 
         $this->dispatch('success', message: 'Product Created Successfully!');
+
         return redirect()->route('admin.product.index');
+    }
+
+    public function updatedImages()
+    {
+        foreach ($this->images as $img) {
+            $this->uploadedImages[] = $img;
+        }
+        $this->images = []; // reset input
+    }
+
+    public function removeImage($index)
+    {
+        array_splice($this->uploadedImages, $index, 1);
+    }
+
+    public function updatedCategoryId($value)
+    {
+        $this->subcategory_id = null;
+
+        $this->subcategories = Category::where('parent_id', $value)->get();
     }
 
     public function render()
     {
+        $categories = Category::with('children')
+            ->whereNull('parent_id')
+            ->get();
+
         return view('livewire.admin.products.product-create', [
-            'categories' => Category::whereDoesntHave('children')->get(),
+            'categories' => $categories,
+            'brands' => Brand::all(),
         ])->layout('livewire.admin.layouts.app');
     }
 }

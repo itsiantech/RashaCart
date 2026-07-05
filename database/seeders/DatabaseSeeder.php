@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Database\Seeders\AreaSeeder; 
 use Database\Seeders\RolePermissionSeeder; 
 
 use Illuminate\Database\Seeder;
@@ -18,24 +17,27 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
 
-        
-        $this->call(ProductSeeder::class);
-        $this->call(RolePermissionSeeder::class);
-        
+        // Ensure roles & permissions and an admin user exist before seeding products
+        $this->call([
+            RolePermissionSeeder::class,
+            ProductSeeder::class,
+            PermissionSeeder::class,
+            ]);
+
         $user = User::factory()->create([
-            'name' => 'Super Admin',
-            'email' => 'superadmin@gmail.com',
+            'name' => 'admin',
+            'email' => 'admin@gmail.com',
             'phone' => '01742201187',
             'password' => bcrypt('password')
         ]);
-        
-        $role = Role::where('name', 'super-admin')->first(); 
+
+        $role = Role::where('name', 'admin')->first(); 
         $user->assignRole($role);
         $permissions = Permission::all();  
         $role->givePermissionTo($permissions);
 
-    
-
+        // Seed products after a user exists so foreign keys are satisfied
+        $this->call(ProductSeeder::class);
 
     }
 

@@ -56,7 +56,7 @@ class AttributeComponent extends Component
 
     public function showAddForm()
     {
-        abort_unless(Auth::user()->can('attribute.add'), 403);
+        //abort_unless(Auth::user()->can('attribute.add'), 403);
         $this->resetForm();
         $this->showForm = true;
         $this->isEdit = false;
@@ -64,7 +64,7 @@ class AttributeComponent extends Component
 
     public function showEditForm($id)
     {
-        abort_unless(Auth::user()->can('attribute.edit'), 403);
+        //abort_unless(Auth::user()->can('attribute.edit'), 403);
         $attribute = Attribute::with('values')->findOrFail($id);
         $this->attribute_id = $attribute->id;
         $this->name = $attribute->name;
@@ -98,8 +98,8 @@ class AttributeComponent extends Component
             Attribute::create($validated);
             $message = 'Attribute created successfully!';
         }
-        
-        $this->dispatch('success', ['message' => $message ]);
+
+        $this->dispatch('success', ['message' => $message]);
 
         $this->loadAttributes();
         $this->showForm = false;
@@ -108,14 +108,14 @@ class AttributeComponent extends Component
 
     public function confirmDelete($id)
     {
-        abort_unless(Auth::user()->can('attribute.delete'), 403);
+        //abort_unless(Auth::user()->can('attribute.delete'), 403);
         $this->attribute_id = $id;
         $this->dispatch('showDeleteConfirmation');
     }
 
     public function deleteAttribute()
     {
-        abort_unless(Auth::user()->can('attribute.delete'), 403);
+        //abort_unless(Auth::user()->can('attribute.delete'), 403);
         $attribute = Attribute::findOrFail($this->attribute_id);
         $attribute->values()->delete(); // delete values first
         $attribute->delete();
@@ -184,7 +184,7 @@ class AttributeComponent extends Component
         $this->isValueEdit = true;
     }
 
-     public function confirmDeleteValue($id)
+    public function confirmDeleteValue($id)
     {
         $this->attribute_value_id = $id;
         $this->dispatch('showDeleteConfirmation');
@@ -196,9 +196,9 @@ class AttributeComponent extends Component
     }
     public function deleteValue($valueId)
     {
-        abort_unless(Auth::user()->can('attribute.delete'), 403);
+        //abort_unless(Auth::user()->can('attribute.delete'), 403);
         AttributeValue::findOrFail($valueId)->delete();
-         $this->dispatch('success', message: 'Data deleted!');
+        $this->dispatch('success', message: 'Data deleted!');
         $this->loadAttributes();
     }
 

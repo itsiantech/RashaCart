@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\View;
 use App\Models\Category;
 use App\Models\Banner;
 use App\Models\Product;
+use App\Models\Brand;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -37,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
         if (
             Schema::hasTable('categories') &&
             Schema::hasTable('banners') &&
+            Schema::hasTable('brands') &&
             Schema::hasTable('products')
         ) {
 
@@ -83,6 +85,10 @@ class AppServiceProvider extends ServiceProvider
                             ->get();
                     });
 
+                    Cache::remember('brands', now()->addDays(7), function () {
+                        return Brand::where('is_active', true)->get();
+                    });
+
                     // Sentinel flag (VERY IMPORTANT)
                     Cache::put('global_cache_ready', true, now()->addDays(7));
                 });
@@ -95,12 +101,16 @@ class AppServiceProvider extends ServiceProvider
                 'ads'        => Cache::get('ads'),
                 'popup'      => Cache::get('popup'),
                 'products'   => Cache::get('products'),
+                'brands'     => Cache::get('brands'),
             ]);
         }
 
         /* ---------------- Gates ---------------- */
         Gate::before(function ($user, $ability) {
-            return $user?->hasRole('super-admin') ? true : null;
+            if($user->role === 'admin') {
+                return true; // Admin has access to everything
+            }
+            // return $user?->hasRole('admin') ? true : null;
         });
     }
 }

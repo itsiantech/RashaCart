@@ -5,125 +5,152 @@
     </div>
     <div class="card-body">
         <form wire:submit.prevent="update">
-            
-            <!-- Steedfast Courier API Section -->
+
             <div class="card border-primary mb-4">
                 <div class="card-header bg-light">
-                    <h6 class="mb-0 text-primary">Steadfast Courier API Settings</h6>
+                    <h6 class="mb-0 text-primary">Courier Settings</h6>
                 </div>
                 <div class="card-body">
-                    <p class="card-text text-muted">Enter your Steadfast Courier API credentials below to enable shipping functionalities.</p>
-
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="selectedCourier" class="form-label">Courier Provider</label>
-                                <select class="form-select" id="selectedCourier" wire:model="selected_courier">
+                                {{-- wire:model.live triggers instant re-render on change --}}
+                                <select class="form-select" id="selectedCourier" wire:model.live="selected_courier">
                                     <option value="">-- Select Courier --</option>
                                     <option value="steedfast">Steadfast Courier</option>
+                                    <option value="pathao">Pathao Courier</option>
                                 </select>
                                 @error('selected_courier')
-                                    <span class="text-danger small">{{ $message }}</span>
-                                @enderror
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="apiBaseUrl" class="form-label">API Base URL</label>
-                                <input type="text" class="form-control" id="apiBaseUrl"
-                                    wire:model="steedfast_api_base_url" placeholder="https://api.example.com">
-                                @error('steedfast_api_base_url')
-                                    <span class="text-danger small">{{ $message }}</span>
+                                <span class="text-danger small">{{ $message }}</span>
                                 @enderror
                             </div>
                         </div>
                     </div>
 
+                    <!-- Steadfast fields -->
+                    @if($selected_courier === 'steedfast')
+                    <p class="card-text text-muted">Enter your Steadfast Courier API credentials.</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="apiBaseUrl" class="form-label">API Base URL</label>
+                                <input type="text" class="form-control" id="apiBaseUrl"
+                                    wire:model="steedfast_api_base_url"
+                                    placeholder="https://api.example.com">
+                                @error('steedfast_api_base_url')
+                                <span class="text-danger small">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="apiKey" class="form-label">API Key</label>
-                                <input type="text" class="form-control" id="apiKey" wire:model="steedfast_api_key"
+                                <input type="text" class="form-control" id="apiKey"
+                                    wire:model="steedfast_api_key"
                                     placeholder="Enter your API key">
                                 @error('steedfast_api_key')
-                                    <span class="text-danger small">{{ $message }}</span>
+                                <span class="text-danger small">{{ $message }}</span>
                                 @enderror
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="apiSecret" class="form-label">API Secret</label>
-                                <input type="text" class="form-control" id="apiSecret" wire:model="steedfast_api_secret"
+                                <input type="text" class="form-control" id="apiSecret"
+                                    wire:model="steedfast_api_secret"
                                     placeholder="Enter your API secret">
                                 @error('steedfast_api_secret')
-                                    <span class="text-danger small">{{ $message }}</span>
+                                <span class="text-danger small">{{ $message }}</span>
                                 @enderror
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
+                    @endif
 
-            <!-- Google Login Section -->
-            <div class="card border-primary mb-4">
-                <div class="card-header bg-light">
-                    <h6 class="mb-0 text-primary">Google Login Settings</h6>
-                </div>
-                <div class="card-body">
-                    <p class="card-text text-muted">Create your OAuth Client ID from <a href="https://console.cloud.google.com/" target="_blank" class="text-decoration-none">Google Cloud Console</a></p>
-                    
-                    <div class="alert alert-info">
-                        <strong>Important:</strong> Add this redirect URI to your Google Cloud Console:
-                        <div class="mt-2">
-                            <code class="bg-light p-2 rounded d-block">{{ url('/auth/google/callback') }}</code>
-                        </div>
-                    </div>
-
+                    <!-- Pathao fields -->
+                    @if($selected_courier === 'pathao')
+                    <p class="card-text text-muted">
+                        Get credentials from
+                        <a href="https://merchant.pathao.com" target="_blank">Pathao Merchant Portal</a>
+                    </p>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="GOOGLE_CLIENT_ID" class="form-label">Client ID</label>
-                                <input type="text" class="form-control" id="GOOGLE_CLIENT_ID" wire:model="GOOGLE_CLIENT_ID"
-                                    placeholder="Enter your Client ID">
-                                @error('GOOGLE_CLIENT_ID')
-                                    <span class="text-danger small">{{ $message }}</span>
+                                <label class="form-label">Client ID</label>
+                                <input type="text" class="form-control"
+                                    wire:model="pathao_client_id"
+                                    placeholder="Enter Client ID">
+                                @error('pathao_client_id')
+                                <span class="text-danger small">{{ $message }}</span>
                                 @enderror
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="GOOGLE_CLIENT_SECRET" class="form-label">Client Secret</label>
-                                <input type="text" class="form-control" id="GOOGLE_CLIENT_SECRET" wire:model="GOOGLE_CLIENT_SECRET"
-                                    placeholder="Enter your Client Secret">
-                                @error('GOOGLE_CLIENT_SECRET')
-                                    <span class="text-danger small">{{ $message }}</span>
+                                <label class="form-label">Client Secret</label>
+                                <input type="text" class="form-control"
+                                    wire:model="pathao_client_secret"
+                                    placeholder="Enter Client Secret">
+                                @error('pathao_client_secret')
+                                <span class="text-danger small">{{ $message }}</span>
                                 @enderror
                             </div>
                         </div>
                     </div>
-
-                    <div class="card bg-light">
-                        <div class="card-body">
-                            <h6 class="card-title">Setup Instructions:</h6>
-                            <ol class="mb-0">
-                                <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
-                                <li>Create a new project or select existing one</li>
-                                <li>Enable Google+ API</li>
-                                <li>Create OAuth 2.0 credentials</li>
-                                <li>Add the redirect URI shown above</li>
-                                <li>Copy Client ID and Client Secret here</li>
-                            </ol>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Username (email)</label>
+                                <input type="text" class="form-control"
+                                    wire:model="pathao_username"
+                                    placeholder="merchant@email.com">
+                                @error('pathao_username')
+                                <span class="text-danger small">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <input type="password" class="form-control"
+                                    wire:model="pathao_password"
+                                    placeholder="Enter password">
+                                @error('pathao_password')
+                                <span class="text-danger small">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Store ID</label>
+                                <input type="text" class="form-control"
+                                    wire:model="pathao_store_id"
+                                    placeholder="Your Pathao store ID">
+                                @error('pathao_store_id')
+                                <span class="text-danger small">{{ $message }}</span>
+                                @enderror
+                            </div>
                         </div>
                     </div>
+                    @endif
+
                 </div>
             </div>
-
             <div class="text-end">
                 <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">
-                    <span wire:loading.remove>Save Changes</span>
-                    <span wire:loading>Saving...</span>
+                    <span wire:loading.remove wire:target="update">
+                        <i class="bx bx-save me-1"></i> Save Changes
+                    </span>
+                    <span wire:loading wire:target="update">
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                        Saving...
+                    </span>
                 </button>
             </div>
         </form>
+
     </div>
 </div>

@@ -12,7 +12,7 @@ class Customer extends Component
 
     public function render()
     {
-        $customers = User::role('user')
+        $customers = User::role('customer')
             ->with(['roles', 'orders'])
             ->when($this->search, fn($q) => $q->where('name', 'like', "%{$this->search}%"))
             ->latest()
@@ -45,7 +45,7 @@ class Customer extends Component
                 return;
             }
 
-            if ($admin->hasRole('super-admin')) {
+            if ($admin->hasRole('admin')) {
                 $this->dispatch('toast', message: 'You cannot delete a Super Admin!', type: 'error');
                 return;
             }

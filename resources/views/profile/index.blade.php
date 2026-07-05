@@ -45,7 +45,7 @@
         <!-- /Account -->
       </div>
 
-      @if (!Auth::user()->hasRole('super-admin'))  
+      @if (!Auth::user()->hasRole('admin'))  
         <div class="card">
           <h5 class="card-header">Delete Account</h5>
           <div class="card-body">
