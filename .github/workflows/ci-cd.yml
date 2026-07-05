@@ -208,7 +208,13 @@ jobs:
             public/build/ \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/public/build/
 
-      - name: Deploy via SSH
+      - name: Push to VPS Git repository
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          git -c core.sshCommand="sshpass -e ssh -o StrictHostKeyChecking=no" push --force ssh://${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}/var/repo/bandrose.git HEAD:refs/heads/${{ github.ref_name }}
+
+      - name: Run post-deployment commands on VPS
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
@@ -218,9 +224,6 @@ jobs:
 
             echo "Changing to project directory..."
             cd ${{ secrets.DEPLOY_PATH }}
-
-            echo "Pulling latest code..."
-            git pull origin ${{ github.ref_name }}
 
             echo "Enabling maintenance mode..."
             php artisan down --refresh=15 --retry=30
