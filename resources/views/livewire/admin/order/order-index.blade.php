@@ -1,3 +1,6 @@
+@php
+$courier = new \App\Services\CourierService();
+@endphp
 <div class="col-xxl">
     <div class="card">
         <div class="card-header">
@@ -156,7 +159,6 @@
                                 </button>
 
                                 <!-- Courier -->
-                                @php $courier = new \App\Services\CourierService(); @endphp
                                 @if($courier->canSend() && !in_array($order->status, ['shipped', 'delivered']))
                                 <button type="button"
                                     wire:click="sendToCourier({{ $order->id }})"

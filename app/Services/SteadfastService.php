@@ -5,9 +5,9 @@ use Illuminate\Support\Facades\Http;
 
 class SteadfastService
 {
-    private string $baseUrl;
-    private string $apiKey;
-    private string $apiSecret;
+    private ?string $baseUrl = null;
+    private ?string $apiKey = null;
+    private ?string $apiSecret = null;
 
     public function __construct()
     {

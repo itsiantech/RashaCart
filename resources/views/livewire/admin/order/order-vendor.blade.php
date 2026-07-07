@@ -1,3 +1,6 @@
+@php
+$courier = new \App\Services\CourierService();
+@endphp
 <div class="container-fluid py-4">
     <!-- Header & Search -->
     <div class="row mb-4 align-items-center">
@@ -146,7 +149,6 @@
                                     </a>
 
                                     <!-- Courier -->
-                                    @php $courier = new \App\Services\CourierService(); @endphp
                                     @if($courier->canSend() && !in_array($order->status, ['shipped', 'delivered']))
                                     <button wire:click="sendToCourier({{ $order->id }})"
                                         wire:loading.attr="disabled"

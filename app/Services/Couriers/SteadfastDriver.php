@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\Http;
 
 class SteadfastDriver implements CourierDriverInterface
 {
-    private string $baseUrl;
-    private string $apiKey;
-    private string $secretKey;
+    private ?string $baseUrl = null;
+    private ?string $apiKey = null;
+    private ?string $secretKey = null;
 
     public function __construct()
     {
