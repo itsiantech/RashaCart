@@ -22,10 +22,10 @@ class PreOrderSection extends Component
             $cart[$productId]['quantity']++;
         } else {
             $cart[$productId] = [
-                'name'        => $product->name,
-                'price'       => $product->price,
-                'quantity'    => 1,
-                'image'       => $product->image,
+                'name' => $product->name,
+                'price' => $product->price,
+                'quantity' => 1,
+                'image' => $product->image,
                 'is_preorder' => true,
             ];
         }

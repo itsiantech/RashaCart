@@ -1,11 +1,11 @@
 <?php
 
 // app/Services/Couriers/PathaoDriver.php
+
 namespace App\Services\Couriers;
 
-use App\Services\Couriers\CourierDriverInterface;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class PathaoDriver implements CourierDriverInterface
 {
@@ -25,17 +25,17 @@ class PathaoDriver implements CourierDriverInterface
     {
         return Cache::remember('pathao_access_token', now()->addHours(23), function () {
             $response = Http::post("{$this->baseUrl}/issue-token", [
-                'client_id'     => setting('pathao_client_id'),
+                'client_id' => setting('pathao_client_id'),
                 'client_secret' => setting('pathao_client_secret'),
-                'username'      => setting('pathao_username'),
-                'password'      => setting('pathao_password'),
-                'grant_type'    => 'password',
+                'username' => setting('pathao_username'),
+                'password' => setting('pathao_password'),
+                'grant_type' => 'password',
             ]);
 
             throw_unless(
                 $response->successful(),
                 \RuntimeException::class,
-                'Pathao authentication failed: ' . $response->body()
+                'Pathao authentication failed: '.$response->body()
             );
 
             return $response->json('access_token');
@@ -50,21 +50,21 @@ class PathaoDriver implements CourierDriverInterface
     public function createOrder(array $data): array
     {
         $response = $this->http()->post('/orders', [
-            'store_id'            => setting('pathao_store_id'),
-            'merchant_order_id'   => $data['invoice'],
-            'recipient_name'      => $data['name'],
-            'recipient_phone'     => $data['phone'],
-            'recipient_address'   => $data['address'],
-            'recipient_city'      => $data['city_id'],
-            'recipient_zone'      => $data['zone_id'],
-            'recipient_area'      => $data['area_id'] ?? null,
-            'delivery_type'       => $data['delivery_type'] ?? 48,
-            'item_type'           => $data['item_type'] ?? 2,
+            'store_id' => setting('pathao_store_id'),
+            'merchant_order_id' => $data['invoice'],
+            'recipient_name' => $data['name'],
+            'recipient_phone' => $data['phone'],
+            'recipient_address' => $data['address'],
+            'recipient_city' => $data['city_id'],
+            'recipient_zone' => $data['zone_id'],
+            'recipient_area' => $data['area_id'] ?? null,
+            'delivery_type' => $data['delivery_type'] ?? 48,
+            'item_type' => $data['item_type'] ?? 2,
             'special_instruction' => $data['note'] ?? '',
-            'item_quantity'       => $data['quantity'] ?? 1,
-            'item_weight'         => $data['weight'] ?? 0.5,
-            'amount_to_collect'   => $data['cod_amount'],
-            'item_description'    => $data['description'] ?? '',
+            'item_quantity' => $data['quantity'] ?? 1,
+            'item_weight' => $data['weight'] ?? 0.5,
+            'amount_to_collect' => $data['cod_amount'],
+            'item_description' => $data['description'] ?? '',
         ]);
 
         return $response->successful()

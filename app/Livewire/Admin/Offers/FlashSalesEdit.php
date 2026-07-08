@@ -10,52 +10,58 @@ use Livewire\Component;
 class FlashSalesEdit extends Component
 {
     public FlashSale $flashSale;
+
     public int $flashSaleId;
 
     // Campaign fields
-    public string $title       = '';
+    public string $title = '';
+
     public string $description = '';
-    public string $start_at    = '';
-    public string $end_at      = '';
-    public bool   $is_active   = false;
+
+    public string $start_at = '';
+
+    public string $end_at = '';
+
+    public bool $is_active = false;
 
     // Product picker
     public string $productSearch = '';
-    public array  $selectedItems = [];
+
+    public array $selectedItems = [];
 
     protected function rules(): array
     {
         return [
-            'title'       => 'required|string|max:255',
+            'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'start_at'    => 'required|date|before:end_at',
-            'end_at'      => 'required|date|after:start_at',
-            'is_active'   => 'boolean',
-            'selectedItems'                    => 'required|array|min:1',
+            'start_at' => 'required|date|before:end_at',
+            'end_at' => 'required|date|after:start_at',
+            'is_active' => 'boolean',
+            'selectedItems' => 'required|array|min:1',
             'selectedItems.*.discount_percent' => 'required|numeric|min:1|max:99',
         ];
     }
 
     public function mount(int $id): void
     {
-        $this->flashSale   = FlashSale::with('items.product')->findOrFail($id);
+        $this->flashSale = FlashSale::with('items.product')->findOrFail($id);
         $this->flashSaleId = $id;
 
-        $this->title       = $this->flashSale->title;
+        $this->title = $this->flashSale->title;
         $this->description = $this->flashSale->description ?? '';
-        $this->start_at    = $this->flashSale->start_at->format('Y-m-d\TH:i');
-        $this->end_at      = $this->flashSale->end_at->format('Y-m-d\TH:i');
-        $this->is_active   = $this->flashSale->is_active;
+        $this->start_at = $this->flashSale->start_at->format('Y-m-d\TH:i');
+        $this->end_at = $this->flashSale->end_at->format('Y-m-d\TH:i');
+        $this->is_active = $this->flashSale->is_active;
 
         foreach ($this->flashSale->items as $item) {
             $this->selectedItems[$item->product_id] = [
-                'item_id'          => $item->id,
-                'product_id'       => $item->product_id,
-                'name'             => $item->product->name,
-                'original_price'   => $item->product->price,
+                'item_id' => $item->id,
+                'product_id' => $item->product_id,
+                'name' => $item->product->name,
+                'original_price' => $item->product->price,
                 'discount_percent' => $item->discount_percent,
                 'discounted_price' => $item->discounted_price,
-                'is_active'        => $item->is_active,
+                'is_active' => $item->is_active,
             ];
         }
     }
@@ -70,7 +76,7 @@ class FlashSalesEdit extends Component
 
         $alreadySelected = array_keys($this->selectedItems);
 
-        return Product::where('name', 'like', '%' . $this->productSearch . '%')
+        return Product::where('name', 'like', '%'.$this->productSearch.'%')
             ->whereNotIn('id', $alreadySelected)
             ->limit(8)
             ->get(['id', 'name', 'price', 'thumbnail']);
@@ -81,13 +87,13 @@ class FlashSalesEdit extends Component
         $product = Product::findOrFail($productId);
 
         $this->selectedItems[$productId] = [
-            'item_id'          => null, // new item, not yet saved
-            'product_id'       => $productId,
-            'name'             => $product->name,
-            'original_price'   => $product->price,
+            'item_id' => null, // new item, not yet saved
+            'product_id' => $productId,
+            'name' => $product->name,
+            'original_price' => $product->price,
             'discount_percent' => 10,
             'discounted_price' => FlashSaleItem::calculateDiscountedPrice($product->price, 10),
-            'is_active'        => true,
+            'is_active' => true,
         ];
 
         $this->productSearch = '';
@@ -112,7 +118,7 @@ class FlashSalesEdit extends Component
         [$productId, $field] = explode('.', $key);
 
         if ($field === 'discount_percent' && isset($this->selectedItems[$productId])) {
-            $percent       = (float) $value;
+            $percent = (float) $value;
             $originalPrice = $this->selectedItems[$productId]['original_price'];
             $this->selectedItems[$productId]['discounted_price'] =
                 FlashSaleItem::calculateDiscountedPrice($originalPrice, $percent);
@@ -126,23 +132,23 @@ class FlashSalesEdit extends Component
         $this->validate();
 
         $this->flashSale->update([
-            'title'       => $this->title,
+            'title' => $this->title,
             'description' => $this->description,
-            'start_at'    => $this->start_at,
-            'end_at'      => $this->end_at,
-            'is_active'   => $this->is_active,
+            'start_at' => $this->start_at,
+            'end_at' => $this->end_at,
+            'is_active' => $this->is_active,
         ]);
 
         foreach ($this->selectedItems as $productId => $item) {
             FlashSaleItem::updateOrCreate(
                 [
                     'flash_sale_id' => $this->flashSale->id,
-                    'product_id'    => $productId,
+                    'product_id' => $productId,
                 ],
                 [
                     'discount_percent' => $item['discount_percent'],
                     'discounted_price' => $item['discounted_price'],
-                    'is_active'        => $item['is_active'],
+                    'is_active' => $item['is_active'],
                 ]
             );
         }

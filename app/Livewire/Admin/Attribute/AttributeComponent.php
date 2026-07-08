@@ -4,26 +4,36 @@ namespace App\Livewire\Admin\Attribute;
 
 use App\Models\Attribute;
 use App\Models\AttributeValue;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Livewire\Component;
 
 class AttributeComponent extends Component
 {
     public $attributeList;
+
     public $attribute_id;
+
     public $name;
+
     public $slug;
+
     public $value = '';
+
     public $showForm = false;
+
     public $isEdit = false;
+
     public $search = '';
 
-
     public $attribute_value_id;
+
     public $attribute_value_name;
+
     public $value_attribute_id;
+
     public $isValueEdit = false;
+
     public $showValueFormForAttributeId = null;
 
     protected $listeners = ['deleteConfirmed' => 'deleteAttribute'];
@@ -37,12 +47,11 @@ class AttributeComponent extends Component
     {
         $this->attributeList = Attribute::with('values')
             ->when($this->search, function ($query) {
-                return $query->where('name', 'like', '%' . $this->search . '%');
+                return $query->where('name', 'like', '%'.$this->search.'%');
             })
             ->orderBy('name')
             ->get();
     }
-
 
     public function updatedSearch()
     {
@@ -56,7 +65,7 @@ class AttributeComponent extends Component
 
     public function showAddForm()
     {
-        //abort_unless(Auth::user()->can('attribute.add'), 403);
+        // abort_unless(Auth::user()->can('attribute.add'), 403);
         $this->resetForm();
         $this->showForm = true;
         $this->isEdit = false;
@@ -64,7 +73,7 @@ class AttributeComponent extends Component
 
     public function showEditForm($id)
     {
-        //abort_unless(Auth::user()->can('attribute.edit'), 403);
+        // abort_unless(Auth::user()->can('attribute.edit'), 403);
         $attribute = Attribute::with('values')->findOrFail($id);
         $this->attribute_id = $attribute->id;
         $this->name = $attribute->name;
@@ -88,7 +97,7 @@ class AttributeComponent extends Component
     {
         $validated = $this->validate([
             'name' => 'required|min:3|max:255',
-            'slug' => 'required|unique:attributes,slug,' . $this->attribute_id,
+            'slug' => 'required|unique:attributes,slug,'.$this->attribute_id,
         ]);
 
         if ($this->isEdit) {
@@ -108,14 +117,14 @@ class AttributeComponent extends Component
 
     public function confirmDelete($id)
     {
-        //abort_unless(Auth::user()->can('attribute.delete'), 403);
+        // abort_unless(Auth::user()->can('attribute.delete'), 403);
         $this->attribute_id = $id;
         $this->dispatch('showDeleteConfirmation');
     }
 
     public function deleteAttribute()
     {
-        //abort_unless(Auth::user()->can('attribute.delete'), 403);
+        // abort_unless(Auth::user()->can('attribute.delete'), 403);
         $attribute = Attribute::findOrFail($this->attribute_id);
         $attribute->values()->delete(); // delete values first
         $attribute->delete();
@@ -123,9 +132,6 @@ class AttributeComponent extends Component
         $this->dispatch('success', ['message' => 'Attribute delete success!']);
         $this->loadAttributes();
     }
-
-
-
 
     public function resetValueForm()
     {
@@ -174,7 +180,6 @@ class AttributeComponent extends Component
         $this->loadAttributes(); // refresh list
     }
 
-
     public function editValue($valueId)
     {
         $value = AttributeValue::findOrFail($valueId);
@@ -194,16 +199,14 @@ class AttributeComponent extends Component
     {
         $this->dispatch('showDeleteConfirmation', valueId: $valueId);
     }
+
     public function deleteValue($valueId)
     {
-        //abort_unless(Auth::user()->can('attribute.delete'), 403);
+        // abort_unless(Auth::user()->can('attribute.delete'), 403);
         AttributeValue::findOrFail($valueId)->delete();
         $this->dispatch('success', message: 'Data deleted!');
         $this->loadAttributes();
     }
-
-
-
 
     public function render()
     {

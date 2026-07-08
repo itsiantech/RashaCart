@@ -13,6 +13,7 @@ class UserProductsView extends Component
     protected $paginationTheme = 'bootstrap';
 
     public $vendor;
+
     public $perPage = 16;
 
     public function mount($id)
@@ -28,7 +29,7 @@ class UserProductsView extends Component
             ->paginate($this->perPage);
 
         return view('livewire.frontend.product.user-products-view', [
-            'products' => $products
+            'products' => $products,
         ]);
     }
 }

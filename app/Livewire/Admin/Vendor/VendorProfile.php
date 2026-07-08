@@ -2,39 +2,52 @@
 
 namespace App\Livewire\Admin\Vendor;
 
-use Livewire\Component;
 use App\Models\CategoryCommission;
 use App\Models\OrderItem;
 use App\Models\User;
-use Livewire\WithFileUploads;
 use App\Models\VendorDetails;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class VendorProfile extends Component
 {
     use WithFileUploads;
 
     public $vendorId;
+
     public $vendor;
 
     public $totalProducts = 0;
+
     public $totalOrders = 0;
+
     public $completedOrders = 0;
+
     public $pendingOrders = 0;
 
     public $vendorEarnings = 0;
+
     public $adminCommission = 0;
 
     // Editable fields
     public $shop_name;
+
     public $shop_address;
+
     public $NID_number;
+
     public $payment_method;
+
     public $bank_name;
+
     public $bank_account_number;
+
     public $account_holder_name;
 
     public $profile_image;
+
     public $trade_license_front;
+
     public $trade_license_back;
 
     public function mount($vendorId)
@@ -125,11 +138,11 @@ class VendorProfile extends Component
         $this->totalOrders = (clone $orderItemsQuery)->count();
 
         $this->completedOrders = (clone $orderItemsQuery)
-            ->whereHas('order', fn($q) => $q->where('status', 'completed'))
+            ->whereHas('order', fn ($q) => $q->where('status', 'completed'))
             ->count();
 
         $this->pendingOrders = (clone $orderItemsQuery)
-            ->whereHas('order', fn($q) => $q->where('status', 'pending'))
+            ->whereHas('order', fn ($q) => $q->where('status', 'pending'))
             ->count();
     }
 
@@ -144,13 +157,11 @@ class VendorProfile extends Component
             ->with('product')
             ->whereHas(
                 'product',
-                fn($q) =>
-                $q->where('user_id', $this->vendorId)
+                fn ($q) => $q->where('user_id', $this->vendorId)
             )
             ->whereHas(
                 'order',
-                fn($q) =>
-                $q->where('status', 'completed')
+                fn ($q) => $q->where('status', 'completed')
             )
             ->get();
 
@@ -160,7 +171,9 @@ class VendorProfile extends Component
         foreach ($orderItems as $item) {
 
             $product = $item->product;
-            if (!$product) continue;
+            if (! $product) {
+                continue;
+            }
 
             $categoryId = $product->category_id;
 
@@ -173,7 +186,9 @@ class VendorProfile extends Component
 
             $amount = $price * $quantity;
 
-            if ($amount <= 0) continue;
+            if ($amount <= 0) {
+                continue;
+            }
 
             $adminShare = ($amount * $rate) / 100;
             $vendorShare = $amount - $adminShare;
@@ -185,6 +200,7 @@ class VendorProfile extends Component
         $this->adminCommission = round($totalAdmin, 2);
         $this->vendorEarnings = round($totalVendor, 2);
     }
+
     public function render()
     {
         return view('livewire.admin.vendor.vendor-profile', [

@@ -2,27 +2,34 @@
 
 namespace App\Livewire\Admin\Products;
 
-use Livewire\Component;
-use App\Models\Product;
 use App\Models\Inventory;
+use App\Models\Product;
 use App\Models\ProductVariant;
 use DB;
+use Livewire\Component;
 
 class ProductStockManage extends Component
 {
     public $productId;
+
     public $product;
-    
+
     // Inventory management
     public $showInventoryModal = false;
+
     public $inventoryType = 'in';
+
     public $inventoryQuantity = 1;
+
     public $inventoryNotes = '';
+
     public $selectedVariantId = null;
+
     public $inventoryHistory = [];
 
     // Stock data
     public $productStock = 0;
+
     public $variantStocks = [];
 
     public function mount($id)
@@ -31,7 +38,7 @@ class ProductStockManage extends Component
         $this->product = Product::with([
             'variants.inventories',
             'inventories.user',
-            'variants.inventories'
+            'variants.inventories',
         ])->findOrFail($id);
 
         $this->loadStockData();
@@ -43,7 +50,7 @@ class ProductStockManage extends Component
     {
         // Calculate product stock
         $this->productStock = $this->calculateProductStock($this->product);
-        
+
         // Calculate variant stocks
         $this->variantStocks = [];
         foreach ($this->product->variants as $variant) {
@@ -58,12 +65,12 @@ class ProductStockManage extends Component
             ->where('variant_id', null)
             ->where('type', 'in')
             ->sum('quantity');
-        
+
         $inventoryOut = $product->inventories()
             ->where('variant_id', null)
             ->where('type', 'out')
             ->sum('quantity');
-        
+
         return $inventoryIn - $inventoryOut;
     }
 
@@ -72,6 +79,7 @@ class ProductStockManage extends Component
     {
         $inventoryIn = $variant->inventories()->where('type', 'in')->sum('quantity');
         $inventoryOut = $variant->inventories()->where('type', 'out')->sum('quantity');
+
         return $inventoryIn - $inventoryOut;
     }
 
@@ -103,13 +111,14 @@ class ProductStockManage extends Component
                 $variant = ProductVariant::find($this->selectedVariantId);
                 if ($variant) {
                     $currentStock = $this->calculateVariantStock($variant);
-                    
+
                     if ($this->inventoryType === 'out' && $currentStock < $this->inventoryQuantity) {
-                        $this->dispatch('error', message: 'Insufficient stock! Available: ' . $currentStock);
+                        $this->dispatch('error', message: 'Insufficient stock! Available: '.$currentStock);
+
                         return;
                     }
 
-                    $newStock = $this->inventoryType === 'in' 
+                    $newStock = $this->inventoryType === 'in'
                         ? $currentStock + $this->inventoryQuantity
                         : $currentStock - $this->inventoryQuantity;
 
@@ -130,13 +139,14 @@ class ProductStockManage extends Component
             } else {
                 // Main product inventory
                 $currentStock = $this->calculateProductStock($this->product);
-                
+
                 if ($this->inventoryType === 'out' && $currentStock < $this->inventoryQuantity) {
-                    $this->dispatch('error', message: 'Insufficient stock! Available: ' . $currentStock);
+                    $this->dispatch('error', message: 'Insufficient stock! Available: '.$currentStock);
+
                     return;
                 }
 
-                $newStock = $this->inventoryType === 'in' 
+                $newStock = $this->inventoryType === 'in'
                     ? $currentStock + $this->inventoryQuantity
                     : $currentStock - $this->inventoryQuantity;
 
@@ -156,16 +166,16 @@ class ProductStockManage extends Component
             }
 
             DB::commit();
-            
+
             $this->loadInventoryHistory();
             $this->showInventoryModal = false;
             $this->dispatch('success', message: 'Stock updated successfully!');
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('error', message: 'Error updating stock: ' . $e->getMessage());
+            $this->dispatch('error', message: 'Error updating stock: '.$e->getMessage());
         }
-    }   
+    }
 
     public function loadInventoryHistory()
     {

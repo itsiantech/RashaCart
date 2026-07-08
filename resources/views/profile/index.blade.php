@@ -1,4 +1,4 @@
-@extends('admin.layouts.app')
+@extends('livewire.admin.layouts.app')
 
 @section('page-title')
     User | Edit

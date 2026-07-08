@@ -2,21 +2,27 @@
 
 namespace App\Livewire\Admin\Brands;
 
-use Livewire\Component;
-use Livewire\WithFileUploads;
 use App\Models\Brand;
 use Illuminate\Support\Str;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class Edit extends Component
 {
     use WithFileUploads;
 
     public Brand $brand;
+
     public $name;
+
     public $description;
+
     public $logo;
+
     public $is_active;
+
     public $logoPreview;
+
     public $oldLogo;
 
     protected $rules = [
@@ -41,7 +47,7 @@ class Edit extends Component
         $this->validate([
             'logo' => 'image|max:2048',
         ]);
-        
+
         if ($this->logo) {
             $this->logoPreview = $this->logo->temporaryUrl();
         }
@@ -50,7 +56,7 @@ class Edit extends Component
     public function update()
     {
         $this->validate([
-            'name' => 'required|min:2|max:255|unique:brands,name,' . $this->brand->id,
+            'name' => 'required|min:2|max:255|unique:brands,name,'.$this->brand->id,
             'description' => 'nullable|string|max:1000',
             'logo' => 'nullable|image|max:2048',
             'is_active' => 'boolean',
@@ -66,8 +72,8 @@ class Edit extends Component
 
             if ($this->logo) {
                 // Delete old logo if exists
-                if ($this->oldLogo && file_exists(storage_path('app/public/' . $this->oldLogo))) {
-                    unlink(storage_path('app/public/' . $this->oldLogo));
+                if ($this->oldLogo && file_exists(storage_path('app/public/'.$this->oldLogo))) {
+                    unlink(storage_path('app/public/'.$this->oldLogo));
                 }
                 $data['logo'] = $this->logo->store('brands', 'public');
             }
@@ -75,24 +81,25 @@ class Edit extends Component
             $this->brand->update($data);
 
             session()->flash('success', 'Brand updated successfully.');
+
             return redirect()->route('admin.brand.index');
-            
+
         } catch (\Exception $e) {
-            session()->flash('error', 'Failed to update brand: ' . $e->getMessage());
+            session()->flash('error', 'Failed to update brand: '.$e->getMessage());
         }
     }
 
     public function removeLogo()
     {
-        if ($this->oldLogo && file_exists(storage_path('app/public/' . $this->oldLogo))) {
-            unlink(storage_path('app/public/' . $this->oldLogo));
+        if ($this->oldLogo && file_exists(storage_path('app/public/'.$this->oldLogo))) {
+            unlink(storage_path('app/public/'.$this->oldLogo));
         }
-        
+
         $this->brand->update(['logo' => null]);
         $this->logoPreview = null;
         $this->oldLogo = null;
         $this->logo = null;
-        
+
         session()->flash('info', 'Logo removed successfully.');
     }
 

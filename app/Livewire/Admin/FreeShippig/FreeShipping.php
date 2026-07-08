@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Admin\FreeShippig;
 
-use Livewire\Component;
-use App\Models\FreeShipping as FreeShippingModel;
 use App\Models\Category;
+use App\Models\FreeShipping as FreeShippingModel;
 use App\Models\Product;
+use Livewire\Component;
 use Livewire\WithPagination;
 
 class FreeShipping extends Component
@@ -13,26 +13,39 @@ class FreeShipping extends Component
     use WithPagination;
 
     public $search = '';
+
     public $sortBy = 'created_at';
+
     public $sortDir = 'DESC';
+
     public $perPage = 10;
 
     // Form properties
     public $showForm = false;
+
     public $isEditing = false;
+
     public $editId = null;
 
     public $name;
+
     public $description;
+
     public $minimum_amount;
+
     public $type = 'amount';
+
     public $category_id;
+
     public $product_id;
+
     public $is_active = true;
+
     public $sort_order = 0;
 
     // For dropdowns
     public $categories;
+
     public $products;
 
     protected $rules = [
@@ -61,8 +74,8 @@ class FreeShipping extends Component
     {
         $freeShippings = FreeShippingModel::query()
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('description', 'like', '%' . $this->search . '%');
+                $query->where('name', 'like', '%'.$this->search.'%')
+                    ->orWhere('description', 'like', '%'.$this->search.'%');
             })
             ->orderBy($this->sortBy, $this->sortDir)
             ->paginate($this->perPage);
@@ -78,7 +91,7 @@ class FreeShipping extends Component
             $this->isEditing = true;
             $this->editId = $id;
             $freeShipping = FreeShippingModel::findOrFail($id);
-            
+
             $this->name = $freeShipping->name;
             $this->description = $freeShipping->description;
             $this->minimum_amount = $freeShipping->minimum_amount;
@@ -90,7 +103,7 @@ class FreeShipping extends Component
         } else {
             $this->resetFormFields();
         }
-        
+
         $this->showForm = true;
     }
 
@@ -143,7 +156,7 @@ class FreeShipping extends Component
             }
             $this->closeForm();
         } catch (\Exception $e) {
-            $this->dispatch('error', message: 'Error: ' . $e->getMessage());
+            $this->dispatch('error', message: 'Error: '.$e->getMessage());
         }
     }
 
@@ -153,7 +166,7 @@ class FreeShipping extends Component
             FreeShippingModel::findOrFail($id)->delete();
             $this->dispatch('success', message: 'Free Shipping deleted successfully!');
         } catch (\Exception $e) {
-            $this->dispatch('error', message: 'Error deleting: ' . $e->getMessage());
+            $this->dispatch('error', message: 'Error deleting: '.$e->getMessage());
         }
     }
 
@@ -161,10 +174,10 @@ class FreeShipping extends Component
     {
         try {
             $freeShipping = FreeShippingModel::findOrFail($id);
-            $freeShipping->update(['is_active' => !$freeShipping->is_active]);
+            $freeShipping->update(['is_active' => ! $freeShipping->is_active]);
             $this->dispatch('success', message: 'Status updated successfully!');
         } catch (\Exception $e) {
-            $this->dispatch('error', message: 'Error: ' . $e->getMessage());
+            $this->dispatch('error', message: 'Error: '.$e->getMessage());
         }
     }
 
@@ -178,4 +191,3 @@ class FreeShipping extends Component
         }
     }
 }
-

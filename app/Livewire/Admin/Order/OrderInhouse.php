@@ -5,36 +5,43 @@ namespace App\Livewire\Admin\Order;
 use App\Mail\OrderStatusMail;
 use App\Models\CategoryCommission;
 use App\Models\Order;
-use App\Services\CourierService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithoutUrlPagination;
+use Livewire\WithPagination;
 
 class OrderInhouse extends Component
 {
-    use WithPagination, WithoutUrlPagination;
+    use WithoutUrlPagination, WithPagination;
 
     public $search = '';
+
     public $statusFilter = 'all';
 
     protected $listeners = ['orderUpdated' => '$refresh', 'printInvoiceDirect' => 'handlePrintInvoice'];
 
-
-
     // --------------------
     // Status constants
     // --------------------
-    const STATUS_PENDING   = 'pending';
+    const STATUS_PENDING = 'pending';
+
     const STATUS_CALL_NOT_RECEIVED = 'Call Not Received';
-    const STATUS_COMPLETED   = 'completed';
+
+    const STATUS_COMPLETED = 'completed';
+
     const STATUS_CONFIEMED = 'confirmed';
-    const STATUS_SHIPPED   = 'shipped';
+
+    const STATUS_SHIPPED = 'shipped';
+
     const STATUS_DELIVERED = 'delivered';
+
     const STATUS_CANCELLED = 'cancelled';
-    const STATUS_RETURNED  = 'returned';
+
+    const STATUS_RETURNED = 'returned';
+
     const STATUS_PENDING_RETURN = 'Pending Return';
+
     const STATUS_PENDING_CANCELLED = 'Pending Cancelled';
 
     public static $statuses = [
@@ -80,8 +87,9 @@ class OrderInhouse extends Component
     // --------------------
     public function updateStatus($orderId, $status)
     {
-        if (!in_array($status, self::$statuses)) {
+        if (! in_array($status, self::$statuses)) {
             $this->dispatch('error', message: 'Invalid order status.');
+
             return;
         }
 
@@ -90,7 +98,7 @@ class OrderInhouse extends Component
             $order = Order::with('user')->findOrFail($orderId);
             $order->update(['status' => $status]);
 
-            if (setting('email_notification', true) && !empty($order->user?->email)) {
+            if (setting('email_notification', true) && ! empty($order->user?->email)) {
                 Mail::to($order->user->email)->queue(new OrderStatusMail($order));
             }
 
@@ -103,53 +111,55 @@ class OrderInhouse extends Component
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('error', message: 'Something went wrong: ' . $e->getMessage());
+            $this->dispatch('error', message: 'Something went wrong: '.$e->getMessage());
         }
     }
 
     public function sendToPathao($orderId)
     {
         $order = Order::with('items.product')->find($orderId);
-        if (!$order) {
+        if (! $order) {
             $this->dispatch('error', message: 'Order not found.');
+
             return;
         }
 
-        $driver = new \App\Services\Couriers\PathaoDriver();
+        $driver = new \App\Services\Couriers\PathaoDriver;
 
-        if (!$driver->canSend()) {
+        if (! $driver->canSend()) {
             $this->dispatch('error', message: 'Pathao credentials are not configured.');
+
             return;
         }
 
         $itemDescription = $order->items
-            ->map(fn($item) => ($item->product->name ?? 'Item') . " x{$item->quantity}")
+            ->map(fn ($item) => ($item->product->name ?? 'Item')." x{$item->quantity}")
             ->implode(', ');
 
         $data = [
-            'invoice'       => $order->invoice_no,
-            'name'          => $order->name,
-            'phone'         => $order->phone,
-            'address'       => $order->shipping_address,
-            'cod_amount'    => $order->total_amount,
-            'note'          => '',
+            'invoice' => $order->invoice_no,
+            'name' => $order->name,
+            'phone' => $order->phone,
+            'address' => $order->shipping_address,
+            'cod_amount' => $order->total_amount,
+            'note' => '',
             'delivery_type' => 48,
-            'city_id'       => $order->city_id ?? setting('pathao_default_city_id'),
-            'zone_id'       => $order->zone_id ?? setting('pathao_default_zone_id'),
-            'area_id'       => $order->area_id ?? null,
-            'quantity'      => $order->items->sum('quantity'),
-            'weight'        => 0.5,
-            'description'   => $itemDescription,
+            'city_id' => $order->city_id ?? setting('pathao_default_city_id'),
+            'zone_id' => $order->zone_id ?? setting('pathao_default_zone_id'),
+            'area_id' => $order->area_id ?? null,
+            'quantity' => $order->items->sum('quantity'),
+            'weight' => 0.5,
+            'description' => $itemDescription,
         ];
 
         DB::beginTransaction();
         try {
             $response = $driver->createOrder($data);
 
-            if (!empty($response['status']) && $response['status'] == 200) {
+            if (! empty($response['status']) && $response['status'] == 200) {
                 $order->update([
-                    'status'        => self::STATUS_SHIPPED,
-                    'courier'       => 'pathao',
+                    'status' => self::STATUS_SHIPPED,
+                    'courier' => 'pathao',
                     'tracking_code' => $response['data']['consignment_id'] ?? null,
                 ]);
                 $this->dispatch('success', message: 'Order sent to Pathao successfully!');
@@ -160,7 +170,7 @@ class OrderInhouse extends Component
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('error', message: 'Pathao error: ' . $e->getMessage());
+            $this->dispatch('error', message: 'Pathao error: '.$e->getMessage());
         }
     }
 
@@ -168,41 +178,41 @@ class OrderInhouse extends Component
     {
 
         $order = Order::with('items.product')->find($orderId);
-        if (!$order) {
+        if (! $order) {
             $this->dispatch('error', message: 'Order not found.');
+
             return;
         }
 
-        $driver = new \App\Services\Couriers\SteadfastDriver();
+        $driver = new \App\Services\Couriers\SteadfastDriver;
 
-        if (!$driver->canSend()) {
+        if (! $driver->canSend()) {
             $this->dispatch('error', message: 'Steadfast credentials are not configured.');
+
             return;
         }
-
 
         $itemDescription = $order->items
-            ->map(fn($item) => ($item->product->name ?? 'Item') . " x{$item->quantity}")
+            ->map(fn ($item) => ($item->product->name ?? 'Item')." x{$item->quantity}")
             ->implode(', ');
 
         $data = [
-            'invoice'   => $order->invoice_no,
-            'name'      => $order->name,
-            'phone'     => $order->phone,
-            'address'   => $order->shipping_address,
+            'invoice' => $order->invoice_no,
+            'name' => $order->name,
+            'phone' => $order->phone,
+            'address' => $order->shipping_address,
             'cod_amount' => $order->total_amount,
-            'note'      => $itemDescription,
+            'note' => $itemDescription,
         ];
-
 
         DB::beginTransaction();
         try {
             $response = $driver->createOrder($data);
 
-            if (!empty($response['status']) && $response['status'] == 200) {
+            if (! empty($response['status']) && $response['status'] == 200) {
                 $order->update([
-                    'status'        => self::STATUS_SHIPPED,
-                    'courier'       => 'steadfast',
+                    'status' => self::STATUS_SHIPPED,
+                    'courier' => 'steadfast',
                     'tracking_code' => $response['consignment']['tracking_code'] ?? null,
                 ]);
                 $this->dispatch('success', message: 'Order sent to Steadfast successfully!');
@@ -214,10 +224,9 @@ class OrderInhouse extends Component
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('error', message: 'Steadfast error: ' . $e->getMessage());
+            $this->dispatch('error', message: 'Steadfast error: '.$e->getMessage());
         }
     }
-
 
     public function updatedSearch()
     {
@@ -226,11 +235,12 @@ class OrderInhouse extends Component
 
     public function filterByStatus($status)
     {
-        if (!in_array($status, self::$statuses) && $status !== 'all') return;
+        if (! in_array($status, self::$statuses) && $status !== 'all') {
+            return;
+        }
         $this->statusFilter = $status;
         $this->resetPage();
     }
-
 
     public function getStatusCountsProperty()
     {
@@ -251,13 +261,12 @@ class OrderInhouse extends Component
             ->toArray();
     }
 
-
     public function printInvoiceDirect($orderId)
     {
         $order = Order::with([
             'items.product',
             'items.variant.variantAttributeValues.attribute',
-            'items.variant.variantAttributeValues.attributeValue'
+            'items.variant.variantAttributeValues.attributeValue',
         ])->find($orderId);
 
         if ($order) {

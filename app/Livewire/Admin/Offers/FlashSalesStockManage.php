@@ -9,16 +9,18 @@ use Livewire\Component;
 class FlashSalesStockManage extends Component
 {
     public FlashSale $flashSale;
+
     public int $flashSaleId;
+
     public array $stocks = [];
 
     public ?int $deleteItemId = null;
-    public string $deleteItemName = '';
 
+    public string $deleteItemName = '';
 
     public function mount(int $id): void
     {
-        $this->flashSale   = FlashSale::with('items.product')->findOrFail($id);
+        $this->flashSale = FlashSale::with('items.product')->findOrFail($id);
         $this->flashSaleId = $id;
 
         foreach ($this->flashSale->items as $item) {
@@ -28,7 +30,7 @@ class FlashSalesStockManage extends Component
 
     public function updateStock(int $itemId): void
     {
-        $item    = FlashSaleItem::with('product')->findOrFail($itemId);
+        $item = FlashSaleItem::with('product')->findOrFail($itemId);
         $newStock = (int) ($this->stocks[$itemId] ?? 0);
 
         $item->product->update(['stock' => $newStock]);
@@ -38,7 +40,7 @@ class FlashSalesStockManage extends Component
     public function confirmRemoveItem(int $itemId): void
     {
         $item = FlashSaleItem::with('product')->findOrFail($itemId);
-        $this->deleteItemId   = $itemId;
+        $this->deleteItemId = $itemId;
         $this->deleteItemName = $item->product->name;
         $this->dispatch('show-delete-modal');
     }
@@ -54,14 +56,14 @@ class FlashSalesStockManage extends Component
             }
             session()->flash('success', "Product \"{$this->deleteItemName}\" removed from flash sale.");
         }
-        $this->deleteItemId   = null;
+        $this->deleteItemId = null;
         $this->deleteItemName = '';
         $this->dispatch('hide-delete-modal');
     }
 
     public function cancelRemove(): void
     {
-        $this->deleteItemId   = null;
+        $this->deleteItemId = null;
         $this->deleteItemName = '';
         $this->dispatch('hide-delete-modal');
     }

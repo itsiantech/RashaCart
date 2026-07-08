@@ -3,14 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
 
 class WithdrawalRequest extends Model
 {
     protected $fillable = [
         'vendor_id',
         'amount',
-        'status'
+        'status',
     ];
 
     public function vendor()
@@ -21,10 +20,10 @@ class WithdrawalRequest extends Model
     public function getStatusLabelAttribute()
     {
         return match ($this->status) {
-            'pending'  => 'Pending',
+            'pending' => 'Pending',
             'approved' => 'Approved',
-            'paid'     => 'Paid',
-            default    => 'Unknown',
+            'paid' => 'Paid',
+            default => 'Unknown',
         };
     }
 }

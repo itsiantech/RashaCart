@@ -14,26 +14,40 @@ class Checkout extends Component
     use HandlesCartActions;
 
     // Customer info
-    public $name, $phone, $shipping_address;
+    public $name;
+
+    public $phone;
+
+    public $shipping_address;
+
     public $delivery_zone = 'inside';
+
     public $delivery_charge = 0;
+
     public $note;
 
     // Payment
     public string $payment_method = 'cod';
+
     public string $transaction_id = '';
 
     // Coupon
-    public $coupon_code, $coupon_discount_amount;
+    public $coupon_code;
+
+    public $coupon_discount_amount;
 
     // Cart
     public $cartItems = [];
+
     public $subtotal = 0;
+
     public $discount = 0;
+
     public $total = 0;
 
     // Available payment methods from DB
     public array $manualMethods = [];
+
     public bool $sslEnabled = false;
 
     // UI state — which manual method panel is expanded
@@ -44,14 +58,14 @@ class Checkout extends Component
     protected function rules(): array
     {
         $manualMethodKeys = collect($this->manualMethods)->pluck('key')->toArray();
-        $allowedMethods   = array_merge(['cod', 'sslcommerz'], $manualMethodKeys);
+        $allowedMethods = array_merge(['cod', 'sslcommerz'], $manualMethodKeys);
 
         $rules = [
-            'name'             => 'required|string|max:255',
-            'phone'            => 'required|numeric|digits:11',
+            'name' => 'required|string|max:255',
+            'phone' => 'required|numeric|digits:11',
             'shipping_address' => 'required|string|max:500',
-            'delivery_zone'    => 'required|in:inside,outside',
-            'payment_method'   => 'required|in:' . implode(',', $allowedMethods),
+            'delivery_zone' => 'required|in:inside,outside',
+            'payment_method' => 'required|in:'.implode(',', $allowedMethods),
         ];
 
         // Transaction ID required for manual payments
@@ -64,16 +78,16 @@ class Checkout extends Component
 
     protected array $messages = [
         'transaction_id.required' => 'Transaction ID is required for this payment method.',
-        'transaction_id.min'      => 'Transaction ID must be at least 6 characters.',
-        'phone.digits'            => 'Phone number must be exactly 11 digits.',
+        'transaction_id.min' => 'Transaction ID must be at least 6 characters.',
+        'phone.digits' => 'Phone number must be exactly 11 digits.',
     ];
 
     public function mount(): void
     {
         if (auth()->check()) {
-            $user                   = auth()->user();
-            $this->name             = $user->name;
-            $this->phone            = $user->phone;
+            $user = auth()->user();
+            $this->name = $user->name;
+            $this->phone = $user->phone;
             $this->shipping_address = $user->address ?? '';
         }
 
@@ -93,47 +107,47 @@ class Checkout extends Component
         if ($setting) {
             if ($setting->bkash_enabled && $setting->bkash_number) {
                 $this->manualMethods[] = [
-                    'key'          => 'bkash',
-                    'label'        => 'bKash',
-                    'number'       => $setting->bkash_number,
+                    'key' => 'bkash',
+                    'label' => 'bKash',
+                    'number' => $setting->bkash_number,
                     'account_type' => $setting->bkash_account_type ?? 'personal',
-                    'color'        => '#e2136e',
-                    'img'          => 'img/bkash.png',
+                    'color' => '#e2136e',
+                    'img' => 'img/bkash.png',
                 ];
             }
 
             if ($setting->nagad_enabled && $setting->nagad_number) {
                 $this->manualMethods[] = [
-                    'key'          => 'nagad',
-                    'label'        => 'Nagad',
-                    'number'       => $setting->nagad_number,
+                    'key' => 'nagad',
+                    'label' => 'Nagad',
+                    'number' => $setting->nagad_number,
                     'account_type' => $setting->nagad_account_type ?? 'personal',
-                    'color'        => '#f05829',
-                    'img'          => 'img/nagad.png',
+                    'color' => '#f05829',
+                    'img' => 'img/nagad.png',
                 ];
             }
 
             if ($setting->rocket_enabled && $setting->rocket_number) {
                 $this->manualMethods[] = [
-                    'key'   => 'rocket',
+                    'key' => 'rocket',
                     'label' => 'Rocket',
                     'number' => $setting->rocket_number,
                     'color' => '#8b1fa9',
-                    'img'   => 'img/rocket.png',
+                    'img' => 'img/rocket.png',
                 ];
             }
 
             if ($setting->bank_enabled && $setting->bank_account_number) {
                 $this->manualMethods[] = [
-                    'key'            => 'bank',
-                    'label'          => 'Bank Transfer',
-                    'bank_name'      => $setting->bank_name,
-                    'account_name'   => $setting->bank_account_name,
+                    'key' => 'bank',
+                    'label' => 'Bank Transfer',
+                    'bank_name' => $setting->bank_name,
+                    'account_name' => $setting->bank_account_name,
                     'account_number' => $setting->bank_account_number,
-                    'routing'        => $setting->bank_routing_number ?? null,
-                    'branch'         => $setting->bank_branch ?? null,
-                    'color'          => '#0d6efd',
-                    'img'            => 'img/bank.png',
+                    'routing' => $setting->bank_routing_number ?? null,
+                    'branch' => $setting->bank_branch ?? null,
+                    'color' => '#0d6efd',
+                    'img' => 'img/bank.png',
                 ];
             }
         }
@@ -177,7 +191,7 @@ class Checkout extends Component
 
     public function calculateTotals(): void
     {
-        $this->subtotal = collect($this->cartItems)->sum(fn($item) => $item['price'] * $item['qty']);
+        $this->subtotal = collect($this->cartItems)->sum(fn ($item) => $item['price'] * $item['qty']);
 
         $this->delivery_charge = $this->checkFreeShippingEligibility()
             ? 0
@@ -190,9 +204,11 @@ class Checkout extends Component
     {
         try {
             $rules = FreeShipping::where('is_active', true)->get();
-            if ($rules->isEmpty()) return false;
+            if ($rules->isEmpty()) {
+                return false;
+            }
 
-            $subtotal = collect($this->cartItems)->sum(fn($item) => $item['price'] * $item['qty']);
+            $subtotal = collect($this->cartItems)->sum(fn ($item) => $item['price'] * $item['qty']);
 
             foreach ($rules as $rule) {
                 if ($rule->type === 'minimum_amount' && $rule->minimum_amount > 0 && $subtotal >= $rule->minimum_amount) {
@@ -201,23 +217,27 @@ class Checkout extends Component
             }
 
             $qualifying = 0;
-            $total      = 0;
+            $total = 0;
 
             foreach ($this->cartItems as $item) {
-                $amount  = $item['price'] * $item['qty'];
-                $total  += $amount;
+                $amount = $item['price'] * $item['qty'];
+                $total += $amount;
                 $isMatch = false;
 
                 foreach ($rules as $rule) {
                     if ($rule->type === 'category' && $rule->category_id && isset($item['category_id']) && (int) $item['category_id'] === (int) $rule->category_id) {
-                        $isMatch = true; break;
+                        $isMatch = true;
+                        break;
                     }
                     if ($rule->type === 'product' && $rule->product_id && isset($item['product_id']) && (int) $item['product_id'] === (int) $rule->product_id) {
-                        $isMatch = true; break;
+                        $isMatch = true;
+                        break;
                     }
                 }
 
-                if ($isMatch) $qualifying += $amount;
+                if ($isMatch) {
+                    $qualifying += $amount;
+                }
             }
 
             return $qualifying > 0 && $qualifying >= $total;
@@ -234,6 +254,7 @@ class Checkout extends Component
 
         if (isset($response['error'])) {
             $this->dispatch('error', ['message' => $response['error']]);
+
             return;
         }
 
@@ -254,23 +275,23 @@ class Checkout extends Component
         }
 
         $order = $orderService->createOrder([
-            'user_id'               => auth()->id() ?? null,
-            'invoice_no'            => $orderService->generateInvoice(),
-            'total_amount'          => $this->total,
-            'status'                => 'pending',
-            'payment_method'        => $this->payment_method,
-            'payment_status'        => in_array($this->payment_method, collect($this->manualMethods)->pluck('key')->toArray())
+            'user_id' => auth()->id() ?? null,
+            'invoice_no' => $orderService->generateInvoice(),
+            'total_amount' => $this->total,
+            'status' => 'pending',
+            'payment_method' => $this->payment_method,
+            'payment_status' => in_array($this->payment_method, collect($this->manualMethods)->pluck('key')->toArray())
                                             ? 'pending_verification'
                                             : 'unpaid',
-            'transaction_id'        => $this->transaction_id ?: null,
-            'name'                  => $this->name,
-            'phone'                 => $this->phone,
-            'shipping_address'      => $this->shipping_address,
-            'delivery_zone'         => $this->delivery_zone,
-            'delivery_charge'       => $this->delivery_charge,
-            'coupon_code'           => $this->coupon_code,
-            'coupon_discount_amount'=> $this->discount,
-            'note'                  => $this->note,
+            'transaction_id' => $this->transaction_id ?: null,
+            'name' => $this->name,
+            'phone' => $this->phone,
+            'shipping_address' => $this->shipping_address,
+            'delivery_zone' => $this->delivery_zone,
+            'delivery_charge' => $this->delivery_charge,
+            'coupon_code' => $this->coupon_code,
+            'coupon_discount_amount' => $this->discount,
+            'note' => $this->note,
         ], $this->cartItems);
 
         session()->forget('cart');

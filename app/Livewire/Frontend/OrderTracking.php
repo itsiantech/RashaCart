@@ -2,12 +2,13 @@
 
 namespace App\Livewire\Frontend;
 
-use Livewire\Component;
 use App\Models\Order;
+use Livewire\Component;
 
 class OrderTracking extends Component
 {
     public $invoiceNo;
+
     public $order;
 
     public function trackOrder()
@@ -17,9 +18,9 @@ class OrderTracking extends Component
         ]);
 
         $this->order = Order::with(['items.product', 'items.variant'])->where('invoice_no', $this->invoiceNo)
-                            ->first();  
+            ->first();
 
-        if (!$this->order) {
+        if (! $this->order) {
             $this->dispatch('error', message: 'No order found with this invoice number.');
         } else {
             $this->dispatch('success', message: 'Order found successfully.');

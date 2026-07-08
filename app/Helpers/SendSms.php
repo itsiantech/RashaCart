@@ -8,18 +8,18 @@ function sms_send($number, $message)
     $api_key = setting('sms_api_key');
     $senderid = setting('sms_sender_id');
 
-    if (!$url || !$api_key || !$senderid) {
+    if (! $url || ! $api_key || ! $senderid) {
         return json_encode([
             'response_code' => 0,
-            'error_message' => 'SMS configuration missing.'
+            'error_message' => 'SMS configuration missing.',
         ]);
     }
 
     $data = [
-        "api_key" => $api_key,
-        "senderid" => $senderid,
-        "number" => $number,
-        "message" => $message
+        'api_key' => $api_key,
+        'senderid' => $senderid,
+        'number' => $number,
+        'message' => $message,
     ];
 
     $response = Http::asForm()->post($url, $data);

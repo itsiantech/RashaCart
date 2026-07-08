@@ -1,42 +1,50 @@
 <?php
 
-
 use App\Http\Controllers\Admin\BulkInvoiceController;
 use App\Http\Controllers\PrintController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Middleware\AdminAccess;
-use App\Livewire\Admin\{Dashboard, Customer};
 use App\Livewire\Admin\AdminProfile;
 use App\Livewire\Admin\Attribute\AttributeComponent;
-use App\Livewire\Admin\Banner\{BannerIndex, BannerCreate, BannerEdit};
+use App\Livewire\Admin\Banner\BannerCreate;
+use App\Livewire\Admin\Banner\BannerEdit;
+use App\Livewire\Admin\Banner\BannerIndex;
 use App\Livewire\Admin\BestOffer\BestOfferIndex;
 use App\Livewire\Admin\Brands\Create;
 use App\Livewire\Admin\Brands\Edit;
 use App\Livewire\Admin\Brands\Index;
 use App\Livewire\Admin\Category\CategoryComponent;
-use App\Livewire\Admin\Cupon\{CuponIndex, CuponCreate, CuponEdit};
+use App\Livewire\Admin\Cupon\CuponCreate;
+use App\Livewire\Admin\Cupon\CuponEdit;
+use App\Livewire\Admin\Cupon\CuponIndex;
+use App\Livewire\Admin\Customer;
+use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\ForYou\ForYouIndex;
 use App\Livewire\Admin\FreeShippig\FreeShipping;
 use App\Livewire\Admin\NewArrival\NewArrivalCreate;
-use App\Livewire\Admin\NewArrival\NewArrivalIndex;
 use App\Livewire\Admin\Offers\FlashSalesCreate;
 use App\Livewire\Admin\Offers\FlashSalesEdit;
 use App\Livewire\Admin\Offers\FlashSalesIndex;
 use App\Livewire\Admin\Offers\FlashSalesStockManage;
 use App\Livewire\Admin\Offers\FlashSalesView;
-use App\Livewire\Admin\Order\{OrderIndex, OrderView, OrderInhouse, OrderVendor, BulkInvoicePrint};
+use App\Livewire\Admin\Order\BulkInvoicePrint;
+use App\Livewire\Admin\Order\OrderIndex;
+use App\Livewire\Admin\Order\OrderInhouse;
+use App\Livewire\Admin\Order\OrderVendor;
+use App\Livewire\Admin\Order\OrderView;
 use App\Livewire\Admin\Payment\ApiPaymentIndex;
 use App\Livewire\Admin\Payment\ManualPaymentIndex;
-use App\Livewire\Admin\Products\{ProductIndex, ProductCreate, ProductEdit, ProductView, ProductStockManage};
+use App\Livewire\Admin\Products\ProductCreate;
+use App\Livewire\Admin\Products\ProductEdit;
+use App\Livewire\Admin\Products\ProductIndex;
+use App\Livewire\Admin\Products\ProductStockManage;
+use App\Livewire\Admin\Products\ProductView;
 use App\Livewire\Admin\Settings\AppSetting;
-use App\Livewire\Admin\Settings\RolePermission\{RolePermissionIndex, RolePermissionAssign};
-use App\Livewire\Admin\Settings\User\{UserCreate, UserEdit, UserIndex};
-use App\Livewire\Admin\Settings\User\Profile\ProfileIndex;
-use App\Livewire\Admin\Trendy\TrendyProductsIndex;
+use App\Livewire\Admin\Settings\RolePermission\RolePermissionAssign;
+use App\Livewire\Admin\Settings\RolePermission\RolePermissionIndex;
+use App\Livewire\Admin\Settings\User\UserCreate;
+use App\Livewire\Admin\Settings\User\UserEdit;
+use App\Livewire\Admin\Settings\User\UserIndex;
 use App\Livewire\Admin\Vendor\ManageCommission;
 use App\Livewire\Admin\Vendor\VendorApplied;
-use App\Livewire\Admin\Vendor\VendorCreate;
-use App\Livewire\Admin\Vendor\VendorEdit;
 use App\Livewire\Admin\Vendor\VendorIndex;
 use App\Livewire\Admin\Vendor\VendorPayout;
 use App\Livewire\Admin\Vendor\VendorPayoutRequest;
@@ -59,16 +67,14 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
 
     Route::get('/profile/index', AdminProfile::class)->name('profile')->middleware('can:admin.profile.view');
 
-
-    //Vendors Route
+    // Vendors Route
     Route::get('/vendor/profile/{vendorId}', VendorProfile::class)->name('vendor.profile')->middleware('can:vendor.profile');
-    Route::get('/vendor/index', VendorIndex::class)->name('vendor.index')->middleware('role:admin');;
+    Route::get('/vendor/index', VendorIndex::class)->name('vendor.index')->middleware('role:admin');
     Route::get('/vendor/payout', VendorPayout::class)->name('vendor.payout')->middleware('can:vendor.payout');
     Route::get('/vendor/payout/request', VendorPayoutRequest::class)->name('vendor.payout.request')->middleware('role:admin');
     Route::get('/vendor/payment-history', VendorApplied::class)->name('vendor.payment-history')->middleware('role:admin');
     Route::get('/vendor/manage-commision', ManageCommission::class)->name('vendor.manage.commission')->middleware('role:admin');
     Route::get('/vendor/view/{vendorId}', VendorView::class)->name('vendors.view')->middleware('role:admin');
-
 
     Route::get('/role-permission/index', RolePermissionIndex::class)->name('rolepermission.index');
     Route::get('/role-permission/{id}/assign', RolePermissionAssign::class)->name('rolepermission.assign');
@@ -90,7 +96,7 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
     Route::get('/brand/create', Create::class)->name('brand.create')->middleware('can:brand.create');
     Route::get('/brand/edit/{id}', Edit::class)->name('brand.edit')->middleware('can:brand.update');
 
-    //Flash Sales
+    // Flash Sales
     Route::get('/flash-sales', FlashSalesIndex::class)->name('flash.sales.index')->middleware('can:flash.sales.view');
     Route::get('/flash-sales/create', FlashSalesCreate::class)->name('flash.sales.create')->middleware('can:flash.sales.create');
     Route::get('/flash-sales/edit/{id}', FlashSalesEdit::class)->name('flash.sales.edit')->middleware('can:flash.sales.update');
@@ -99,10 +105,10 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
 
     Route::get('/admin/best-offers', BestOfferIndex::class)->name('best-offers.index');
 
-    //New Arrival
+    // New Arrival
     Route::get('/new-arrival/create', NewArrivalCreate::class)->name('new.arrival.create')->middleware('can:new.arrival.create');
 
-    //For You
+    // For You
     Route::get('/for-you', ForYouIndex::class)->name('for.you.index')->middleware('can:for.you.view');
 
     Route::get('/orders', OrderIndex::class)->name('order.index')->middleware('can:order.manage');
@@ -115,11 +121,9 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
 
     Route::get('/free-shipping', FreeShipping::class)->name('free-shipping.index')->middleware('can:free.shipping.view');
 
-    //Payment Method
+    // Payment Method
     Route::get('/manual-payment', ManualPaymentIndex::class)->name('manual-payment.index');
     Route::get('/api-payment', ApiPaymentIndex::class)->name('api-payment.index');
-
-
 
     Route::get('/cupon', CuponIndex::class)->name('cupon.index')->middleware('can:cupon.view');
     Route::get('/cupon/create/{coupon_id?}', CuponCreate::class)->name('cupon.create')->middleware('can:cupon.create');
@@ -127,9 +131,7 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
     Route::get('/cupon/edit/{id}', CuponEdit::class)->name('cupon.edit')->middleware('can:cupon.update');
 });
 
-
-    
     // Route::controller(SettingsController::class)->prefix('settings')->name('settings.')->group(function () {
-    //     Route::get('/basic', 'index')->name('basic')->middleware('can:setting.view');
-    //     Route::post('/update', 'update')->name('update')->middleware('can:setting.update');
-    // });
+//     Route::get('/basic', 'index')->name('basic')->middleware('can:setting.view');
+//     Route::post('/update', 'update')->name('update')->middleware('can:setting.update');
+// });

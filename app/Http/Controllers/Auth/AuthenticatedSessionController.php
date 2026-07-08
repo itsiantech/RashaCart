@@ -3,17 +3,17 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Livewire\Attributes\Layout;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
-use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\View\View;
 use Laravel\Socialite\Facades\Socialite;
+use Livewire\Attributes\Layout;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 #[Layout('livewire.auth.layouts.app')]
 class AuthenticatedSessionController extends Controller
@@ -39,42 +39,44 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    
-    public function googleLogin(){
+    public function googleLogin()
+    {
         return Socialite::driver('google')->redirect();
     }
-    
-    public function googleAuthentication(){
+
+    public function googleAuthentication()
+    {
 
         try {
             $googleUserData = Socialite::driver('google')->user();
             $checkUser = User::where('google_id', $googleUserData->id)->first();
-        
+
             if ($checkUser) {
                 Auth::login($checkUser);
+
                 return redirect()->route('home');
             } else {
                 $user = User::create([
-                    'google_id' =>  $googleUserData->id,
-                    'name' =>  $googleUserData->name,
-                    'email' =>  $googleUserData->email,
-                    'password' =>  Hash::make('password')
+                    'google_id' => $googleUserData->id,
+                    'name' => $googleUserData->name,
+                    'email' => $googleUserData->email,
+                    'password' => Hash::make('password'),
                 ]);
-        
+
                 $role = Role::where('name', 'user')->first();
                 $user->assignRole($role);
-        
+
                 Auth::login($user);
+
                 return redirect()->route('home');
             }
         } catch (\Exception $e) {
             $this->dispatch('error', message: $e->getMessage());
         }
 
-        
     }
 
-        public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
 
@@ -83,6 +85,7 @@ class AuthenticatedSessionController extends Controller
         // Check if user is customer
         if (Auth::user()->role !== 'customer') {
             Auth::logout();
+
             return back()->withErrors([
                 'email' => 'Please use the appropriate login portal.',
             ]);
@@ -91,7 +94,7 @@ class AuthenticatedSessionController extends Controller
         return redirect()->intended(route('home'));
     }
 
-        public function storeVendor(LoginRequest $request): RedirectResponse
+    public function storeVendor(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
 
@@ -102,22 +105,24 @@ class AuthenticatedSessionController extends Controller
         // Check if user is vendor
         if ($user->role !== 'vendor') {
             Auth::logout();
+
             return back()->withErrors([
                 'email' => 'Please use vendor login portal.',
             ]);
         }
 
         // Check if vendor is approved
-        if (!$user->is_vendor_approved) {
+        if (! $user->is_vendor_approved) {
             Auth::logout();
+
             return redirect()->route('vendor.login')
                 ->withErrors(['email' => 'Your vendor account is pending approval.']);
         }
 
-        return redirect()->intended(route('vendor.dashboard'));
+        return redirect()->intended(route('admin.dashboard'));
     }
 
-        public function storeAdmin(LoginRequest $request): RedirectResponse
+    public function storeAdmin(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
 
@@ -126,6 +131,7 @@ class AuthenticatedSessionController extends Controller
         // Check if user is admin
         if (Auth::user()->role !== 'admin') {
             Auth::logout();
+
             return back()->withErrors([
                 'email' => 'You are not authorized to access admin panel.',
             ]);
@@ -133,19 +139,19 @@ class AuthenticatedSessionController extends Controller
 
         return redirect()->intended(route('admin.dashboard'));
     }
-    
+
     // public function storeAdmin(LoginRequest $request): RedirectResponse
     // {
     //     $request->authenticate();
-    //     $request->session()->regenerate();  
-        
+    //     $request->session()->regenerate();
+
     //     $user = Auth::user();
     //     if ($user) {
     //         return redirect()->intended(route('admin.dashboard', absolute: false));
     //     }else{
     //         abort(403, 'You do not have permission to access this area');
     //     }
-        
+
     // }
 
     /**
@@ -155,10 +161,9 @@ class AuthenticatedSessionController extends Controller
     {
         Auth::guard('web')->logout();
         $request->session()->invalidate();
-        $request->session()->regenerateToken();        
-        
-        return redirect()->route('home');
-       
-    }
+        $request->session()->regenerateToken();
 
+        return redirect()->route('home');
+
+    }
 }

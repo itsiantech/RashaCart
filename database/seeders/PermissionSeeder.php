@@ -99,7 +99,7 @@ class PermissionSeeder extends Seeder
             'order.view',
             'vendor.payout',
             'vendor.profile',
-            'admin.profile.view'
+            'admin.profile.view',
         ]);
 
         // Customer limited

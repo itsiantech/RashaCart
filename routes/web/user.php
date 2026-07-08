@@ -1,14 +1,7 @@
 <?php
 
-use App\Http\Controllers\Admin\DashboardController;
-use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\Admin\RoleController;
-use App\Http\Controllers\Admin\UserController;
-
 use App\Livewire\User\Dashboard;
-
-
+use Illuminate\Support\Facades\Route;
 
 Route::middleware(['role:user'])->group(function () {
 
@@ -16,11 +9,5 @@ Route::middleware(['role:user'])->group(function () {
     //     Route::get('/dashboard', Dashboard::class)->name('dashboard');
 
     // });
-    
 
 });
-
-    
-
-
-

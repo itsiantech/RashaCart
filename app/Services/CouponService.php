@@ -8,13 +8,13 @@ class CouponService
 {
     public function validateAndApply($code, $cartItems)
     {
-        if (!$code) {
+        if (! $code) {
             return ['error' => 'Please enter a coupon code'];
         }
 
         $coupon = Coupon::where('code', $code)->where('status', 1)->whereDate('start_date', '<=', now())->whereDate('end_date', '>=', now())->first();
 
-        if (!$coupon) {
+        if (! $coupon) {
             return ['error' => 'Invalid or expired coupon'];
         }
 
@@ -60,11 +60,11 @@ class CouponService
         $productIds = $coupon->products->pluck('id')->toArray();
         $categoryIds = $coupon->categories->pluck('id')->toArray();
 
-        $hasProductLimit = !empty($productIds);
-        $hasCategoryLimit = !empty($categoryIds);
+        $hasProductLimit = ! empty($productIds);
+        $hasCategoryLimit = ! empty($categoryIds);
 
         return collect($cartItems)->sum(function ($item) use ($productIds, $categoryIds, $hasProductLimit, $hasCategoryLimit) {
-            if (!$hasProductLimit && !$hasCategoryLimit) {
+            if (! $hasProductLimit && ! $hasCategoryLimit) {
                 return $item['price'] * $item['qty'];
             }
 

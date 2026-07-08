@@ -23,14 +23,16 @@ class AdminVendorAccess
         }
 
         if ($user->role === 'vendor') {
-            if (!$user->is_vendor_approved) {
+            if (! $user->is_vendor_approved) {
                 Auth::logout();
                 if ($request->expectsJson()) {
                     return response()->json(['message' => 'Vendor account pending approval.'], 403);
                 }
                 session()->flash('error', 'Vendor account pending approval.');
+
                 return redirect()->route('login');
             }
+
             return $next($request);
         }
 

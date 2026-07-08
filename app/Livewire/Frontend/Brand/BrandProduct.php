@@ -3,18 +3,18 @@
 namespace App\Livewire\Frontend\Brand;
 
 use App\Models\Brand;
-use Livewire\WithPagination;
 use App\Models\Product;
-
 use App\Traits\HandlesCartActions;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class BrandProduct extends Component
 {
-    use WithPagination;
     use HandlesCartActions;
+    use WithPagination;
 
     public $brand = null;
+
     public $selectedPrice = null;
 
     protected $queryString = [
@@ -46,16 +46,17 @@ class BrandProduct extends Component
         // Single price filter
         if ($this->selectedPrice) {
             [$min, $max] = explode('-', $this->selectedPrice);
-            $query->whereBetween('price', [(int)$min, (int)$max]);
+            $query->whereBetween('price', [(int) $min, (int) $max]);
         }
 
         return $query->paginate(20);
     }
+
     public function render()
     {
         return view('livewire.frontend.brand.brand-product', [
             'products' => $this->products,
         ])
-        ->layout('livewire.frontend.layouts.app');
+            ->layout('livewire.frontend.layouts.app');
     }
 }

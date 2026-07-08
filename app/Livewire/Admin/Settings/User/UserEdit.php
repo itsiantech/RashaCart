@@ -2,20 +2,28 @@
 
 namespace App\Livewire\Admin\Settings\User;
 
-use Livewire\Component;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
+use Livewire\Component;
+use Spatie\Permission\Models\Role;
+
 class UserEdit extends Component
 {
-     public User $user;
+    public User $user;
+
     public $name;
+
     public $email;
+
     public $phone;
+
     public $password;
+
     public $password_confirmation;
+
     public $selectedRole;
+
     public $roles;
 
     public function mount($id)
@@ -52,11 +60,12 @@ class UserEdit extends Component
 
         $this->user->syncRoles($this->selectedRole);
 
-        $this->dispatch('toast', 
-            message: 'Admin updated successfully!', 
+        $this->dispatch('toast',
+            message: 'Admin updated successfully!',
             type: 'success'
-        );      
-         return $this->redirect(route('admin.user.index'), navigate: true);
+        );
+
+        return $this->redirect(route('admin.user.index'), navigate: true);
     }
 
     public function render()

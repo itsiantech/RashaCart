@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('shop_name');
             $table->text('shop_address');
             $table->string('NID_number')->unique();
-            $table->string('profile_image')->nullable();  
+            $table->string('profile_image')->nullable();
             $table->string('trade_license_front');
             $table->string('trade_license_back');
             $table->enum('payment_method', ['bank', 'bkash', 'nagad', 'rocket', 'cash'])->nullable();

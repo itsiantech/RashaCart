@@ -2,20 +2,24 @@
 
 namespace App\Livewire\Admin\Banner;
 
+use App\Models\Banner;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use App\Models\Banner;
-use Storage;
-use DB;
+
 class BannerCreate extends Component
 {
     use WithFileUploads;
 
     public $title;
+
     public $image;
+
     public $description;
+
     public $link;
+
     public $type;
+
     public $status = true;
 
     public function store()
@@ -45,6 +49,7 @@ class BannerCreate extends Component
 
         // $this->dispatch('toast', type: 'success', message: 'Banner has been created!.');
         $this->dispatch('success', message: 'Banner Created!');
+
         return redirect()->route('admin.banner.index');
     }
 

@@ -7,21 +7,21 @@ use Illuminate\Database\Eloquent\Model;
 class ProductVariant extends Model
 {
     protected $fillable = [
-        'product_id', 
-        'sku', 
+        'product_id',
+        'sku',
         'variant_price',
         'varient_price', // Keep both for compatibility
         'stock',
-        'image', 
+        'image',
     ];
 
     // ── Main Relationships ──
-    public function product() 
+    public function product()
     {
         return $this->belongsTo(Product::class);
     }
 
-    public function inventories() 
+    public function inventories()
     {
         return $this->hasMany(Inventory::class, 'variant_id');
     }
@@ -30,14 +30,14 @@ class ProductVariant extends Model
     public function values()
     {
         return $this->hasMany(VariantAttributeValue::class, 'product_variant_id')
-                    ->with(['attribute', 'attributeValue']);
+            ->with(['attribute', 'attributeValue']);
     }
 
     // ── FOR FRONTEND (SingleView component) ──
     public function variantAttributeValues()
     {
         return $this->hasMany(VariantAttributeValue::class, 'product_variant_id')
-                    ->with(['attribute', 'attributeValue']);
+            ->with(['attribute', 'attributeValue']);
     }
 
     // ── Get Current Stock ──

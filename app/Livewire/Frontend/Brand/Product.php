@@ -12,7 +12,9 @@ class Products extends Component
     use WithPagination;
 
     public Brand $brand;
+
     public $perPage = 12;
+
     public $sortBy = 'newest';
 
     public function mount($brand)

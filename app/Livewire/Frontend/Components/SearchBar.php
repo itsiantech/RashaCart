@@ -13,7 +13,7 @@ class SearchBar extends Component
 
     public function search()
     {
-        if (!$this->q) {
+        if (! $this->q) {
             return;
         }
 
@@ -69,7 +69,7 @@ class SearchBar extends Component
     public function render()
     {
         $results = Product::with('category', 'brand')
-            ->where('name', 'LIKE', '%' . $this->q . '%')
+            ->where('name', 'LIKE', '%'.$this->q.'%')
             ->take(10)
             ->get();
 

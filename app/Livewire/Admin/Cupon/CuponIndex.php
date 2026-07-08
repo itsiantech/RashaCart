@@ -2,12 +2,13 @@
 
 namespace App\Livewire\Admin\Cupon;
 
-use Livewire\Component;
 use App\Models\Coupon;
+use Livewire\Component;
 
 class CuponIndex extends Component
 {
     public $search = '';
+
     public $coupons;
 
     protected $listeners = ['couponAdded' => 'loadCoupons', 'couponDeleted' => 'loadCoupons', 'delete' => 'delete'];
@@ -21,27 +22,27 @@ class CuponIndex extends Component
     {
         $this->coupons = Coupon::with(['products', 'categories'])
             ->where('code', 'like', '%'.$this->search.'%')
-            ->orWhereHas('products', function($q){
+            ->orWhereHas('products', function ($q) {
                 $q->where('name', 'like', '%'.$this->search.'%');
             })
-            ->orWhereHas('categories', function($q){
+            ->orWhereHas('categories', function ($q) {
                 $q->where('name', 'like', '%'.$this->search.'%');
             })
             ->get();
     }
 
-  
     public function delete($id)
     {
-        if (!auth()->user()->can('banner.delete')) {
+        if (! auth()->user()->can('banner.delete')) {
             $this->dispatch('toast', type: 'error', message: 'You do not have permission to delete banners!');
+
             return;
         }
-        $banner = Cupon::findOrFail($id);       
+        $banner = Cupon::findOrFail($id);
         $banner->delete();
 
-       $this->dispatch('success', message: 'Banner Deleted!');
-        return;
+        $this->dispatch('success', message: 'Banner Deleted!');
+
     }
 
     public function render()

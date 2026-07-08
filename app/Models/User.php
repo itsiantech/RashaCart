@@ -2,11 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Models\VendorCommission;
-use App\Models\VendorPayout;
-use App\Models\VendorPayoutRequest;
-use DB;
+// use Illuminate\Contracts\Auth\MustVerifyEmail;use DB;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -16,15 +12,13 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
-
-
     protected $fillable = [
         'google_id',
         'profile_image',
@@ -39,14 +33,13 @@ class User extends Authenticatable
         'status',
         'phone',
         'email',
-        'password'
+        'password',
     ];
 
     public function user_profile()
     {
         return $this->hasOne(UserProfile::class);
     }
-
 
     /**
      * The attributes that should be hidden for serialization.
@@ -106,8 +99,7 @@ class User extends Authenticatable
         return $inventoryIn - $inventoryOut;
     }
 
-
-    //This area for checkBok Loop for select roles permission
+    // This area for checkBok Loop for select roles permission
     public static function getpermissionGroups()
     {
 
@@ -126,18 +118,20 @@ class User extends Authenticatable
             ->select('name', 'id')
             ->where('group_name', $group_name)
             ->get();
+
         return $permissions;
     }
 
-    //this is for edit roles permission checkbox selected
+    // this is for edit roles permission checkbox selected
     public static function roleHasPermissions($roles, $permissions)
     {
 
         $hasPermission = true;
         foreach ($permissions as $permission) {
-            if (!$roles->hasPermissionTo($permission->name)) {
+            if (! $roles->hasPermissionTo($permission->name)) {
                 $hasPermission = false;
             }
+
             return $hasPermission;
         }
     }
@@ -171,7 +165,6 @@ class User extends Authenticatable
     {
         return $this->hasMany(Review::class);
     }
-
 
     protected $casts = [
         'email_verified_at' => 'datetime',

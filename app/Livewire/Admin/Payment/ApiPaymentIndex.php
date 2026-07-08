@@ -8,29 +8,36 @@ class ApiPaymentIndex extends Component
 {
     // SSL Commerz
     public bool $sslcommerz_enabled = false;
+
     public string $sslcommerz_store_id = '';
+
     public string $sslcommerz_store_password = '';
+
     public string $sslcommerz_mode = 'sandbox'; // sandbox | live
+
     public string $sslcommerz_currency = 'BDT';
 
     // UI state
     public bool $showPassword = false;
+
     public ?string $successMessage = null;
+
     public ?string $testResult = null;
+
     public bool $testLoading = false;
 
     protected function rules(): array
     {
         return [
-            'sslcommerz_store_id'       => $this->sslcommerz_enabled ? 'required|string|max:100' : 'nullable',
+            'sslcommerz_store_id' => $this->sslcommerz_enabled ? 'required|string|max:100' : 'nullable',
             'sslcommerz_store_password' => $this->sslcommerz_enabled ? 'required|string|max:200' : 'nullable',
-            'sslcommerz_mode'           => 'required|in:sandbox,live',
-            'sslcommerz_currency'       => 'required|in:BDT,USD',
+            'sslcommerz_mode' => 'required|in:sandbox,live',
+            'sslcommerz_currency' => 'required|in:BDT,USD',
         ];
     }
 
     protected array $messages = [
-        'sslcommerz_store_id.required'       => 'Store ID is required when SSL Commerz is enabled.',
+        'sslcommerz_store_id.required' => 'Store ID is required when SSL Commerz is enabled.',
         'sslcommerz_store_password.required' => 'Store password is required when SSL Commerz is enabled.',
     ];
 
@@ -55,7 +62,7 @@ class ApiPaymentIndex extends Component
     {
         $this->validate();
         $this->testLoading = true;
-        $this->testResult  = null;
+        $this->testResult = null;
 
         // Example: ping SSL Commerz sandbox/live endpoint
         // $url = $this->sslcommerz_mode === 'sandbox'
@@ -76,7 +83,7 @@ class ApiPaymentIndex extends Component
         // $this->testResult = $response->successful() ? 'success' : 'failed';
 
         // Simulate for now:
-        $this->testResult  = 'success';
+        $this->testResult = 'success';
         $this->testLoading = false;
     }
 

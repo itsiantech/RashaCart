@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ManualPaymentSetting extends Model
 {
     protected $table = 'manual_payment_settings';
+
     protected $fillable = [
         // bKash
         'bkash_enabled',
@@ -32,10 +33,10 @@ class ManualPaymentSetting extends Model
     ];
 
     protected $casts = [
-        'bkash_enabled'  => 'boolean',
-        'nagad_enabled'  => 'boolean',
+        'bkash_enabled' => 'boolean',
+        'nagad_enabled' => 'boolean',
         'rocket_enabled' => 'boolean',
-        'bank_enabled'   => 'boolean',
+        'bank_enabled' => 'boolean',
     ];
 
     /**

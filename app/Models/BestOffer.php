@@ -17,7 +17,7 @@ class BestOffer extends Model
 
     protected $casts = [
         'expires_at' => 'datetime',
-        'is_active'  => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     public function product()

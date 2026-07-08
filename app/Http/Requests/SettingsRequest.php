@@ -30,7 +30,6 @@ class SettingsRequest extends FormRequest
             'currency' => ['nullable', 'string', 'max:255'],
             'google_map_location' => ['nullable', 'string'],
 
-
             'dc_inside' => ['nullable', 'numeric', 'min:1', 'max:500'],
             'dc_outside' => ['nullable', 'numeric', 'min:1', 'max:500'],
 
@@ -59,17 +58,16 @@ class SettingsRequest extends FormRequest
 
             'email_notification' => ['nullable', 'boolean'],
 
-
             'selected_courier' => ['nullable', 'string', 'in:quirior,steedfast,available'],
             'steedfast_api_base_url' => ['nullable', 'url', 'max:255'],
             'steedfast_api_key' => ['nullable', 'string', 'max:255'],
             'steedfast_api_secret' => ['nullable', 'string', 'max:255'],
 
-            'pathao_client_id'     => 'nullable|string',
+            'pathao_client_id' => 'nullable|string',
             'pathao_client_secret' => 'nullable|string',
-            'pathao_username'      => 'nullable|email',
-            'pathao_password'      => 'nullable|string',
-            'pathao_store_id'      => 'nullable|string',
+            'pathao_username' => 'nullable|email',
+            'pathao_password' => 'nullable|string',
+            'pathao_store_id' => 'nullable|string',
 
             'GOOGLE_CLIENT_SECRET' => ['nullable', 'string', 'max:255'],
             'GOOGLE_CLIENT_ID' => ['nullable', 'string', 'max:255'],

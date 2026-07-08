@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Frontend\FlashSale;
 
+use App\Models\Category;
 use App\Models\FlashSale;
 use App\Models\FlashSaleItem;
-use App\Models\Category;
 use App\Traits\HandlesCartActions;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -12,15 +12,18 @@ use Livewire\WithPagination;
 class FlashSaleProducts extends Component
 {
     public $flashSale = null;
+
     public $selectedPrice = null;
+
     public $selectedCategory = null;
+
     public $timeLeft = [];
 
-    use WithPagination;
     use HandlesCartActions;
+    use WithPagination;
 
     protected $queryString = [
-        'selectedPrice'    => ['except' => null],
+        'selectedPrice' => ['except' => null],
         'selectedCategory' => ['except' => null],
     ];
 
@@ -44,7 +47,7 @@ class FlashSaleProducts extends Component
 
     public function getProductsProperty()
     {
-        if (!$this->flashSale) {
+        if (! $this->flashSale) {
             return collect()->paginate(40);
         }
 
@@ -55,7 +58,7 @@ class FlashSaleProducts extends Component
 
                 if ($this->selectedPrice) {
                     [$min, $max] = explode('-', $this->selectedPrice);
-                    $q->whereBetween('price', [(int)$min, (int)$max]);
+                    $q->whereBetween('price', [(int) $min, (int) $max]);
                 }
 
                 if ($this->selectedCategory) {
@@ -69,23 +72,23 @@ class FlashSaleProducts extends Component
     public function getCategoriesProperty()
     {
         return Category::where('status', 1)
-            ->whereHas('products', fn($q) => $q->where('status', true))
+            ->whereHas('products', fn ($q) => $q->where('status', true))
             ->get();
     }
 
     public function render()
     {
         return view('livewire.frontend.flash-sale.flash-sale-products', [
-            'items'      => $this->products,
+            'items' => $this->products,
             'categories' => $this->categories,
         ])->layout('livewire.frontend.layouts.app')
             ->layoutData([
                 'meta' => [
-                    'title'       => 'Flash Sale - Best Deals',
+                    'title' => 'Flash Sale - Best Deals',
                     'description' => 'Grab the best flash sale deals before time runs out!',
-                    'keywords'    => 'flash sale, deals, discount, offers',
-                    'tags'        => 'flash sale',
-                ]
+                    'keywords' => 'flash sale, deals, discount, offers',
+                    'tags' => 'flash sale',
+                ],
             ]);
     }
 }

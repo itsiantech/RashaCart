@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 class VendorDetail extends Model
 {
     protected $table = 'vendor_details';
+
     protected $fillable = [
         'user_id',
         'name',

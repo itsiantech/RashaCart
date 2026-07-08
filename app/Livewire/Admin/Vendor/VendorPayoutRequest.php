@@ -4,7 +4,6 @@ namespace App\Livewire\Admin\Vendor;
 
 use App\Models\CategoryCommission;
 use App\Models\OrderItem;
-use App\Models\User;
 use App\Models\WithdrawalRequest;
 use Livewire\Component;
 
@@ -31,7 +30,9 @@ class VendorPayoutRequest extends Component
 
         foreach ($orderItems as $item) {
 
-            if (!$item->product) continue;
+            if (! $item->product) {
+                continue;
+            }
 
             $categoryId = $item->product->category_id;
             $rate = $categoryCommissions[$categoryId] ?? 0;
@@ -41,7 +42,9 @@ class VendorPayoutRequest extends Component
 
             $amount = $price * $quantity;
 
-            if ($amount <= 0) continue;
+            if ($amount <= 0) {
+                continue;
+            }
 
             $adminShare = ($amount * $rate) / 100;
             $vendorShare = $amount - $adminShare;
@@ -64,32 +67,32 @@ class VendorPayoutRequest extends Component
     }
 
     public function approve($id)
-{
-    WithdrawalRequest::where('id', $id)->update([
-        'status' => 'approved'
-    ]);
+    {
+        WithdrawalRequest::where('id', $id)->update([
+            'status' => 'approved',
+        ]);
 
-    $this->dispatch('show-toast',
-        type: 'success',
-        message: 'Payout approved'
-    );
+        $this->dispatch('show-toast',
+            type: 'success',
+            message: 'Payout approved'
+        );
 
-    $this->dispatch('$refresh');
-}
+        $this->dispatch('$refresh');
+    }
 
     public function reject($id)
-{
-    WithdrawalRequest::where('id', $id)->update([
-        'status' => 'rejected'
-    ]);
+    {
+        WithdrawalRequest::where('id', $id)->update([
+            'status' => 'rejected',
+        ]);
 
-    $this->dispatch('show-toast',
-        type: 'error',
-        message: 'Payout rejected'
-    );
+        $this->dispatch('show-toast',
+            type: 'error',
+            message: 'Payout rejected'
+        );
 
-    $this->dispatch('$refresh');
-}
+        $this->dispatch('$refresh');
+    }
 
     public function render()
     {
@@ -103,7 +106,7 @@ class VendorPayoutRequest extends Component
 
             $vendorId = $request->vendor_id;
 
-            if (!isset($financialCache[$vendorId])) {
+            if (! isset($financialCache[$vendorId])) {
                 $financialCache[$vendorId] =
                     $this->calculateVendorFinancials($vendorId);
             }
@@ -120,7 +123,7 @@ class VendorPayoutRequest extends Component
                 $financials['available_balance'];
         }
 
-        return view('livewire.admin.vendor.vendor-payout-request',compact('requests')
+        return view('livewire.admin.vendor.vendor-payout-request', compact('requests')
         )->layout('livewire.admin.layouts.app');
     }
 }

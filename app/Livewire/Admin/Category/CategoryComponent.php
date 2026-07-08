@@ -2,20 +2,20 @@
 
 namespace App\Livewire\Admin\Category;
 
+use App\Models\Category;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Livewire\Attributes\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use App\Models\Category;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
-use Livewire\Attributes\Rule;
 
 class CategoryComponent extends Component
 {
     use WithFileUploads;
 
     public $categories;
-    public $category_id;
 
+    public $category_id;
 
     #[Rule('required|min:3|max:255')]
     public $name;
@@ -26,12 +26,17 @@ class CategoryComponent extends Component
     public $image;
 
     public $status = true;
+
     public $is_featured = false;
+
     public $parent_id = null;
+
     public $mainCategories = null;
 
     public $showForm = false;
+
     public $isEdit = false;
+
     public $search = '';
 
     protected $listeners = ['deleteConfirmed' => 'deleteCategory'];
@@ -47,13 +52,13 @@ class CategoryComponent extends Component
         $this->categories = Category::whereNull('parent_id')
             ->with(['children' => function ($query) {
                 if ($this->search) {
-                    $query->where('name', 'like', '%' . $this->search . '%');
+                    $query->where('name', 'like', '%'.$this->search.'%');
                 }
             }])
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
+                $query->where('name', 'like', '%'.$this->search.'%')
                     ->orWhereHas('children', function ($q) {
-                        $q->where('name', 'like', '%' . $this->search . '%');
+                        $q->where('name', 'like', '%'.$this->search.'%');
                     });
             })
             ->orderBy('name')
@@ -101,7 +106,7 @@ class CategoryComponent extends Component
             'image',
             'status',
             'is_featured',
-            'parent_id'
+            'parent_id',
         ]);
         $this->resetValidation();
     }
@@ -110,11 +115,11 @@ class CategoryComponent extends Component
     {
         $validated = $this->validate([
             'name' => 'required|min:3|max:255',
-            'slug' => 'required|unique:categories,slug,' . $this->category_id,
+            'slug' => 'required|unique:categories,slug,'.$this->category_id,
             'image' => 'nullable|image|max:2048',
             'status' => 'boolean',
             'is_featured' => 'boolean',
-            'parent_id' => 'nullable|exists:categories,id'
+            'parent_id' => 'nullable|exists:categories,id',
         ]);
 
         $data = [
@@ -122,7 +127,7 @@ class CategoryComponent extends Component
             'slug' => $this->slug,
             'status' => $this->status,
             'is_featured' => $this->is_featured,
-            'parent_id' => $this->parent_id
+            'parent_id' => $this->parent_id,
         ];
 
         // Handle image upload
@@ -146,7 +151,6 @@ class CategoryComponent extends Component
             Category::create($data);
             $message = 'Category added successfully!';
         }
-
 
         $this->dispatch('success', message: $message);
         $this->loadCategories();

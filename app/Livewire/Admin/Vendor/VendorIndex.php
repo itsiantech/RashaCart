@@ -2,52 +2,69 @@
 
 namespace App\Livewire\Admin\Vendor;
 
-use Livewire\Component;
-use Livewire\WithPagination;
 use App\Models\User;
 use App\Models\VendorDetail;
-use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 
 class VendorIndex extends Component
 {
-    use WithPagination;
     use WithFileUploads;
+    use WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
     public $search = '';
+
     public $statusFilter = '';
+
     public $perPage = 10;
 
-    //For create/edit modal
+    // For create/edit modal
     public $showModal = false;
+
     public $modalTitle = 'Add New Vendor';
+
     public $vendorId = null;
 
-    //Form Fields
+    // Form Fields
     public $name;
+
     public $email;
+
     public $phone;
+
     public $password;
+
     public $password_confirmation;
+
     public $status = 1; // Default to active
+
     public $shop_name;
+
     public $shop_address;
+
     public $NID_number;
+
     public $trade_license_number;
+
     public $payment_method;
+
     public $bank_name;
+
     public $account_holder_name;
+
     public $bank_account_number;
+
     public $selectRole = 'vendor';
 
     protected function rules()
     {
         return [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $this->vendorId,
+            'email' => 'required|email|unique:users,email,'.$this->vendorId,
             'phone' => 'nullable|string|max:20',
 
             'password' => $this->vendorId
@@ -58,11 +75,11 @@ class VendorIndex extends Component
             'shop_address' => 'required|string|max:500',
 
             // 🔥 FIXED UNIQUE RULES
-            'NID_number' => 'required|string|max:50|unique:vendor_details,NID_number,' . optional(
+            'NID_number' => 'required|string|max:50|unique:vendor_details,NID_number,'.optional(
                 VendorDetail::where('user_id', $this->vendorId)->first()
             )->id,
 
-            'trade_license_number' => 'required|string|max:50|unique:vendor_details,trade_license_number,' . optional(
+            'trade_license_number' => 'required|string|max:50|unique:vendor_details,trade_license_number,'.optional(
                 VendorDetail::where('user_id', $this->vendorId)->first()
             )->id,
 
@@ -74,8 +91,6 @@ class VendorIndex extends Component
             'status' => 'boolean',
         ];
     }
-
-
 
     protected $validationAttributes = [
         'name' => 'Name',
@@ -93,18 +108,17 @@ class VendorIndex extends Component
         'bank_account_number' => 'Bank Account Number',
     ];
 
-
     public function render()
     {
         $vendors = User::role('vendor')
             ->with(['vendorDetails', 'products'])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                        ->orWhere('email', 'like', '%' . $this->search . '%')
-                        ->orWhere('phone', 'like', '%' . $this->search . '%')
+                    $q->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('email', 'like', '%'.$this->search.'%')
+                        ->orWhere('phone', 'like', '%'.$this->search.'%')
                         ->orWhereHas('vendorDetails', function ($q) {
-                            $q->where('shop_name', 'like', '%' . $this->search . '%');
+                            $q->where('shop_name', 'like', '%'.$this->search.'%');
                         });
                 });
             })
@@ -206,8 +220,8 @@ class VendorIndex extends Component
                     'email' => $validated['email'],
                     'phone' => $validated['phone'] ?? null,
                     'password' => bcrypt($validated['password']),
-                    'status' => false,              //Inactive
-                    'is_vendor_approved' => false,  //Pending Approval
+                    'status' => false,              // Inactive
+                    'is_vendor_approved' => false,  // Pending Approval
                 ]);
 
                 $user->syncRoles('vendor');
@@ -231,7 +245,6 @@ class VendorIndex extends Component
             );
         });
 
-
         $this->closeModal();
         session()->flash(
             'message',
@@ -241,12 +254,10 @@ class VendorIndex extends Component
         );
     }
 
-
-
     public function toggleStatus($id)
     {
         $vendor = User::findOrFail($id);
-        $vendor->update(['status' => !$vendor->status]);
+        $vendor->update(['status' => ! $vendor->status]);
 
         $status = $vendor->status ? 'activated' : 'deactivated';
         $this->dispatch('show-toast', type: 'success', message: "Vendor {$status} successfully!");
@@ -277,9 +288,6 @@ class VendorIndex extends Component
         $this->dispatch('show-toast', type: 'success', message: $message);
     }
 
-
-
-
     public function deleteVendor($id)
     {
         $vendor = User::findOrFail($id);
@@ -287,12 +295,13 @@ class VendorIndex extends Component
         // Check if vendor has products
         if ($vendor->products()->count() > 0) {
             $this->dispatch('show-toast', type: 'error', message: 'Cannot delete vendor with existing products!');
+
             return;
         }
 
         // Delete vendor logo if exists
         if ($vendor->vendorDetail && $vendor->vendorDetail->shop_logo) {
-            $logoPath = public_path('storage/' . $vendor->vendorDetail->shop_logo);
+            $logoPath = public_path('storage/'.$vendor->vendorDetail->shop_logo);
             if (file_exists($logoPath)) {
                 unlink($logoPath);
             }

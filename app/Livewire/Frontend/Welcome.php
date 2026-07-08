@@ -20,25 +20,36 @@ class Welcome extends Component
     use HandlesCartActions;
 
     public $featuredProducts = [];
+
     public $categoryProducts = [];
+
     public $featuredCategories = [];
+
     public $featuredBrands = [];
+
     public $brandProducts = [];
+
     public $perPage = 12;
+
     public $banners = [];
 
     public array $allProducts = [];
+
     public int $allProductsLoadedCount = 0;
+
     public int $allProductsPerPage = 12;
 
     public $sidebarCategories = [];
 
     public $categoryLoadedCount = [];
+
     public $featuredLoadedCount = 0;
 
     // Flash Sale
     public $flashSale = null;
+
     public $flashSaleItems = [];
+
     public $flashSaleEndTime = null;
 
     public $newArrivals;
@@ -83,7 +94,7 @@ class Welcome extends Component
             ->first();
 
         if ($this->flashSale) {
-            $this->flashSaleItems   = $this->flashSale->activeItems;
+            $this->flashSaleItems = $this->flashSale->activeItems;
             $this->flashSaleEndTime = $this->flashSale->end_at->toIso8601String();
         }
     }
@@ -107,6 +118,7 @@ class Welcome extends Component
 
         $this->featuredProducts = $this->featuredProducts->map(function ($product) use ($totalSold) {
             $product->total_sold = $totalSold[$product->id] ?? 0;
+
             return $product;
         });
 
@@ -155,14 +167,14 @@ class Welcome extends Component
     public function render()
     {
         return view('livewire.frontend.welcome', [
-            'categories'         => $this->sidebarCategories,
+            'categories' => $this->sidebarCategories,
             'featuredCategories' => $this->featuredCategories,
-            'featuredBrands'     => $this->featuredBrands,
-            'featuredProducts'   => $this->featuredProducts,
-            'categoryProducts'   => $this->categoryProducts,
-            'brandProducts'      => $this->brandProducts,
-            'newArrivals'        => $this->newArrivals,
-            'allProducts'        => $this->allProducts,
+            'featuredBrands' => $this->featuredBrands,
+            'featuredProducts' => $this->featuredProducts,
+            'categoryProducts' => $this->categoryProducts,
+            'brandProducts' => $this->brandProducts,
+            'newArrivals' => $this->newArrivals,
+            'allProducts' => $this->allProducts,
             'allProductsLoadedCount' => $this->allProductsLoadedCount,
         ])->layout('livewire.frontend.layouts.app');
     }

@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('inventories', function (Blueprint $table) {           
+        Schema::create('inventories', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->foreignId('variant_id')->nullable()->constrained('product_variants')->onDelete('cascade');
@@ -19,7 +19,7 @@ return new class extends Migration
             $table->integer('quantity');
             $table->integer('current_stock');
             $table->text('notes')->nullable();
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');  
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
             $table->index(['product_id', 'variant_id', 'created_at']);
             $table->timestamps();
         });

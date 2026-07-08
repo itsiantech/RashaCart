@@ -14,9 +14,9 @@ class VendorApplied extends Component
             ->latest()
             ->paginate(15);
 
-        return view('livewire.admin.vendor.vendor-applied', 
-        [
-            'payments' => $payments,
-        ])->layout('livewire.admin.layouts.app');
+        return view('livewire.admin.vendor.vendor-applied',
+            [
+                'payments' => $payments,
+            ])->layout('livewire.admin.layouts.app');
     }
 }

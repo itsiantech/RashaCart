@@ -7,7 +7,6 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
-use App\Models\User;
 
 #[Layout('livewire.auth.layouts.app')]
 class Vendor extends Component

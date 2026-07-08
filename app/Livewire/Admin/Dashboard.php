@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\Category;
 use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -17,15 +16,22 @@ use Livewire\Component;
 class Dashboard extends Component
 {
     public $startDate;
+
     public $endDate;
+
     public $filterType = 'this_month';
+
     public $revenueChartData = [];
+
     public $categoryChartData = [];
 
     // Cache configuration
     protected $cachePrefix = 'dashboard_';
+
     protected $cacheDuration = 300; // 5 minutes
+
     public $lastUpdated;
+
     public $isRefreshing = false;
 
     protected function getListeners()
@@ -111,7 +117,6 @@ class Dashboard extends Component
 
         $this->prepareChartData();
 
-
         $this->lastUpdated = Cache::remember('dashboard_last_updated', $this->cacheDuration, function () {
             return now();
         });
@@ -121,7 +126,6 @@ class Dashboard extends Component
 
         $this->isRefreshing = false;
     }
-
 
     protected function clearAllCache()
     {
@@ -136,7 +140,7 @@ class Dashboard extends Component
             'popular_categories',
             'golden_customers',
             'order_stats',
-            'stock_stats'
+            'stock_stats',
         ];
 
         foreach ($cacheKeys as $key) {
@@ -150,7 +154,7 @@ class Dashboard extends Component
 
     protected function getCacheKey($type)
     {
-        return $this->cachePrefix . $type . '_' . $this->filterType . '_' . $this->startDate . '_' . $this->endDate;
+        return $this->cachePrefix.$type.'_'.$this->filterType.'_'.$this->startDate.'_'.$this->endDate;
     }
 
     protected function prepareChartData()
@@ -170,7 +174,7 @@ class Dashboard extends Component
         // Dispatch event for charts
         $this->dispatch('charts-data-updated', [
             'revenue' => $this->revenueChartData,
-            'category' => $this->categoryChartData
+            'category' => $this->categoryChartData,
         ]);
     }
 
@@ -182,7 +186,7 @@ class Dashboard extends Component
         foreach ($revenueData as $data) {
             $chartData[] = [
                 Carbon::parse($data->date)->format('M d'),
-                (float) $data->revenue
+                (float) $data->revenue,
             ];
         }
 
@@ -201,7 +205,7 @@ class Dashboard extends Component
         foreach ($categoryData as $data) {
             $chartData[] = [
                 $data->name,
-                (float) $data->total_sales
+                (float) $data->total_sales,
             ];
         }
 
@@ -256,7 +260,7 @@ class Dashboard extends Component
         $cacheKey = $this->getCacheKey('revenue_by_status');
 
         return Cache::remember($cacheKey, $this->cacheDuration, function () {
-            return Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
+            return Order::whereBetween('created_at', [$this->startDate.' 00:00:00', $this->endDate.' 23:59:59'])
                 ->select(
                     DB::raw('SUM(CASE WHEN status = "pending" THEN total_amount ELSE 0 END) as pending_amount'),
                     DB::raw('SUM(CASE WHEN status = "confirmed" THEN total_amount ELSE 0 END) as confirmed_amount'),
@@ -283,7 +287,7 @@ class Dashboard extends Component
         return Cache::remember($cacheKey, $this->cacheDuration, function () {
             return OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
                 ->join('products', 'order_items.product_id', '=', 'products.id')
-                ->whereBetween('orders.created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
+                ->whereBetween('orders.created_at', [$this->startDate.' 00:00:00', $this->endDate.' 23:59:59'])
                 ->where('orders.status', '!=', 'cancelled')
                 ->where('orders.status', '!=', 'returned')
                 ->select(
@@ -311,7 +315,7 @@ class Dashboard extends Component
             return OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
                 ->join('products', 'order_items.product_id', '=', 'products.id')
                 ->join('categories', 'products.category_id', '=', 'categories.id')
-                ->whereBetween('orders.created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
+                ->whereBetween('orders.created_at', [$this->startDate.' 00:00:00', $this->endDate.' 23:59:59'])
                 ->where('orders.status', '!=', 'cancelled')
                 ->where('orders.status', '!=', 'returned')
                 ->select(
@@ -331,7 +335,7 @@ class Dashboard extends Component
         $cacheKey = $this->getCacheKey('golden_customers');
 
         return Cache::remember($cacheKey, $this->cacheDuration, function () {
-            return Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
+            return Order::whereBetween('created_at', [$this->startDate.' 00:00:00', $this->endDate.' 23:59:59'])
                 ->where('status', '!=', 'cancelled')
                 ->where('status', '!=', 'returned')
                 ->select(
@@ -355,7 +359,7 @@ class Dashboard extends Component
         $cacheKey = $this->getCacheKey('order_stats');
 
         return Cache::remember($cacheKey, $this->cacheDuration, function () {
-            return Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
+            return Order::whereBetween('created_at', [$this->startDate.' 00:00:00', $this->endDate.' 23:59:59'])
                 ->select(
                     DB::raw('COUNT(*) as total_orders'),
                     DB::raw('SUM(CASE WHEN status = "delivered" THEN total_amount ELSE 0 END) as total_revenue'),
@@ -370,8 +374,8 @@ class Dashboard extends Component
         });
 
         $query = Order::whereBetween('created_at', [
-            $this->startDate . ' 00:00:00',
-            $this->endDate . ' 23:59:59'
+            $this->startDate.' 00:00:00',
+            $this->endDate.' 23:59:59',
         ]);
 
         if ($this->isVendor()) {
@@ -419,8 +423,8 @@ class Dashboard extends Component
         $outOfStockCount = 0;
         $products = $this->isVendor()
             ? Product::where('user_id', $this->vendorId())
-            ->with(['inventories', 'variants.inventories'])
-            ->get()
+                ->with(['inventories', 'variants.inventories'])
+                ->get()
             : Product::with(['inventories', 'variants.inventories'])->get();
 
         foreach ($products as $product) {
@@ -469,8 +473,8 @@ class Dashboard extends Component
     public function getRevenueChartData()
     {
         $query = Order::whereBetween('created_at', [
-            $this->startDate . ' 00:00:00',
-            $this->endDate . ' 23:59:59'
+            $this->startDate.' 00:00:00',
+            $this->endDate.' 23:59:59',
         ])
             ->where('status', 'delivered');
 
@@ -496,8 +500,8 @@ class Dashboard extends Component
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->join('categories', 'products.category_id', '=', 'categories.id')
             ->whereBetween('orders.created_at', [
-                $this->startDate . ' 00:00:00',
-                $this->endDate . ' 23:59:59'
+                $this->startDate.' 00:00:00',
+                $this->endDate.' 23:59:59',
             ])
             ->where('orders.status', 'delivered');
 

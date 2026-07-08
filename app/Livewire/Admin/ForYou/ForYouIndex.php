@@ -1,8 +1,8 @@
 <?php
 
 namespace App\Livewire\Admin\ForYou;
-use Livewire\Component;
 
+use Livewire\Component;
 
 class ForYouIndex extends Component
 {

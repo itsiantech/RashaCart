@@ -2,12 +2,13 @@
 
 namespace App\Livewire\Frontend\Product;
 
-use Livewire\Component;
 use App\Models\Order;
+use Livewire\Component;
 
 class OrderSuccess extends Component
 {
     public $invoiceNo;
+
     public function mount($order)
     {
         $this->invoiceNo = Order::find($order)->invoice_no;
@@ -17,5 +18,4 @@ class OrderSuccess extends Component
     {
         return view('livewire.frontend.product.order-success')->layout('livewire.frontend.layouts.app');
     }
-    
 }
