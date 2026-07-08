@@ -131,7 +131,7 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
     Route::get('/cupon/edit/{id}', CuponEdit::class)->name('cupon.edit')->middleware('can:cupon.update');
 });
 
-    // Route::controller(SettingsController::class)->prefix('settings')->name('settings.')->group(function () {
+// Route::controller(SettingsController::class)->prefix('settings')->name('settings.')->group(function () {
 //     Route::get('/basic', 'index')->name('basic')->middleware('can:setting.view');
 //     Route::post('/update', 'update')->name('update')->middleware('can:setting.update');
 // });
