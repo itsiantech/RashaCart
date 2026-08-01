@@ -14,15 +14,19 @@ use Livewire\WithPagination;
 
 class OrderIndex extends Component
 {
-    use WithPagination, WithoutUrlPagination;
+    use WithoutUrlPagination, WithPagination;
 
     public $search = '';
+
     public $statusFilter = 'all';
+
     protected $courier;
 
     // Edit modal state
     public $editingOrder = null;
+
     public $editForm = [];
+
     public $showEditModal = false;
 
     // Delete confirm state
@@ -45,8 +49,9 @@ class OrderIndex extends Component
 
     public function deleteConfirmed()
     {
-        if (!$this->deletingOrderId) {
+        if (! $this->deletingOrderId) {
             $this->dispatch('error', message: 'No order selected for deletion.');
+
             return;
         }
 
@@ -65,9 +70,9 @@ class OrderIndex extends Component
             $this->deletingOrderId = null;
             $this->resetPage();
 
-            $this->dispatch('success', message: 'Order #' . $orderId . ' deleted successfully.');
+            $this->dispatch('success', message: 'Order #'.$orderId.' deleted successfully.');
         } catch (\Exception $e) {
-            $this->dispatch('error', message: 'Error deleting order: ' . $e->getMessage());
+            $this->dispatch('error', message: 'Error deleting order: '.$e->getMessage());
             $this->deletingOrderId = null;
         }
     }
@@ -91,13 +96,13 @@ class OrderIndex extends Component
 
         $this->editingOrder = $order->id;
         $this->editForm = [
-            'name'             => $order->name,
-            'phone'            => $order->phone,
+            'name' => $order->name,
+            'phone' => $order->phone,
             'shipping_address' => $order->shipping_address,
-            'payment_method'   => $order->payment_method,
-            'payment_amt'      => $order->payment_amt,
-            'total_amount'     => $order->total_amount,
-            'status'           => $order->status,
+            'payment_method' => $order->payment_method,
+            'payment_amt' => $order->payment_amt,
+            'total_amount' => $order->total_amount,
+            'status' => $order->status,
         ];
         $this->showEditModal = true;
     }
@@ -105,20 +110,20 @@ class OrderIndex extends Component
     public function saveEdit()
     {
         $this->validate([
-            'editForm.name'             => 'required|string|max:255',
-            'editForm.phone'            => 'required|string|max:20',
+            'editForm.name' => 'required|string|max:255',
+            'editForm.phone' => 'required|string|max:20',
             'editForm.shipping_address' => 'required|string',
-            'editForm.payment_method'   => 'required|string',
-            'editForm.total_amount'     => 'required|numeric|min:0',
-            'editForm.status'           => 'required|string',
+            'editForm.payment_method' => 'required|string',
+            'editForm.total_amount' => 'required|numeric|min:0',
+            'editForm.status' => 'required|string',
         ]);
 
         $order = Order::findOrFail($this->editingOrder);
         $order->update($this->editForm);
 
         $this->showEditModal = false;
-        $this->editingOrder  = null;
-        $this->editForm      = [];
+        $this->editingOrder = null;
+        $this->editForm = [];
 
         $this->dispatch('success', message: 'Order updated successfully.');
     }
@@ -126,8 +131,8 @@ class OrderIndex extends Component
     public function closeEdit()
     {
         $this->showEditModal = false;
-        $this->editingOrder  = null;
-        $this->editForm      = [];
+        $this->editingOrder = null;
+        $this->editForm = [];
     }
 
     public function markCompleted($orderId)
@@ -142,8 +147,8 @@ class OrderIndex extends Component
             $commissionAmount = ($order->total * $rate) / 100;
 
             CategoryCommission::create([
-                'vendor_id'         => $vendor->id,
-                'commission_rate'   => $rate,
+                'vendor_id' => $vendor->id,
+                'commission_rate' => $rate,
                 'commission_amount' => $commissionAmount,
             ]);
         }
@@ -168,12 +173,12 @@ class OrderIndex extends Component
             $order = Order::with('user')->findOrFail($orderId);
             $order->update(['status' => $status]);
 
-            if (setting('email_notification', true) && !empty($order->user?->email)) {
+            if (setting('email_notification', true) && ! empty($order->user?->email)) {
                 Mail::to($order->user->email)->queue(new OrderStatusMail($order));
             }
 
             if (setting('sms_notification', true)) {
-                $message = "Your order invoice {$order->invoice_no} has been {$order->status}. Thank you for being partner with us.\n\nBest regards,\n" . setting('app_name');
+                $message = "Your order invoice {$order->invoice_no} has been {$order->status}. Thank you for being partner with us.\n\nBest regards,\n".setting('app_name');
                 $response = sms_send($order->phone, $message);
                 $smsResponse = json_decode($response, true);
 
@@ -189,7 +194,7 @@ class OrderIndex extends Component
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('error', message: 'Something went wrong: ' . $e->getMessage());
+            $this->dispatch('error', message: 'Something went wrong: '.$e->getMessage());
         }
     }
 
@@ -213,27 +218,29 @@ class OrderIndex extends Component
 
     public function sendToCourier($orderId)
     {
-        $courier = new CourierService();
-        $order   = Order::with('items')->find($orderId);
+        $courier = new CourierService;
+        $order = Order::with('items')->find($orderId);
 
-        if (!$order) {
+        if (! $order) {
             $this->dispatch('error', message: 'Order not found.');
+
             return;
         }
 
         $itemDescription = $order->items->map(function ($item) {
             $name = $item->product->name ?? 'Item';
-            $qty  = $item->quantity ?? 1;
+            $qty = $item->quantity ?? 1;
+
             return "$name x$qty";
         })->implode(', ');
 
         $data = [
-            'invoice'          => $order->invoice_no,
-            'name'             => $order->name,
-            'phone'            => $order->phone,
-            'address'          => $order->shipping_address,
-            'cod_amount'       => $order->total_amount,
-            'note'             => 'Deliver within 3PM',
+            'invoice' => $order->invoice_no,
+            'name' => $order->name,
+            'phone' => $order->phone,
+            'address' => $order->shipping_address,
+            'cod_amount' => $order->total_amount,
+            'note' => 'Deliver within 3PM',
             'item_description' => $itemDescription,
         ];
 
@@ -243,8 +250,8 @@ class OrderIndex extends Component
             $response = json_decode($response, true);
         }
 
-        if (!empty($response['status']) && $response['status'] == 200) {
-            DB::transaction(fn() => $order->update(['status' => 'shipped']));
+        if (! empty($response['status']) && $response['status'] == 200) {
+            DB::transaction(fn () => $order->update(['status' => 'shipped']));
             $this->dispatch('success', message: 'Order sent to courier and status updated to Shipped!');
         } else {
             $this->dispatch('error', message: $response['message'] ?? 'Failed to send order to courier.');
@@ -257,9 +264,9 @@ class OrderIndex extends Component
 
         if ($this->search) {
             $query->where(function ($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('phone', 'like', '%' . $this->search . '%')
-                    ->orWhere('invoice_no', 'like', '%' . $this->search . '%');
+                $q->where('name', 'like', '%'.$this->search.'%')
+                    ->orWhere('phone', 'like', '%'.$this->search.'%')
+                    ->orWhere('invoice_no', 'like', '%'.$this->search.'%');
             });
         }
 
@@ -270,7 +277,7 @@ class OrderIndex extends Component
         $orders = $query->latest()->paginate(setting('items_per_page') ?? 15);
 
         return view('livewire.admin.order.order-index', [
-            'orders'       => $orders,
+            'orders' => $orders,
             'statusCounts' => $this->statusCounts,
         ])->layout('livewire.admin.layouts.app');
     }

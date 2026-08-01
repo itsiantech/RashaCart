@@ -3,50 +3,65 @@
 namespace App\Livewire\Admin\Brands;
 
 use App\Models\Brand;
-use Illuminate\Container\Attributes\Log;
-use Livewire\Component;
-use Livewire\WithPagination;
-use Livewire\WithFileUploads;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log as FacadesLog;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 
 class Index extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithFileUploads, WithPagination;
 
     public function mount()
     {
         // $this->brands = Brand::paginate($this->perPage);
         // FacadesLog::info('Brands property set in mount', ['type' => gettype($this->brands), 'class' => get_class($this->brands)]);
     }
+
     // Pagination & Sorting
     public $search = '';
+
     public $perPage = 10;
+
     public $sortField = 'created_at';
+
     public $sortDirection = 'desc';
 
     // Selection
     public $selectedBrands = [];
+
     public $selectAll = false;
 
     // Form State
     public $showForm = false;
+
     public $isEdit = false;
+
     public $brand_id = null;
 
     // Form Fields
     public $name = '';
+
     public $slug = '';
+
     public $description = '';
+
     public $logo;
+
     public $website = '';
+
     public $is_active = true;
+
     public $meta_title = '';
+
     public $meta_description = '';
+
     public $sort_order = 0;
+
     public $current_logo_path = null;
 
     // Constants
@@ -59,7 +74,7 @@ class Index extends Component
         'image/svg+xml',
         'application/pdf',
         'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
 
     protected const ALLOWED_EXTENSIONS = [
@@ -72,12 +87,12 @@ class Index extends Component
         'svg',
         'pdf',
         'doc',
-        'docx'
+        'docx',
     ];
 
     protected $listeners = [
         'refreshBrands' => '$refresh',
-        'deleteConfirmed' => 'deleteBrands'
+        'deleteConfirmed' => 'deleteBrands',
     ];
 
     public function rules()
@@ -87,13 +102,13 @@ class Index extends Component
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('brands', 'name')->ignore($this->brand_id)
+                Rule::unique('brands', 'name')->ignore($this->brand_id),
             ],
             'slug' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('brands', 'slug')->ignore($this->brand_id)
+                Rule::unique('brands', 'slug')->ignore($this->brand_id),
             ],
             'description' => 'nullable|string',
             'logo' => $this->getLogoValidationRules(),
@@ -124,13 +139,13 @@ class Index extends Component
                     return;
                 }
 
-                if (!($value instanceof \Illuminate\Http\UploadedFile)) {
+                if (! ($value instanceof \Illuminate\Http\UploadedFile)) {
                     $fail('Invalid file uploaded.');
                 }
             },
             'file',
             'max:5120', // 5MB
-            'mimes:' . implode(',', self::ALLOWED_EXTENSIONS),
+            'mimes:'.implode(',', self::ALLOWED_EXTENSIONS),
         ];
     }
 
@@ -139,7 +154,7 @@ class Index extends Component
      */
     public function updatedName($value)
     {
-        if (!$this->isEdit && !$this->slug) {
+        if (! $this->isEdit && ! $this->slug) {
             $this->slug = Str::slug($value);
         }
     }
@@ -150,7 +165,7 @@ class Index extends Component
     public function updatedSelectAll($value)
     {
         $this->selectedBrands = $value
-            ? $this->brands->pluck('id')->map(fn($id) => (string) $id)->toArray()
+            ? $this->brands->pluck('id')->map(fn ($id) => (string) $id)->toArray()
             : [];
     }
 
@@ -202,7 +217,7 @@ class Index extends Component
 
             $brand = $this->isEdit
                 ? Brand::findOrFail($this->brand_id)
-                : new Brand();
+                : new Brand;
 
             $oldLogoPath = $brand->logo;
             $newLogoPath = $this->handleLogoUpload($oldLogoPath);
@@ -221,12 +236,11 @@ class Index extends Component
             $this->resetForm();
             $this->dispatch('refreshBrands');
         } catch (\Exception $e) {
-            FacadesLog::error('Brand save failed: ' . $e->getMessage());
+            FacadesLog::error('Brand save failed: '.$e->getMessage());
             DB::rollBack();
             $this->handleSaveError($e, $newLogoPath ?? null);
         }
     }
-
 
     public function deleteBrands($ids)
     {
@@ -236,7 +250,7 @@ class Index extends Component
         }
 
         // Ensure $ids is an array
-        if (!is_array($ids)) {
+        if (! is_array($ids)) {
             $ids = [$ids];
         }
 
@@ -253,12 +267,12 @@ class Index extends Component
             $this->resetSelection();
 
             $this->dispatchSuccessMessage(
-                count($ids) . ' brand(s) deleted successfully.'
+                count($ids).' brand(s) deleted successfully.'
             );
 
             $this->dispatch('refreshBrands');
         } catch (\Exception $e) {
-            $this->dispatchErrorMessage('Failed to delete brand(s): ' . $e->getMessage());
+            $this->dispatchErrorMessage('Failed to delete brand(s): '.$e->getMessage());
         }
     }
 
@@ -269,7 +283,7 @@ class Index extends Component
     {
         try {
             $brand = Brand::findOrFail($id);
-            $brand->update(['is_active' => !$brand->is_active]);
+            $brand->update(['is_active' => ! $brand->is_active]);
 
             $this->dispatchSuccessMessage('Brand status updated successfully.');
         } catch (\Exception $e) {
@@ -291,12 +305,11 @@ class Index extends Component
     public function render()
     {
         $brands = Brand::query()
-            ->where('name', 'like', '%' . $this->search . '%')
+            ->where('name', 'like', '%'.$this->search.'%')
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
 
-
-        return view('livewire.admin.brands.index',['brands' => $brands,])->layout('livewire.admin.layouts.app');
+        return view('livewire.admin.brands.index', ['brands' => $brands])->layout('livewire.admin.layouts.app');
     }
 
     /*****************************************************************
@@ -311,9 +324,9 @@ class Index extends Component
         return Brand::withCount('products')
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                        ->orWhere('slug', 'like', '%' . $this->search . '%')
-                        ->orWhere('description', 'like', '%' . $this->search . '%');
+                    $q->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('slug', 'like', '%'.$this->search.'%')
+                        ->orWhere('description', 'like', '%'.$this->search.'%');
                 });
             })
             ->orderBy($this->sortField, $this->sortDirection);
@@ -345,7 +358,7 @@ class Index extends Component
         }
 
         // Keep old logo if no new file uploaded
-        if (!$this->logo || !($this->logo instanceof \Illuminate\Http\UploadedFile)) {
+        if (! $this->logo || ! ($this->logo instanceof \Illuminate\Http\UploadedFile)) {
             return $oldLogoPath;
         }
 
@@ -369,11 +382,11 @@ class Index extends Component
         $mimeType = $file->getMimeType();
         $extension = strtolower($file->getClientOriginalExtension());
 
-        if (!in_array($mimeType, self::ALLOWED_MIME_TYPES)) {
+        if (! in_array($mimeType, self::ALLOWED_MIME_TYPES)) {
             throw new \Exception("File type '{$mimeType}' is not allowed.");
         }
 
-        if (!in_array($extension, self::ALLOWED_EXTENSIONS)) {
+        if (! in_array($extension, self::ALLOWED_EXTENSIONS)) {
             throw new \Exception("File extension '{$extension}' is not allowed.");
         }
     }
@@ -385,7 +398,7 @@ class Index extends Component
     {
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $extension = strtolower($file->getClientOriginalExtension());
-        $safeName = Str::slug($originalName) . '-' . uniqid() . '.' . $extension;
+        $safeName = Str::slug($originalName).'-'.uniqid().'.'.$extension;
 
         return $safeName;
     }
@@ -426,7 +439,7 @@ class Index extends Component
                 }
             }
         } catch (\Exception $e) {
-            \Log::warning('Failed to delete file: ' . $path, ['error' => $e->getMessage()]);
+            \Log::warning('Failed to delete file: '.$path, ['error' => $e->getMessage()]);
         }
     }
 
@@ -451,7 +464,7 @@ class Index extends Component
         }
 
         $this->dispatchErrorMessage(
-            'Error saving brand: ' . $exception->getMessage()
+            'Error saving brand: '.$exception->getMessage()
         );
     }
 
@@ -473,7 +486,7 @@ class Index extends Component
             'brand_id',
             'isEdit',
             'showForm',
-            'current_logo_path'
+            'current_logo_path',
         ]);
 
         $this->is_active = true;
@@ -498,7 +511,7 @@ class Index extends Component
     {
         $this->dispatch('show-toast', [
             'type' => 'success',
-            'message' => $message
+            'message' => $message,
         ]);
     }
 
@@ -506,7 +519,7 @@ class Index extends Component
     {
         $this->dispatch('show-toast', [
             'type' => 'error',
-            'message' => $message
+            'message' => $message,
         ]);
     }
 
@@ -514,7 +527,7 @@ class Index extends Component
     {
         $this->dispatch('show-toast', [
             'type' => 'warning',
-            'message' => $message
+            'message' => $message,
         ]);
     }
 }

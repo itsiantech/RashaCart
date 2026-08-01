@@ -1,0 +1,97 @@
+name: 🚀 Deploy to VPS
+
+on:
+  push:
+    branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: 🚀 Deploy to VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install Node.js dependencies & build assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Sync built assets to VPS
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -e rsync -az --delete \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            public/build/ \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/public/build/
+
+      - name: Push to VPS Git repository
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          git -c core.sshCommand="sshpass -e ssh -o StrictHostKeyChecking=no" push --force ssh://${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}/var/repo/bandrose.git HEAD:refs/heads/${{ github.ref_name }}
+
+      - name: Run post-deployment commands on VPS
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash << 'ENDSSH'
+            set -e
+
+            echo "Changing to project directory..."
+            cd ${{ secrets.DEPLOY_PATH }}
+
+            echo "Enabling maintenance mode..."
+            php artisan down --refresh=15 --retry=30
+
+            echo "Installing Composer dependencies (production)..."
+            composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
+
+            echo "Running database migrations..."
+            php artisan migrate --force
+
+            echo "Clearing and caching config/routes/views..."
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+
+            echo "Re-linking storage..."
+            php artisan storage:link --force
+
+            echo "Restarting queue workers..."
+            php artisan queue:restart
+
+            echo "Bringing app back online..."
+            php artisan up
+
+            echo "Deployment complete!"
+          ENDSSH
+
+      - name: Bring app online on failure
+        if: failure()
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.DEPLOY_PATH }} && php artisan up" || true

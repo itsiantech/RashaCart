@@ -90,12 +90,12 @@
     <script>
         document.addEventListener('livewire:init', () => {
             Livewire.on('track-event', ({
-                event,
+                eventName,
                 data
             }) => {
-                if (window.fbq) fbq('track', event, data);
-                if (window.ttq) ttq.track(mapTiktokEvent(event), data);
-                if (window.gtag) gtag('event', mapGaEvent(event), data);
+                if (window.fbq) fbq('track', eventName, data);
+                if (window.ttq) ttq.track(mapTiktokEvent(eventName), data);
+                if (window.gtag) gtag('event', mapGaEvent(eventName), data);
             });
         });
 

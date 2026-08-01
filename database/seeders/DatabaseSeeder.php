@@ -2,18 +2,13 @@
 
 namespace Database\Seeders;
 
-use Database\Seeders\RolePermissionSeeder; 
-
-use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-
+use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
-   
     public function run(): void
     {
 
@@ -22,23 +17,22 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             ProductSeeder::class,
             PermissionSeeder::class,
-            ]);
+        ]);
 
         $user = User::factory()->create([
             'name' => 'admin',
             'email' => 'admin@gmail.com',
             'phone' => '01742201187',
-            'password' => bcrypt('password')
+            'password' => bcrypt('password'),
         ]);
 
-        $role = Role::where('name', 'admin')->first(); 
+        $role = Role::where('name', 'admin')->first();
         $user->assignRole($role);
-        $permissions = Permission::all();  
+        $permissions = Permission::all();
         $role->givePermissionTo($permissions);
 
         // Seed products after a user exists so foreign keys are satisfied
         $this->call(ProductSeeder::class);
 
     }
-
 }

@@ -2,9 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class FreeShipping extends Model
 {
@@ -64,15 +63,15 @@ class FreeShipping extends Model
     public static function hasProductFreeShipping($productId, $categoryId = null)
     {
         return self::where('is_active', true)
-            ->where(function($q) use ($productId, $categoryId) {
+            ->where(function ($q) use ($productId, $categoryId) {
                 // Check by product ID
-                $q->where(function($q2) use ($productId) {
+                $q->where(function ($q2) use ($productId) {
                     $q2->where('type', 'product')->where('product_id', $productId);
                 });
 
                 // Check by category ID
                 if ($categoryId) {
-                    $q->orWhere(function($q2) use ($categoryId) {
+                    $q->orWhere(function ($q2) use ($categoryId) {
                         $q2->where('type', 'category')->where('category_id', $categoryId);
                     });
                 }

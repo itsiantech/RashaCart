@@ -17,7 +17,7 @@ return new class extends Migration
                 ->nullable()
                 ->constrained()
                 ->onDelete('cascade');
-                
+
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade'); // for multivendor
             $table->foreignId('category_id')
                 ->nullable()
@@ -62,10 +62,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            $table->dropForeign(['brand_id']);
-            $table->dropForeign(['category_id']);
-            $table->dropForeign(['user_id']);
-        });
+        Schema::dropIfExists('products');
     }
 };

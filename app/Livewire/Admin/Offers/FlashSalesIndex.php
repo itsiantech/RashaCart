@@ -11,14 +11,16 @@ class FlashSalesIndex extends Component
     use WithPagination;
 
     public string $search = '';
+
     public string $filterStatus = ''; // '', 'live', 'upcoming', 'expired'
 
     // Confirm delete
     public ?int $deleteId = null;
+
     public string $deleteName = '';
 
     protected $queryString = [
-        'search'       => ['except' => ''],
+        'search' => ['except' => ''],
         'filterStatus' => ['except' => ''],
     ];
 
@@ -42,7 +44,7 @@ class FlashSalesIndex extends Component
     public function confirmDelete(int $id): void
     {
         $flashSale = FlashSale::findOrFail($id);
-        $this->deleteId   = $id;
+        $this->deleteId = $id;
         $this->deleteName = $flashSale->title;
 
         $this->dispatch('show-delete-modal');
@@ -55,14 +57,14 @@ class FlashSalesIndex extends Component
             session()->flash('success', 'Flash sale deleted successfully.');
         }
 
-        $this->deleteId   = null;
+        $this->deleteId = null;
         $this->deleteName = '';
         $this->dispatch('hide-delete-modal');
     }
 
     public function cancelDelete(): void
     {
-        $this->deleteId   = null;
+        $this->deleteId = null;
         $this->deleteName = '';
         $this->dispatch('hide-delete-modal');
     }
@@ -72,7 +74,7 @@ class FlashSalesIndex extends Component
     public function render()
     {
         $query = FlashSale::withCount('items')
-            ->when($this->search, fn($q) => $q->where('title', 'like', '%' . $this->search . '%'))
+            ->when($this->search, fn ($q) => $q->where('title', 'like', '%'.$this->search.'%'))
             ->latest();
 
         $flashSales = $query->paginate(10);
@@ -80,8 +82,8 @@ class FlashSalesIndex extends Component
         // Attach status attribute for filtering in blade (or filter in PHP)
         if ($this->filterStatus) {
             $flashSales = $query->paginate(100); // load more to filter
-            $filtered   = $flashSales->getCollection()->filter(
-                fn($fs) => $fs->status === $this->filterStatus
+            $filtered = $flashSales->getCollection()->filter(
+                fn ($fs) => $fs->status === $this->filterStatus
             );
             $flashSales->setCollection($filtered);
         }
@@ -90,7 +92,3 @@ class FlashSalesIndex extends Component
             ->layout('livewire.admin.layouts.app', ['title' => 'Flash Sales']);
     }
 }
-
-
-
-

@@ -2,8 +2,6 @@
 
 namespace App\Livewire\Admin\Products;
 
-use App\Helpers\Settings;
-use App\Models\Inventory;
 use App\Models\OrderItem;
 use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +12,8 @@ use Livewire\WithPagination;
 
 class ProductIndex extends Component
 {
-    use WithPagination, WithoutUrlPagination;
+    use WithoutUrlPagination, WithPagination;
+
     public $search = '';
 
     public function render()
@@ -22,7 +21,7 @@ class ProductIndex extends Component
         $query = Product::with([
             'orderitems',
             'inventories',
-            'variants.inventories'
+            'variants.inventories',
         ]);
 
         $user = Auth::user();
@@ -33,9 +32,9 @@ class ProductIndex extends Component
 
         if ($this->search) {
             $query->where(function ($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('short_description', 'like', '%' . $this->search . '%')
-                    ->orWhere('sku', 'like', '%' . $this->search . '%');
+                $q->where('name', 'like', '%'.$this->search.'%')
+                    ->orWhere('short_description', 'like', '%'.$this->search.'%')
+                    ->orWhere('sku', 'like', '%'.$this->search.'%');
             });
         }
 
@@ -66,6 +65,7 @@ class ProductIndex extends Component
     {
         $inventoryIn = $variant->inventories->where('type', 'in')->sum('quantity');
         $inventoryOut = $variant->inventories->where('type', 'out')->sum('quantity');
+
         return $inventoryIn - $inventoryOut;
     }
 
@@ -93,36 +93,36 @@ class ProductIndex extends Component
     }
 
     public function deleteProduct($id)
-{
-    $user = Auth::user();
-    $product = Product::where('id', $id)
-        ->when(! $user->hasRole('admin'), function ($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })
-        ->firstOrFail();
+    {
+        $user = Auth::user();
+        $product = Product::where('id', $id)
+            ->when(! $user->hasRole('admin'), function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
 
-    $variantIds = $product->variants()->pluck('id');
-    if ($variantIds->isNotEmpty()) {
-        OrderItem::whereIn('product_variant_id', $variantIds)
-            ->update(['product_variant_id' => null]);
-    }
-
-    // Delete related data
-    $product->variants()->delete();
-    $product->inventories()->delete();
-
-    if ($product->thumbnail) {
-        Storage::delete('public/' . $product->thumbnail);
-    }
-
-    if ($product->gallery_image) {
-        foreach ($product->gallery_image as $image) {
-            Storage::delete('public/' . $image);
+        $variantIds = $product->variants()->pluck('id');
+        if ($variantIds->isNotEmpty()) {
+            OrderItem::whereIn('product_variant_id', $variantIds)
+                ->update(['product_variant_id' => null]);
         }
+
+        // Delete related data
+        $product->variants()->delete();
+        $product->inventories()->delete();
+
+        if ($product->thumbnail) {
+            Storage::delete('public/'.$product->thumbnail);
+        }
+
+        if ($product->gallery_image) {
+            foreach ($product->gallery_image as $image) {
+                Storage::delete('public/'.$image);
+            }
+        }
+
+        $product->delete();
+
+        $this->dispatch('success', message: 'Product deleted successfully!');
     }
-
-    $product->delete();
-
-    $this->dispatch('success', message: 'Product deleted successfully!');
-}
 }

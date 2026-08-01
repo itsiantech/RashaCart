@@ -2,26 +2,35 @@
 
 namespace App\Livewire\Admin\Settings\User\Profile;
 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\Password;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 
 class ProfileIndex extends Component
 {
     use WithFileUploads;
 
     public $name;
+
     public $email;
+
     public $phone;
+
     public $address;
+
     public $profile_image;
+
     public $current_password;
+
     public $password;
+
     public $password_confirmation;
+
     public $accountActivation = false;
+
     public $delete_password;
 
     public function mount()
@@ -37,7 +46,7 @@ class ProfileIndex extends Component
     {
         $this->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . Auth::id(),
+            'email' => 'required|email|unique:users,email,'.Auth::id(),
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'profile_image' => 'nullable|image|max:2048',
@@ -76,7 +85,6 @@ class ProfileIndex extends Component
         $user = Auth::user();
         $user->password = Hash::make($this->password);
         $user->save();
-        
 
         $this->reset(['current_password', 'password', 'password_confirmation']);
         $this->dispatch('toast', message: 'Password updated successfully!', type: 'success');
@@ -86,6 +94,7 @@ class ProfileIndex extends Component
     {
         if (Auth::user()->hasRole('admin')) {
             $this->dispatch('toast', message: 'Super Admin cannot be deleted!', type: 'error');
+
             return;
         }
 

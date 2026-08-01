@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Models\User;
-use Illuminate\View\View;
-use Illuminate\Http\Request;
-use Livewire\Attributes\Layout;
-use Illuminate\Validation\Rules;
-use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Role;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Http\RedirectResponse;
+use App\Models\User;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules;
+use Illuminate\View\View;
+use Livewire\Attributes\Layout;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 #[Layout('livewire.auth.layouts.app')]
 class RegisteredUserController extends Controller
@@ -43,7 +43,7 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => 'required|numeric|digits:11',
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -57,18 +57,24 @@ class RegisteredUserController extends Controller
 
         // Assign Customer Role (use 'name' column from Spatie package)
         $role = Role::where('name', 'customer')->first();
-        if (!$role) {
+        if (! $role) {
             $role = Role::create(['name' => 'customer']);
         }
         $user->assignRole($role);
 
         // Give customer permissions if needed
-        $user->givePermissionTo([
+        $permissions = [
             'view products',
             'place orders',
             'view own orders',
             'edit own profile',
-        ]);
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
+
+        $user->givePermissionTo($permissions);
 
         event(new Registered($user));
 
@@ -92,7 +98,7 @@ class RegisteredUserController extends Controller
             'NID_number' => 'required|string|max:50',
             'profile_image' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:5048',
             'trade_license_front' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:5048',
-            'trade_license_back'  => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:5048',
+            'trade_license_back' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:5048',
             'commission_rate' => 'nullable|numeric|min:0|max:100',
             'payment_method' => 'nullable|string',
             'bank_name' => 'required_if:payment_method,bank|nullable|string|max:255',
@@ -110,13 +116,12 @@ class RegisteredUserController extends Controller
                 'is_vendor_approved' => false,
             ]);
 
-
             $user->assignRole('vendor');
             $permissions = [
                 'upload own products',
                 'view own products',
                 'edit own profile',
-                'view vendor dashboard'
+                'view vendor dashboard',
             ];
 
             foreach ($permissions as $permission) {
@@ -149,7 +154,7 @@ class RegisteredUserController extends Controller
 
                 'profile_image' => $profilePath,
                 'trade_license_front' => $frontPath,
-                'trade_license_back'  => $backPath,
+                'trade_license_back' => $backPath,
 
                 'commission_rate' => $request->commission_rate ?? 0,
                 'payment_method' => $request->payment_method,
@@ -167,7 +172,6 @@ class RegisteredUserController extends Controller
             ->route('vendor.registration.success')
             ->with('success', 'Your vendor account has been submitted and is pending admin approval.');
     }
-
 
     /**
      * Notify admin about new vendor registration

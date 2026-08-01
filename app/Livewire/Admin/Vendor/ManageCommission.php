@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\CategoryCommission;
 use Livewire\Component;
 
-
 class ManageCommission extends Component
 {
     public $commissions = [];
@@ -39,11 +38,10 @@ class ManageCommission extends Component
         session()->flash('success', 'Commission saved successfully!');
     }
 
-
-
     public function render()
     {
         $categories = Category::all();
+
         return view('livewire.admin.vendor.manage-commission', compact('categories'))->layout('livewire.admin.layouts.app');
     }
 }

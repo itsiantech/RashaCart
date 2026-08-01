@@ -2,20 +2,25 @@
 
 namespace App\Livewire\Admin\Brands;
 
-use Livewire\Component;
-use Livewire\WithFileUploads;
 use App\Models\Brand;
 use Illuminate\Support\Str;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class Create extends Component
 {
     use WithFileUploads;
 
     public $slug;
+
     public $name;
+
     public $description;
+
     public $logo;
+
     public $is_active = true;
+
     public $logoPreview;
 
     protected $rules = [
@@ -43,7 +48,7 @@ class Create extends Component
 
         try {
             $logoPath = null;
-            if ($this->logo && !is_string($this->logo)) {
+            if ($this->logo && ! is_string($this->logo)) {
                 $logoPath = $this->logo->store('brands', 'public');
             }
 
@@ -57,15 +62,15 @@ class Create extends Component
 
             $this->dispatch('show-toast', [
                 'type' => 'success',
-                'message' => 'Brand created successfully!'
+                'message' => 'Brand created successfully!',
             ]);
-            
+
             return $this->redirect(route('admin.brand.index'), navigate: true);
-            
+
         } catch (\Exception $e) {
             $this->dispatch('show-toast', [
                 'type' => 'error',
-                'message' => 'Failed to create brand: ' . $e->getMessage()
+                'message' => 'Failed to create brand: '.$e->getMessage(),
             ]);
         }
     }

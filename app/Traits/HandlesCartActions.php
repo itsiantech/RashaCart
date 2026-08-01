@@ -2,15 +2,13 @@
 
 namespace App\Traits;
 
+use App\Models\Favorite;
 use App\Models\Product;
 use App\Models\ProductVariant;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Favorite;
 
 trait HandlesCartActions
 {
-
     public $quantity = 1;
 
     /**
@@ -22,11 +20,12 @@ trait HandlesCartActions
         foreach ($product->variants as $variant) {
             foreach ($variant->variantAttributeValues as $vav) {
                 $attrName = strtolower($vav->attribute->name ?? '');
-                if ($attrName !== '' && !$attributeTypes->contains($attrName)) {
+                if ($attrName !== '' && ! $attributeTypes->contains($attrName)) {
                     $attributeTypes->push($attrName);
                 }
             }
         }
+
         return $attributeTypes;
     }
 
@@ -75,22 +74,22 @@ trait HandlesCartActions
             'variants.inventories',
         ])->findOrFail($productId);
 
-        $cart  = session()->get('cart', []);
-        $key   = $productId;
-        $qty   = $this->quantity > 0 ? $this->quantity : 1;
+        $cart = session()->get('cart', []);
+        $key = $productId;
+        $qty = $this->quantity > 0 ? $this->quantity : 1;
         $price = $product->sale_price ?? $product->price;
 
         $variantImage = null;
-        $variantId    = null;
-        $color        = null;
-        $size         = null;
+        $variantId = null;
+        $color = null;
+        $size = null;
         $variantLabel = '';
 
         if (setting('attribute_system', true) && $product->variants->count() > 0) {
 
             $attributeTypes = $this->getProductAttributeTypes($product);
             $hasColor = $attributeTypes->contains(fn($a) => in_array($a, ['color', 'colour']));
-            $hasSize  = $attributeTypes->contains(fn($a) => in_array($a, ['size', 'siize']));
+            $hasSize = $attributeTypes->contains(fn($a) => in_array($a, ['size', 'siize']));
 
             $selectedVariantId = $this->selectedVariant ?? null;
 
@@ -99,32 +98,38 @@ trait HandlesCartActions
             } elseif ($attributeTypes->count() === 1) {
                 $resolved = null;
 
-                if ($hasColor && !empty($this->selectedColor)) {
+                if ($hasColor && ! empty($this->selectedColor)) {
                     $resolved = $this->findVariantByAttributes($product, $this->selectedColor, null);
-                } elseif ($hasSize && !empty($this->selectedSize)) {
+                } elseif ($hasSize && ! empty($this->selectedSize)) {
                     $resolved = $this->findVariantByAttributes($product, null, $this->selectedSize);
                 }
 
                 $variantId = ($resolved ?? $product->variants->first())?->id;
             } else {
-                $colorSelected = !$hasColor || !empty($this->selectedColor);
-                $sizeSelected  = !$hasSize  || !empty($this->selectedSize);
+                $colorSelected = ! $hasColor || ! empty($this->selectedColor);
+                $sizeSelected = ! $hasSize || ! empty($this->selectedSize);
 
-                if (!$colorSelected || !$sizeSelected) {
+                if (! $colorSelected || ! $sizeSelected) {
                     $missing = collect();
-                    if (!$colorSelected) $missing->push('color');
-                    if (!$sizeSelected)  $missing->push('size');
+                    if (! $colorSelected) {
+                        $missing->push('color');
+                    }
+                    if (! $sizeSelected) {
+                        $missing->push('size');
+                    }
 
                     $this->dispatch('error', message: 'Please select ' . $missing->implode(' and ') . ' before adding to cart.');
                     $this->dispatch('show-variant-warning');
+
                     return false;
                 }
 
-                $resolved  = $this->findVariantByAttributes($product, $this->selectedColor ?? null, $this->selectedSize ?? null);
+                $resolved = $this->findVariantByAttributes($product, $this->selectedColor ?? null, $this->selectedSize ?? null);
                 $variantId = $resolved?->id;
 
-                if (!$variantId) {
+                if (! $variantId) {
                     $this->dispatch('error', message: 'The selected combination is not available.');
+
                     return false;
                 }
             }
@@ -136,8 +141,9 @@ trait HandlesCartActions
                     'inventories',
                 ])->find($variantId);
 
-                if (!$variant) {
+                if (! $variant) {
                     $this->dispatch('error', message: 'Selected variant not found.');
+
                     return false;
                 }
 
@@ -145,47 +151,61 @@ trait HandlesCartActions
                 $currentStock = $variant->inventories()->orderByDesc('id')->value('current_stock') ?? 0;
                 if ($currentStock <= 0) {
                     $this->dispatch('error', message: 'Sorry, this variant is out of stock.');
+
                     return false;
                 }
 
-                $cartKey          = $productId . '-v' . $variantId;
+                $cartKey = $productId . '-v' . $variantId;
                 $currentQtyInCart = $cart[$cartKey]['qty'] ?? 0;
 
                 if (($currentQtyInCart + $qty) > $currentStock) {
                     $this->dispatch('error', message: "Not enough stock available. Only {$currentStock} left.");
+
                     return false;
                 }
 
-                $price        = $variant->variant_price ?? $price;
-                $variantImage = !empty($variant->image) ? asset('storage/' . $variant->image) : null;
+                $price = $variant->variant_price ?? $price;
+                $variantImage = ! empty($variant->image) ? asset('storage/' . $variant->image) : null;
 
                 foreach ($variant->variantAttributeValues as $vav) {
-                    if (!$vav->attribute || !$vav->attributeValue) continue;
+                    if (! $vav->attribute || ! $vav->attributeValue) {
+                        continue;
+                    }
 
-                    $attrName  = strtolower($vav->attribute->name ?? '');
+                    $attrName = strtolower($vav->attribute->name ?? '');
                     $attrValue = $vav->attributeValue->value ?? '';
 
-                    if (in_array($attrName, ['color', 'colour'])) $color = $attrValue;
-                    if (in_array($attrName, ['size', 'siize']))   $size  = $attrValue;
+                    if (in_array($attrName, ['color', 'colour'])) {
+                        $color = $attrValue;
+                    }
+                    if (in_array($attrName, ['size', 'siize'])) {
+                        $size = $attrValue;
+                    }
                 }
 
-                if (empty($color) && !empty($this->selectedColor)) $color = $this->selectedColor;
-                if (empty($size)  && !empty($this->selectedSize))  $size  = $this->selectedSize;
+                if (empty($color) && ! empty($this->selectedColor)) {
+                    $color = $this->selectedColor;
+                }
+                if (empty($size) && ! empty($this->selectedSize)) {
+                    $size = $this->selectedSize;
+                }
 
-
-                if (empty($variantImage) && !empty($color)) {
+                if (empty($variantImage) && ! empty($color)) {
                     $colorVariant = $product->variants->first(function ($v) use ($color) {
                         foreach ($v->variantAttributeValues as $vav) {
-                            if (!$vav->attribute || !$vav->attributeValue) continue;
+                            if (! $vav->attribute || ! $vav->attributeValue) {
+                                continue;
+                            }
                             $attrName = strtolower($vav->attribute->name ?? '');
                             if (
                                 in_array($attrName, ['color', 'colour'])
                                 && $vav->attributeValue->value === $color
-                                && !empty($v->image)
+                                && ! empty($v->image)
                             ) {
                                 return true;
                             }
                         }
+
                         return false;
                     });
 
@@ -204,20 +224,20 @@ trait HandlesCartActions
             $cart[$finalKey]['qty'] += $qty;
         } else {
             $cart[$finalKey] = [
-                'id'            => $product->id,
-                'product_id'    => $product->id,
-                'category_id'   => $product->category_id,
-                'variant_id'    => $variantId,
+                'id' => $product->id,
+                'product_id' => $product->id,
+                'category_id' => $product->category_id,
+                'variant_id' => $variantId,
                 'variant_label' => $variantLabel ?: null,
-                'color'         => $color,
-                'size'          => $size,
-                'title'         => $product->name,
-                'price'         => $price,
-                'img'           => $variantImage
+                'color' => $color,
+                'size' => $size,
+                'title' => $product->name,
+                'price' => $price,
+                'img' => $variantImage
                     ?? ($product->thumbnail
                         ? asset('storage/' . $product->thumbnail)
                         : 'https://placehold.co/500x500'),
-                'qty'           => $qty,
+                'qty' => $qty,
             ];
         }
 
@@ -229,7 +249,7 @@ trait HandlesCartActions
         $this->dispatch('cartUpdated');
         $this->dispatch('success', message: 'Product added to cart!');
 
-        $this->dispatch('track-event', event: 'AddToCart', data: [
+        $this->dispatch('track-event', eventName: 'AddToCart', data: [
             'content_id'   => $product->id,
             'content_name' => $product->name,
             'content_type' => 'product',
@@ -241,23 +261,24 @@ trait HandlesCartActions
         return true;
     }
 
-
     private function findVariantByAttributes($product, ?string $colorValue, ?string $sizeValue): ?ProductVariant
     {
         foreach ($product->variants as $variant) {
             $colorMatch = ($colorValue === null);
-            $sizeMatch  = ($sizeValue  === null);
+            $sizeMatch = ($sizeValue === null);
 
             foreach ($variant->variantAttributeValues as $vav) {
-                if (!$vav->attribute || !$vav->attributeValue) continue;
+                if (! $vav->attribute || ! $vav->attributeValue) {
+                    continue;
+                }
 
                 $attrName = strtolower($vav->attribute->name ?? '');
-                $val      = $vav->attributeValue->value ?? '';
+                $val = $vav->attributeValue->value ?? '';
 
-                if (!$colorMatch && in_array($attrName, ['color', 'colour'])) {
+                if (! $colorMatch && in_array($attrName, ['color', 'colour'])) {
                     $colorMatch = ($val === $colorValue);
                 }
-                if (!$sizeMatch && in_array($attrName, ['size', 'siize'])) {
+                if (! $sizeMatch && in_array($attrName, ['size', 'siize'])) {
                     $sizeMatch = ($val === $sizeValue);
                 }
             }
@@ -273,7 +294,9 @@ trait HandlesCartActions
     public function buyNow($productId)
     {
         $result = $this->addToCart($productId);
-        if ($result === false) return;
+        if ($result === false) {
+            return;
+        }
         $this->redirect(route('frontend.checkout'), navigate: true);
     }
 
@@ -282,7 +305,7 @@ trait HandlesCartActions
         $userId = Auth::check() ? Auth::id() : null;
 
         Favorite::firstOrCreate([
-            'user_id'    => $userId,
+            'user_id' => $userId,
             'product_id' => $productId,
         ]);
 
@@ -295,7 +318,7 @@ trait HandlesCartActions
         $cart = session()->get('cart', []);
 
         foreach ($cart as $key => $item) {
-            if (!empty($item['variant_id']) && (empty($item['color']) || empty($item['variant_label']))) {
+            if (! empty($item['variant_id']) && (empty($item['color']) || empty($item['variant_label']))) {
                 $variant = ProductVariant::with([
                     'variantAttributeValues.attribute',
                     'variantAttributeValues.attributeValue',
@@ -303,18 +326,22 @@ trait HandlesCartActions
 
                 if ($variant) {
                     $color = null;
-                    $size  = null;
+                    $size = null;
 
                     foreach ($variant->variantAttributeValues as $vav) {
-                        $attrName  = strtolower($vav->attribute?->name ?? '');
+                        $attrName = strtolower($vav->attribute?->name ?? '');
                         $attrValue = $vav->attributeValue?->value ?? '';
 
-                        if (in_array($attrName, ['color', 'colour'])) $color = $attrValue;
-                        if (in_array($attrName, ['size', 'siize']))   $size  = $attrValue;
+                        if (in_array($attrName, ['color', 'colour'])) {
+                            $color = $attrValue;
+                        }
+                        if (in_array($attrName, ['size', 'siize'])) {
+                            $size = $attrValue;
+                        }
                     }
 
-                    $cart[$key]['color']         = $color;
-                    $cart[$key]['size']          = $size;
+                    $cart[$key]['color'] = $color;
+                    $cart[$key]['size'] = $size;
                     $cart[$key]['variant_label'] = collect([$color, $size])->filter()->implode(' / ');
                 }
             }

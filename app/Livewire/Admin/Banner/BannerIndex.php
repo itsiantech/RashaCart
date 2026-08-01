@@ -8,11 +8,12 @@ use Livewire\Component;
 
 class BannerIndex extends Component
 {
-
     public $banners;
+
     public function render()
     {
         $this->banners = Banner::latest()->get();
+
         return view('livewire.admin.banner.banner-index')->layout('livewire.admin.layouts.app');
     }
 
@@ -24,6 +25,6 @@ class BannerIndex extends Component
         }
         $banner->delete();
 
-       $this->dispatch('success', message: 'Banner Deleted!');
+        $this->dispatch('success', message: 'Banner Deleted!');
     }
 }

@@ -16,7 +16,7 @@ class ProfileTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->get('/profile');
+            ->get('/profile/index');
 
         $response->assertOk();
     }
@@ -27,14 +27,15 @@ class ProfileTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->patch('/profile', [
+            ->from('/profile/index')
+            ->put('/profile/'.$user->id, [
                 'name' => 'Test User',
                 'email' => 'test@example.com',
             ]);
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect('/profile');
+            ->assertRedirect('/profile/index');
 
         $user->refresh();
 
@@ -49,14 +50,15 @@ class ProfileTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->patch('/profile', [
+            ->from('/profile/index')
+            ->put('/profile/'.$user->id, [
                 'name' => 'Test User',
                 'email' => $user->email,
             ]);
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect('/profile');
+            ->assertRedirect('/profile/index');
 
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
@@ -69,6 +71,7 @@ class ProfileTest extends TestCase
             ->actingAs($user)
             ->delete('/profile', [
                 'password' => 'password',
+                'accountActivation' => 'on',
             ]);
 
         $response
@@ -85,14 +88,15 @@ class ProfileTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->from('/profile')
+            ->from('/profile/index')
             ->delete('/profile', [
                 'password' => 'wrong-password',
+                'accountActivation' => 'on',
             ]);
 
         $response
             ->assertSessionHasErrorsIn('userDeletion', 'password')
-            ->assertRedirect('/profile');
+            ->assertRedirect('/profile/index');
 
         $this->assertNotNull($user->fresh());
     }

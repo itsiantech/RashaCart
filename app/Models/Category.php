@@ -13,7 +13,7 @@ class Category extends Model
         'image',
         'status',
         'parent_id',
-        'is_featured'
+        'is_featured',
     ];
 
     public function parent()
@@ -40,8 +40,6 @@ class Category extends Model
     {
         return $this->hasMany(Product::class);
     }
-
-
 
     protected static function booted()
     {

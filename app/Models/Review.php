@@ -2,29 +2,32 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Cache;
+use Illuminate\Database\Eloquent\Model;
+
 class Review extends Model
 {
     protected $fillable = [
-        'user_id', 
+        'user_id',
         'product_id',
-        'rating', 
+        'rating',
         'comment',
     ];
-    public function user() {
+
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
-    public function product() {
+    public function product()
+    {
         return $this->belongsTo(Product::class);
     }
 
     protected static function booted()
     {
-        static::saved(fn() => Cache::forget('products'));
-        static::deleted(fn() => Cache::forget('products'));
-        
-    }   
+        static::saved(fn () => Cache::forget('products'));
+        static::deleted(fn () => Cache::forget('products'));
 
+    }
 }

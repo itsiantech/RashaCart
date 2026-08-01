@@ -2,17 +2,17 @@
 
 namespace App\Livewire\Admin\Products;
 
-use Livewire\Component;
-use Livewire\WithFileUploads;
-use Illuminate\Support\Str;
-use App\Models\Product;
-use App\Models\Category;
 use App\Models\Attribute;
 use App\Models\Brand;
+use App\Models\Category;
+use App\Models\Inventory;
+use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\VariantAttributeValue;
-use App\Models\Inventory;
 use DB;
+use Illuminate\Support\Str;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 use Storage;
 
 class ProductEdit extends Component
@@ -20,40 +20,80 @@ class ProductEdit extends Component
     use WithFileUploads;
 
     public $meta_title;
+
     public $meta_description;
+
     public $meta_keywords;
+
     public $meta_tags;
 
     public $productId;
 
     // Basic fields
-    public $name, $slug, $short_description, $long_description, $buying_price;
-    public $price, $discount_type, $discount_price;
-    public $category_id, $brand_id, $thumbnail, $video, $status, $is_featured;
+    public $name;
+
+    public $slug;
+
+    public $short_description;
+
+    public $long_description;
+
+    public $buying_price;
+
+    public $price;
+
+    public $discount_type;
+
+    public $discount_price;
+
+    public $category_id;
+
+    public $brand_id;
+
+    public $thumbnail;
+
+    public $video;
+
+    public $status;
+
+    public $is_featured;
+
     public $images = []; // new uploads
+
     public $existingImages = []; // old gallery images
 
     public bool $is_preorder = false;
+
     public ?string $preorder_start_date = null;
+
     public ?string $preorder_end_date = null;
+
     public ?string $expected_release_date = null;
 
     // Variant system
     public $productAttributes = [];
+
     public $selectedAttributes = [];
+
     public $variants = [];
+
     public $variantCounter = 0;
+
     public $showVariantForm = false;
+
     public $variantSystemEnabled = true;
 
     public $newVariantImage;
+
     public $variantErrors = [];
+
     public $sale_price = 0;
+
     public $newVariant = [
         'attributes' => [],
         'sku' => '',
         'variant_price' => 0,
-        'stock' => 0, 
+        'stock' => 0,
         'image' => null,
     ];
 
@@ -90,9 +130,9 @@ class ProductEdit extends Component
         $this->status = $product->status ? true : false;
         $this->is_featured = $product->is_featured ? true : false;
         $this->existingImages = $product->gallery_image ?? [];
-        $this->is_preorder           = $product->is_preorder ?? false;
-        $this->preorder_start_date   = $product->preorder_start_date?->format('Y-m-d\TH:i');
-        $this->preorder_end_date     = $product->preorder_end_date?->format('Y-m-d\TH:i');
+        $this->is_preorder = $product->is_preorder ?? false;
+        $this->preorder_start_date = $product->preorder_start_date?->format('Y-m-d\TH:i');
+        $this->preorder_end_date = $product->preorder_end_date?->format('Y-m-d\TH:i');
         $this->expected_release_date = $product->expected_release_date?->format('Y-m-d\TH:i');
 
         // Load attributes and variants
@@ -101,11 +141,12 @@ class ProductEdit extends Component
         $this->variants = $product->variants
             ->map(function ($variant) {
                 $currentStock = $variant->inventories->sortByDesc('id')->first()?->current_stock ?? 0;
+
                 return [
                     'id' => $variant->id,
                     'sku' => $variant->sku,
                     'variant_price' => $variant->variant_price,
-                    'stock'          => $currentStock,
+                    'stock' => $currentStock,
                     'values' => $variant->values
                         ->map(function ($v) {
                             return [
@@ -162,12 +203,12 @@ class ProductEdit extends Component
 
     public function generateSku()
     {
-        $this->newVariant['sku'] = 'SKU-' . strtoupper(Str::random(6));
+        $this->newVariant['sku'] = 'SKU-'.strtoupper(Str::random(6));
     }
 
     public function addAttributeToVariant($attributeId)
     {
-        if (!in_array($attributeId, $this->selectedAttributes)) {
+        if (! in_array($attributeId, $this->selectedAttributes)) {
             $this->selectedAttributes[] = $attributeId;
             $this->newVariant['attributes'][$attributeId] = '';
             $this->variantErrors = [];
@@ -187,21 +228,22 @@ class ProductEdit extends Component
 
     public function addVariant()
     {
-        if (!$this->validateVariant()) {
+        if (! $this->validateVariant()) {
             return;
         }
 
         // Check if variant with same attributes already exists
         if ($this->variantExists()) {
             $this->variantErrors['duplicate'] = 'A variant with these attributes already exists.';
+
             return;
         }
 
         $variant = [
-            'id' => 'new_' . ++$this->variantCounter,
+            'id' => 'new_'.++$this->variantCounter,
             'sku' => $this->newVariant['sku'],
             'variant_price' => (float) $this->newVariant['variant_price'],
-            'stock'          => (int) ($this->newVariant['stock'] ?? 0),
+            'stock' => (int) ($this->newVariant['stock'] ?? 0),
             'values' => [],
             'image' => null,
             'new_image_file' => null,
@@ -209,7 +251,7 @@ class ProductEdit extends Component
 
         // Store attribute values
         foreach ($this->newVariant['attributes'] as $attrId => $valueId) {
-            if (!empty($valueId)) {
+            if (! empty($valueId)) {
                 $variant['values'][] = [
                     'attribute_id' => $attrId,
                     'attribute_value_id' => $valueId,
@@ -245,8 +287,8 @@ class ProductEdit extends Component
             }
         }
 
-        if (!empty($missingValues)) {
-            $this->variantErrors['attribute_values'] = 'Please select values for: ' . implode(', ', $missingValues);
+        if (! empty($missingValues)) {
+            $this->variantErrors['attribute_values'] = 'Please select values for: '.implode(', ', $missingValues);
         }
 
         if (empty($this->newVariant['sku'])) {
@@ -260,7 +302,7 @@ class ProductEdit extends Component
             }
         }
 
-        if (!is_numeric($this->newVariant['variant_price'])) {
+        if (! is_numeric($this->newVariant['variant_price'])) {
             $this->variantErrors['variant_price'] = 'Price adjustment must be a number.';
         }
 
@@ -283,7 +325,7 @@ class ProductEdit extends Component
                         break;
                     }
                 }
-                if (!$found) {
+                if (! $found) {
                     $match = false;
                     break;
                 }
@@ -333,7 +375,7 @@ class ProductEdit extends Component
     {
         $this->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|unique:products,slug,' . $this->productId,
+            'slug' => 'required|string|unique:products,slug,'.$this->productId,
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:255',
             'meta_keywords' => 'nullable|string|max:255',
@@ -345,9 +387,9 @@ class ProductEdit extends Component
             'brand_id' => 'nullable|exists:brands,id',
             'thumbnail' => 'nullable|image|max:2048',
             'images.*' => 'nullable|image|max:2048',
-            'is_preorder'           => 'boolean',
-            'preorder_start_date'   => 'nullable|date|required_if:is_preorder,true',
-            'preorder_end_date'     => 'nullable|date|after_or_equal:preorder_start_date',
+            'is_preorder' => 'boolean',
+            'preorder_start_date' => 'nullable|date|required_if:is_preorder,true',
+            'preorder_end_date' => 'nullable|date|after_or_equal:preorder_start_date',
             'expected_release_date' => 'nullable|date',
         ]);
 
@@ -375,10 +417,10 @@ class ProductEdit extends Component
                 'video' => $this->video,
                 'status' => $this->status,
                 'is_featured' => $this->is_featured,
-                'has_variant' => $this->variantSystemEnabled && !empty($this->variants),
-                'is_preorder'           => $this->is_preorder,
-                'preorder_start_date'   => $this->is_preorder ? $this->preorder_start_date : null,
-                'preorder_end_date'     => $this->is_preorder ? $this->preorder_end_date : null,
+                'has_variant' => $this->variantSystemEnabled && ! empty($this->variants),
+                'is_preorder' => $this->is_preorder,
+                'preorder_start_date' => $this->is_preorder ? $this->preorder_start_date : null,
+                'preorder_end_date' => $this->is_preorder ? $this->preorder_end_date : null,
                 'expected_release_date' => $this->is_preorder ? $this->expected_release_date : null,
             ]);
 
@@ -393,12 +435,12 @@ class ProductEdit extends Component
             $galleryPaths = [];
 
             // Keep existing images if they exist
-            if (!empty($this->existingImages) && is_array($this->existingImages)) {
+            if (! empty($this->existingImages) && is_array($this->existingImages)) {
                 $galleryPaths = $this->existingImages;
             }
 
             // Add new images
-            if (!empty($this->images) && is_array($this->images)) {
+            if (! empty($this->images) && is_array($this->images)) {
                 foreach ($this->images as $img) {
                     $path = $img->store('products/images', 'public');
                     $galleryPaths[] = $path;
@@ -421,10 +463,11 @@ class ProductEdit extends Component
                             $variantToDelete->delete();
                         }
                     }
+
                     continue;
                 }
 
-                if (is_numeric($variantData['id']) && !str_starts_with((string) $variantData['id'], 'new_')) {
+                if (is_numeric($variantData['id']) && ! str_starts_with((string) $variantData['id'], 'new_')) {
                     // Update existing variant
                     $variant = ProductVariant::find($variantData['id']);
                     if ($variant) {
@@ -437,7 +480,7 @@ class ProductEdit extends Component
                     // Create new variant
                     $variant = ProductVariant::create([
                         'product_id' => $product->id,
-                        'stock'         => $variantData['stock'] ?? 0,
+                        'stock' => $variantData['stock'] ?? 0,
                         'sku' => $variantData['sku'],
                         'variant_price' => $variantData['variant_price'],
                     ]);
@@ -447,7 +490,7 @@ class ProductEdit extends Component
                         'product_id' => $product->id,
                         'variant_id' => $variant->id,
                         'type' => 'in',
-                        'quantity'      => $variantData['stock'] ?? 0,
+                        'quantity' => $variantData['stock'] ?? 0,
                         'current_stock' => $variantData['stock'] ?? 0,
                     ]);
                 }
@@ -457,7 +500,7 @@ class ProductEdit extends Component
                     $path = $variantData['new_image_file']->store('products/variants', 'public');
                     $variant->image = $path;
                     $variant->save();
-                } elseif (!empty($variantData['image']) && is_numeric($variantData['id'])) {
+                } elseif (! empty($variantData['image']) && is_numeric($variantData['id'])) {
                     $variant->image = $variantData['image'];
                     $variant->save();
                 }
@@ -483,6 +526,7 @@ class ProductEdit extends Component
 
             DB::commit();
             $this->dispatch('success', message: 'Product Updated Successfully!');
+
             return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -494,7 +538,7 @@ class ProductEdit extends Component
     {
         if (isset($this->existingImages[$index])) {
             $path = $this->existingImages[$index];
-            Storage::delete('public/' . $path);
+            Storage::delete('public/'.$path);
             unset($this->existingImages[$index]);
             $this->existingImages = array_values($this->existingImages);
 

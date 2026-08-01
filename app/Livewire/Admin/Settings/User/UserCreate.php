@@ -2,25 +2,31 @@
 
 namespace App\Livewire\Admin\Settings\User;
 
-use Livewire\Component;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
+use Livewire\Component;
+use Spatie\Permission\Models\Role;
 
 class UserCreate extends Component
 {
-
     public $name;
+
     public $email;
+
     public $phone;
+
     public $password;
+
     public $password_confirmation;
+
     public $selectedRole;
+
     public $roles;
 
-    public function mount(){
-       $this->roles = Role::all();
+    public function mount()
+    {
+        $this->roles = Role::all();
     }
 
     public function rules()
@@ -47,12 +53,13 @@ class UserCreate extends Component
 
         $user->assignRole($this->selectedRole);
 
-        $this->dispatch('toast', 
-            message: 'User created successfully!', 
+        $this->dispatch('toast',
+            message: 'User created successfully!',
             type: 'success'
-        );        
-        
+        );
+
         $this->reset(['name', 'phone', 'email', 'password', 'password_confirmation', 'selectedRole']);
+
         return $this->redirect(route('admin.user.index'), navigate: true);
     }
 

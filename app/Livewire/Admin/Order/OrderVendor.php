@@ -15,11 +15,12 @@ use Livewire\WithPagination;
 
 class OrderVendor extends Component
 {
-    use WithPagination, WithoutUrlPagination;
+    use WithoutUrlPagination, WithPagination;
 
     public Product $product;
 
     public $search = '';
+
     public $statusFilter = 'all';
 
     protected $listeners = ['orderUpdated' => '$refresh', 'printInvoiceDirect' => 'handlePrintInvoice'];
@@ -27,12 +28,18 @@ class OrderVendor extends Component
     // --------------------
     // Status constants
     // --------------------
-    const STATUS_PENDING   = 'pending';
+    const STATUS_PENDING = 'pending';
+
     const STATUS_CONFIRMED = 'confirmed';
-    const STATUS_SHIPPED   = 'shipped';
+
+    const STATUS_SHIPPED = 'shipped';
+
     const STATUS_DELIVERED = 'delivered';
+
     const STATUS_CANCELLED = 'cancelled';
-    const STATUS_RETURNED  = 'returned';
+
+    const STATUS_RETURNED = 'returned';
+
     const STATUS_COMPLETED = 'completed';
 
     public static $statuses = [
@@ -70,9 +77,11 @@ class OrderVendor extends Component
             foreach ($order->items as $item) {
 
                 $product = $item->product;
-                $vendor  = $product?->user;
+                $vendor = $product?->user;
 
-                if (!$vendor) continue;
+                if (! $vendor) {
+                    continue;
+                }
 
                 $categoryId = $product->category_id;
 
@@ -81,7 +90,7 @@ class OrderVendor extends Component
                 $total = $item->total ?? ($item->price * $item->quantity);
 
                 $adminCommission = $total * $rate / 100;
-                $vendorEarning   = $total - $adminCommission;
+                $vendorEarning = $total - $adminCommission;
 
                 DB::table('order_commissions')->insert([
                     'order_id' => $order->id,
@@ -103,8 +112,9 @@ class OrderVendor extends Component
 
     public function updateStatus($orderId, $status)
     {
-        if (!in_array($status, self::$statuses)) {
+        if (! in_array($status, self::$statuses)) {
             $this->dispatch('error', message: 'Invalid order status.');
+
             return;
         }
 
@@ -123,7 +133,7 @@ class OrderVendor extends Component
                 $this->settleCommission($order);
             }
 
-            if (setting('email_notification', true) && !empty($order->user?->email)) {
+            if (setting('email_notification', true) && ! empty($order->user?->email)) {
                 Mail::to($order->user->email)->queue(new OrderStatusMail($order));
             }
 
@@ -139,7 +149,7 @@ class OrderVendor extends Component
 
             DB::rollBack();
 
-            $this->dispatch('error', message: 'Something went wrong: ' . $e->getMessage());
+            $this->dispatch('error', message: 'Something went wrong: '.$e->getMessage());
         }
     }
 
@@ -150,9 +160,11 @@ class OrderVendor extends Component
         foreach ($order->items as $item) {
 
             $product = $item->product;
-            $vendor  = $product?->user;
+            $vendor = $product?->user;
 
-            if (!$vendor) continue;
+            if (! $vendor) {
+                continue;
+            }
 
             $categoryId = $product->category_id ?? 0;
             $rate = $commissionRates[$categoryId] ?? 0;
@@ -160,7 +172,7 @@ class OrderVendor extends Component
             $total = $item->total ?? ($item->price * $item->quantity);
 
             $adminCommission = $total * $rate / 100;
-            $vendorEarning   = $total - $adminCommission;
+            $vendorEarning = $total - $adminCommission;
 
             // Store snapshot
             DB::table('order_commissions')->insert([
@@ -178,28 +190,28 @@ class OrderVendor extends Component
         }
     }
 
-
     public function sendToCourier($orderId)
     {
         $courier = app(CourierService::class);
 
         $order = Order::with('items.product')->find($orderId);
-        if (!$order) {
+        if (! $order) {
             $this->dispatch('error', message: 'Order not found.');
+
             return;
         }
 
         $itemDescription = $order->items
-            ->map(fn($item) => ($item->product->name ?? 'Item') . " x{$item->quantity}")
+            ->map(fn ($item) => ($item->product->name ?? 'Item')." x{$item->quantity}")
             ->implode(', ');
 
         $data = [
-            'invoice'          => $order->invoice_no,
-            'name'             => $order->name,
-            'phone'            => $order->phone,
-            'address'          => $order->shipping_address,
-            'cod_amount'       => $order->total_amount,
-            'note'             => 'Deliver within 3PM',
+            'invoice' => $order->invoice_no,
+            'name' => $order->name,
+            'phone' => $order->phone,
+            'address' => $order->shipping_address,
+            'cod_amount' => $order->total_amount,
+            'note' => 'Deliver within 3PM',
             'item_description' => $itemDescription,
         ];
 
@@ -208,13 +220,14 @@ class OrderVendor extends Component
         // Check for dry_run (test environment)
         if (isset($response['status']) && $response['status'] === 'dry_run') {
             $this->dispatch('error', message: 'App is not in production mode. Order not sent.');
+
             return;
         }
 
         // Steadfast returns 200, Pathao returns data directly on success
-        $success = !empty($response['status']) && $response['status'] == 200   // Steadfast
-            || !empty($response['consignment_id'])                              // Pathao
-            || !empty($response['tracking_code']);                              // Steadfast alt
+        $success = ! empty($response['status']) && $response['status'] == 200   // Steadfast
+            || ! empty($response['consignment_id'])                              // Pathao
+            || ! empty($response['tracking_code']);                              // Steadfast alt
 
         if ($success) {
             $order->update(['status' => self::STATUS_SHIPPED]);
@@ -237,7 +250,9 @@ class OrderVendor extends Component
     // --------------------
     public function filterByStatus($status)
     {
-        if (!in_array($status, self::$statuses) && $status !== 'all') return;
+        if (! in_array($status, self::$statuses) && $status !== 'all') {
+            return;
+        }
         $this->statusFilter = $status;
         $this->resetPage();
     }
@@ -276,7 +291,7 @@ class OrderVendor extends Component
         $order = Order::with([
             'items.product',
             'items.variant.variantAttributeValues.attribute',
-            'items.variant.variantAttributeValues.attributeValue'
+            'items.variant.variantAttributeValues.attributeValue',
         ])->find($orderId);
 
         if ($order) {
@@ -298,7 +313,7 @@ class OrderVendor extends Component
 
         $query = Order::with([
             'items.product.user.vendorDetails',
-            'items.variant'
+            'items.variant',
         ]);
 
         // Vendor sees only orders with their products exclusively (no admin/other vendor products)
@@ -316,8 +331,7 @@ class OrderVendor extends Component
 
         if ($this->search) {
             $query->where(
-                fn($q) =>
-                $q->where('name', 'like', "%{$this->search}%")
+                fn ($q) => $q->where('name', 'like', "%{$this->search}%")
                     ->orWhere('phone', 'like', "%{$this->search}%")
                     ->orWhere('invoice_no', 'like', "%{$this->search}%")
             );

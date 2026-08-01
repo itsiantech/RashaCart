@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Admin\Order;
 
+use App\Models\Order;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Order;
 
 class BulkInvoicePrint extends Component
 {
@@ -90,10 +90,10 @@ class BulkInvoicePrint extends Component
     {
         $this->selectedOrders = $value
             ? $this->getOrdersQuery()
-            ->paginate($this->perPage)
-            ->pluck('id')
-            ->map(fn($id) => (string) $id)
-            ->toArray()
+                ->paginate($this->perPage)
+                ->pluck('id')
+                ->map(fn ($id) => (string) $id)
+                ->toArray()
             : [];
     }
 
@@ -156,38 +156,43 @@ class BulkInvoicePrint extends Component
             ])
             ->when($this->search, function ($q) {
                 $searchTerm = "%{$this->search}%";
+
                 // ✅ Wrap orWhere in a grouped closure so it doesn't leak
                 return $q->where(function ($inner) use ($searchTerm) {
                     $inner->where('order_number', 'like', $searchTerm)
-                        ->orWhere('invoice_no',  'like', $searchTerm)
-                        ->orWhere('name',        'like', $searchTerm)
-                        ->orWhere('email',       'like', $searchTerm)
-                        ->orWhere('phone',       'like', $searchTerm);
+                        ->orWhere('invoice_no', 'like', $searchTerm)
+                        ->orWhere('name', 'like', $searchTerm)
+                        ->orWhere('email', 'like', $searchTerm)
+                        ->orWhere('phone', 'like', $searchTerm);
                 });
             })
-            ->when($this->status,    fn($q) => $q->where('status', $this->status))
-            ->when($this->dateFrom,  fn($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
-            ->when($this->dateTo,    fn($q) => $q->whereDate('created_at', '<=', $this->dateTo))
+            ->when($this->status, fn ($q) => $q->where('status', $this->status))
+            ->when($this->dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
+            ->when($this->dateTo, fn ($q) => $q->whereDate('created_at', '<=', $this->dateTo))
             ->when($this->printingStatus, function ($q) {
-                if ($this->printingStatus === 'printed')     return $q->where('is_printed', true);
-                if ($this->printingStatus === 'not_printed') return $q->where('is_printed', false);
+                if ($this->printingStatus === 'printed') {
+                    return $q->where('is_printed', true);
+                }
+                if ($this->printingStatus === 'not_printed') {
+                    return $q->where('is_printed', false);
+                }
             })
-            ->when($this->productSku, fn($q) => $q->whereHas(
+            ->when($this->productSku, fn ($q) => $q->whereHas(
                 'items.product',
-                fn($sub) => $sub->where('sku', 'like', "%{$this->productSku}%")
+                fn ($sub) => $sub->where('sku', 'like', "%{$this->productSku}%")
             ))
-            ->when($this->productName, fn($q) => $q->whereHas(
+            ->when($this->productName, fn ($q) => $q->whereHas(
                 'items.product',
-                fn($sub) => $sub->where('name', 'like', "%{$this->productName}%")
+                fn ($sub) => $sub->where('name', 'like', "%{$this->productName}%")
             ))
             // ✅ Fixed qty filters — use whereHas with a join-style subquery
-            ->when($this->qtyMin, fn($q) => $q->whereHas(
+            ->when($this->qtyMin, fn ($q) => $q->whereHas(
                 'items',
-                fn($sub) => $sub->where('quantity', '>=', $this->qtyMin)
+                fn ($sub) => $sub->where('quantity', '>=', $this->qtyMin)
             ))
-            ->when($this->qtyMax, fn($q) => $q->whereHas(
+            ->when($this->qtyMax, fn ($q) => $q->whereHas(
                 'items',
-                fn($sub) => $sub->where('quantity', '<=', $this->qtyMax)
+                fn ($sub) => $sub->where('quantity', '<=', $this->qtyMax)
             ))
             ->latest('id');
     }

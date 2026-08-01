@@ -13,41 +13,55 @@ use Livewire\WithPagination;
 
 class SingleView extends Component
 {
-    use WithPagination;
     use HandlesCartActions {
         HandlesCartActions::addToCart as traitAddToCart;
         HandlesCartActions::buyNow as traitBuyNow;
     }
+    use WithPagination;
 
     public $relatedProducts;
+
     public $product;
 
     public $meta_title;
+
     public $meta_description;
+
     public $meta_keywords;
+
     public $meta_tags;
 
     public bool $enableVariant = true;
+
     public bool $enableColor = true;
+
     public bool $enableSize = true;
 
     public $selectedVariant = null;
+
     public $selectedColor = null;
+
     public $selectedSize = null;
 
     public $colorAttrName = 'Color';
+
     public $sizeAttrName = 'Size';
 
     public $quantity = 1;
+
     public $rating = 0;
+
     public $comment = '';
 
     public $displayPrice;
+
     public $strikePrice;
+
     public $flashSaleItem = null;
 
     // ← ADD THESE NEW PROPERTIES
     public $currentStock = 0;
+
     public $isInStock = false;
 
     protected $rules = [
@@ -66,7 +80,7 @@ class SingleView extends Component
                     'variantAttributeValues' => function ($q2) {
                         $q2->with(['attribute', 'attributeValue']);
                     },
-                    'inventories'
+                    'inventories',
                 ]);
             },
             'inventories',
@@ -97,6 +111,7 @@ class SingleView extends Component
 
         $this->relatedProducts = $this->relatedProducts->map(function ($product) use ($totalSold) {
             $product->total_sold = $totalSold[$product->id] ?? 0;
+
             return $product;
         });
 
@@ -111,20 +126,20 @@ class SingleView extends Component
             ->where('is_active', true)
             ->first();
 
-        $basePrice     = $this->product->sale_price ?? $this->product->price;
+        $basePrice = $this->product->sale_price ?? $this->product->price;
         $originalPrice = $this->product->price;
 
         if ($this->flashSaleItem) {
             $this->displayPrice = $basePrice * (1 - $this->flashSaleItem->discount_percent / 100);
-            $this->strikePrice  = $basePrice;
+            $this->strikePrice = $basePrice;
         } else {
             $this->displayPrice = $basePrice;
-            $this->strikePrice  = $originalPrice;
+            $this->strikePrice = $originalPrice;
         }
 
         $this->updateStockStatus();
 
-        $this->dispatch('track-event', event: 'ViewContent', data: [
+        $this->dispatch('track-event', eventName: 'ViewContent', data: [
             'content_id'   => $this->product->id,
             'content_name' => $this->product->name,
             'content_type' => 'product',
@@ -138,6 +153,7 @@ class SingleView extends Component
         if ($this->enableVariant && $this->selectedVariant) {
             // Get stock from selected variant
             $variant = \App\Models\ProductVariant::find($this->selectedVariant);
+
             return $variant?->inventories()
                 ->latest('id')
                 ->first()?->current_stock ?? 0;
@@ -149,30 +165,30 @@ class SingleView extends Component
             ->first()?->current_stock ?? 0;
     }
 
-
     public function updateStockStatus()
     {
         $this->currentStock = $this->getCurrentStock();
         $this->isInStock = $this->currentStock > 0;
     }
 
-
     private function validateStock()
     {
-        if (!$this->isInStock) {
+        if (! $this->isInStock) {
             $this->dispatch('notify', [
                 'type' => 'error',
-                'message' => 'This product is out of stock!'
+                'message' => 'This product is out of stock!',
             ]);
+
             return false;
         }
 
         if ($this->quantity > $this->currentStock) {
             $this->dispatch('notify', [
                 'type' => 'warning',
-                'message' => "Only {$this->currentStock} items available. Quantity adjusted."
+                'message' => "Only {$this->currentStock} items available. Quantity adjusted.",
             ]);
             $this->quantity = $this->currentStock;
+
             return true;
         }
 
@@ -181,29 +197,33 @@ class SingleView extends Component
 
     private function validateVariantSelected(): bool
     {
-        if (!$this->enableVariant || $this->product->variants->count() === 0) {
+        if (! $this->enableVariant || $this->product->variants->count() === 0) {
             return true;
         }
 
         $hasColor = $this->hasColorAttribute();
-        $hasSize  = $this->hasSizeAttribute();
+        $hasSize = $this->hasSizeAttribute();
 
         // Color only product
-        if ($hasColor && !$hasSize) {
+        if ($hasColor && ! $hasSize) {
             if (empty($this->selectedColor)) {
                 $this->dispatch('error', message: 'Please select a color before continuing.');
                 $this->dispatch('show-variant-warning');
+
                 return false;
             }
+
             return true;
         }
 
-        if (!$hasColor && $hasSize) {
+        if (! $hasColor && $hasSize) {
             if (empty($this->selectedSize)) {
                 $this->dispatch('error', message: 'Please select a size before continuing.');
                 $this->dispatch('show-variant-warning');
+
                 return false;
             }
+
             return true;
         }
 
@@ -211,17 +231,21 @@ class SingleView extends Component
             if (empty($this->selectedColor)) {
                 $this->dispatch('error', message: 'Please select a color before continuing.');
                 $this->dispatch('show-variant-warning');
+
                 return false;
             }
             if (empty($this->selectedSize)) {
                 $this->dispatch('error', message: 'Please select a size before continuing.');
                 $this->dispatch('show-variant-warning');
+
                 return false;
             }
             if (empty($this->selectedVariant)) {
                 $this->dispatch('error', message: 'The selected combination is not available.');
+
                 return false;
             }
+
             return true;
         }
 
@@ -231,11 +255,11 @@ class SingleView extends Component
     public function addToCart($productId)
     {
 
-        if (!$this->validateVariantSelected()) {
+        if (! $this->validateVariantSelected()) {
             return false;
         }
 
-        if (!$this->validateStock()) {
+        if (! $this->validateStock()) {
             return false;
         }
 
@@ -244,17 +268,16 @@ class SingleView extends Component
 
     public function buyNow($productId)
     {
-        if (!$this->validateVariantSelected()) {
+        if (! $this->validateVariantSelected()) {
             return false;
         }
 
-        if (!$this->validateStock()) {
+        if (! $this->validateStock()) {
             return false;
         }
 
         return $this->traitBuyNow($productId);
     }
-
 
     public function selectVariant($variantId)
     {
@@ -267,7 +290,7 @@ class SingleView extends Component
     {
         if ($this->selectedColor === $color) {
             $this->selectedColor = null;
-            $this->selectedSize  = null;
+            $this->selectedSize = null;
         } else {
             $this->selectedColor = $color;
             $this->quantity = 1;
@@ -300,7 +323,7 @@ class SingleView extends Component
 
     private function matchSelectedVariant()
     {
-        if (!$this->enableVariant) {
+        if (! $this->enableVariant) {
             return;
         }
 
@@ -334,17 +357,20 @@ class SingleView extends Component
                 if ($matchColor && $matchSize) {
                     $this->selectedVariant = $variant->id;
                     $this->updateStockStatus();
+
                     return;
                 }
-            } elseif ($hasColorAttribute && !$hasSizeAttribute && $matchColor) {
+            } elseif ($hasColorAttribute && ! $hasSizeAttribute && $matchColor) {
                 $this->selectedVariant = $variant->id;
                 $this->updateStockStatus();
+
                 return;
             }
             // যদি শুধু সাইজ থাকে এবং ম্যাচ করে
-            elseif (!$hasColorAttribute && $hasSizeAttribute && $matchSize) {
+            elseif (! $hasColorAttribute && $hasSizeAttribute && $matchSize) {
                 $this->selectedVariant = $variant->id;
                 $this->updateStockStatus();
+
                 return;
             }
         }
@@ -353,21 +379,20 @@ class SingleView extends Component
         $this->updateStockStatus();
     }
 
-
     private function getProductAttributeTypes()
     {
         $attributeTypes = collect();
         foreach ($this->product->variants as $variant) {
             foreach ($variant->variantAttributeValues as $vav) {
                 $attrName = strtolower($vav->attribute?->name ?? '');
-                if (!$attributeTypes->contains($attrName)) {
+                if (! $attributeTypes->contains($attrName)) {
                     $attributeTypes->push($attrName);
                 }
             }
         }
+
         return $attributeTypes;
     }
-
 
     private function hasColorAttribute(): bool
     {
@@ -389,33 +414,36 @@ class SingleView extends Component
         $hasSize = $this->hasSizeAttribute();
 
         // If product only has colors, resolve when color is selected
-        if ($hasColor && !$hasSize) {
-            if (!empty($this->selectedColor)) {
+        if ($hasColor && ! $hasSize) {
+            if (! empty($this->selectedColor)) {
                 $this->resolveVariant();
             }
+
             return;
         }
 
         // If product only has sizes, resolve when size is selected
-        if (!$hasColor && $hasSize) {
-            if (!empty($this->selectedSize)) {
+        if (! $hasColor && $hasSize) {
+            if (! empty($this->selectedSize)) {
                 $this->resolveVariant();
             }
+
             return;
         }
 
         // If product has both, resolve only when BOTH are selected
         if ($hasColor && $hasSize) {
-            if (!empty($this->selectedColor) && !empty($this->selectedSize)) {
+            if (! empty($this->selectedColor) && ! empty($this->selectedSize)) {
                 $this->resolveVariant();
             } else {
                 $this->selectedVariant = null;
                 $this->dispatch('variant-resolved', variantId: null);
             }
+
             return;
         }
 
-        if (!empty($this->selectedVariant)) {
+        if (! empty($this->selectedVariant)) {
             return;
         }
 
@@ -427,25 +455,28 @@ class SingleView extends Component
     protected function resolveVariant()
     {
         $hasColor = $this->hasColorAttribute();
-        $hasSize  = $this->hasSizeAttribute();
+        $hasSize = $this->hasSizeAttribute();
 
         if ($hasColor && $hasSize) {
             if (empty($this->selectedColor) || empty($this->selectedSize)) {
                 $this->selectedVariant = null;
                 $this->dispatch('variant-resolved', variantId: null);
+
                 return;
             }
         }
 
         foreach ($this->product->variants as $variant) {
-            $colorMatch = !$hasColor;
-            $sizeMatch  = !$hasSize;
+            $colorMatch = ! $hasColor;
+            $sizeMatch = ! $hasSize;
 
             foreach ($variant->variantAttributeValues as $vav) {
-                if (!$vav->attributeValue || !$vav->attribute) continue;
+                if (! $vav->attributeValue || ! $vav->attribute) {
+                    continue;
+                }
 
                 $attrName = strtolower($vav->attribute->name ?? '');
-                $val      = $vav->attributeValue->value ?? '';
+                $val = $vav->attributeValue->value ?? '';
 
                 // ← str_contains instead of in_array
                 if (str_contains($attrName, 'color') || str_contains($attrName, 'colour')) {
@@ -460,6 +491,7 @@ class SingleView extends Component
             if ($colorMatch && $sizeMatch) {
                 $this->selectedVariant = $variant->id;
                 $this->dispatch('variant-resolved', variantId: $this->selectedVariant);
+
                 return;
             }
         }
@@ -516,7 +548,7 @@ class SingleView extends Component
             $colorVal = null;
 
             foreach ($variant->variantAttributeValues as $vav) {
-                if (!$vav->attributeValue || !$vav->attribute) {
+                if (! $vav->attributeValue || ! $vav->attribute) {
                     continue;
                 }
 
@@ -529,7 +561,7 @@ class SingleView extends Component
                 }
             }
 
-            if ($colorVal && !$colorOptions->contains('value', $colorVal)) {
+            if ($colorVal && ! $colorOptions->contains('value', $colorVal)) {
                 $colorOptions->push([
                     'value' => $colorVal,
                     'variant_id' => $variant->id,
@@ -547,7 +579,7 @@ class SingleView extends Component
 
         foreach ($this->product->variants as $variant) {
             foreach ($variant->variantAttributeValues as $vav) {
-                if (!$vav->attributeValue || !$vav->attribute) {
+                if (! $vav->attributeValue || ! $vav->attribute) {
                     continue;
                 }
 
@@ -555,7 +587,7 @@ class SingleView extends Component
                 $val = $vav->attributeValue->value ?? '';
 
                 if ($attrName === strtolower($this->sizeAttrName)) {
-                    if (!$sizeOptions->contains('value', $val)) {
+                    if (! $sizeOptions->contains('value', $val)) {
                         $sizeOptions->push(['value' => $val]);
                     }
                     break;
@@ -568,7 +600,7 @@ class SingleView extends Component
 
     public function getAvailableSizesProperty()
     {
-        if (!$this->selectedColor) {
+        if (! $this->selectedColor) {
             return $this->sizeOptions->map(fn($s) => [
                 'value' => $s['value'],
                 'stock' => 1,
@@ -582,7 +614,7 @@ class SingleView extends Component
             $sizeVal = null;
 
             foreach ($variant->variantAttributeValues as $vav) {
-                if (!$vav->attributeValue || !$vav->attribute) {
+                if (! $vav->attributeValue || ! $vav->attribute) {
                     continue;
                 }
 
@@ -612,7 +644,9 @@ class SingleView extends Component
 
     public function getActiveVariantProperty()
     {
-        if (!$this->selectedVariant) return null;
+        if (! $this->selectedVariant) {
+            return null;
+        }
 
         $variant = \App\Models\ProductVariant::with([
             'variantAttributeValues.attribute',
@@ -620,13 +654,17 @@ class SingleView extends Component
             'inventories',
         ])->find($this->selectedVariant);
 
-        if (!$variant) return null;
+        if (! $variant) {
+            return null;
+        }
 
         // If this variant has no image, find the color variant's image
-        if (empty($variant->image) && !empty($this->selectedColor)) {
+        if (empty($variant->image) && ! empty($this->selectedColor)) {
             $colorVariant = $this->product->variants->first(function ($v) {
                 foreach ($v->variantAttributeValues as $vav) {
-                    if (!$vav->attribute || !$vav->attributeValue) continue;
+                    if (! $vav->attribute || ! $vav->attributeValue) {
+                        continue;
+                    }
                     $attrName = strtolower($vav->attribute->name ?? '');
                     if (
                         in_array($attrName, ['color', 'colour'])
@@ -635,10 +673,11 @@ class SingleView extends Component
                         return true;
                     }
                 }
+
                 return false;
             });
 
-            if ($colorVariant && !empty($colorVariant->image)) {
+            if ($colorVariant && ! empty($colorVariant->image)) {
                 $variant->image = $colorVariant->image;
             }
         }
@@ -658,8 +697,8 @@ class SingleView extends Component
             'sizeOptions' => $this->sizeOptions,
             'availableSizes' => $this->availableSizes,
             'activeVariant' => $this->activeVariant,
-            'displayPrice'  => $this->displayPrice,
-            'strikePrice'   => $this->strikePrice,
+            'displayPrice' => $this->displayPrice,
+            'strikePrice' => $this->strikePrice,
             'flashSaleItem' => $this->flashSaleItem,
             'currentStock' => $this->currentStock,
             'isInStock' => $this->isInStock,
@@ -670,7 +709,7 @@ class SingleView extends Component
                     'description' => $this->meta_description ?? '',
                     'keywords' => $this->meta_keywords ?? '',
                     'tags' => $this->meta_tags ?? '',
-                ]
+                ],
             ]);
     }
 }

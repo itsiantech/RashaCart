@@ -14,6 +14,7 @@ class VendorPayout extends Component
     use WithPagination;
 
     public $search = '';
+
     public $perPage = 10;
 
     protected $updatesQueryString = ['search', 'perPage'];
@@ -51,7 +52,9 @@ class VendorPayout extends Component
 
         foreach ($orderItems as $item) {
 
-            if (!$item->product) continue;
+            if (! $item->product) {
+                continue;
+            }
 
             $vendorId = $item->product->user_id;
 
@@ -63,7 +66,9 @@ class VendorPayout extends Component
 
             $amount = $price * $quantity;
 
-            if ($amount <= 0) continue;
+            if ($amount <= 0) {
+                continue;
+            }
 
             $vendorShare = $amount - (($amount * $rate) / 100);
 
@@ -91,13 +96,14 @@ class VendorPayout extends Component
 
         if ($available < 500) {
             session()->flash('error', 'Minimum withdrawal amount is 500 TK.');
+
             return;
         }
 
         WithdrawalRequest::create([
             'vendor_id' => $vendorId,
             'amount' => $available,
-            'status' => 'pending'
+            'status' => 'pending',
         ]);
 
         $this->dispatch('$refresh');
@@ -115,7 +121,7 @@ class VendorPayout extends Component
         } else {
             // Admin can search vendors
             if ($this->search) {
-                $query->where('name', 'like', '%' . $this->search . '%');
+                $query->where('name', 'like', '%'.$this->search.'%');
             }
         }
 
@@ -144,7 +150,7 @@ class VendorPayout extends Component
         return view('livewire.admin.vendor.vendor-payout', [
             'vendors' => $vendors,
             'earnings' => $earnings,
-            'withdrawnTotals' => $withdrawnTotals
+            'withdrawnTotals' => $withdrawnTotals,
         ])->layout('livewire.admin.layouts.app');
     }
 }

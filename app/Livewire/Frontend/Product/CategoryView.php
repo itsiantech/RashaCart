@@ -2,22 +2,22 @@
 
 namespace App\Livewire\Frontend\Product;
 
-use App\Livewire\Admin\Category\CategoryComponent;
-use Livewire\Component;
-use Livewire\WithPagination;
 use App\Models\Category;
 use App\Models\Product;
 use App\Traits\HandlesCartActions;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class CategoryView extends Component
 {
-    use WithPagination;
     use HandlesCartActions;
+    use WithPagination;
 
     public $category = null;
-    public $selectedPrice = null;
-    public $allCategories = []; // For sidebar filters
 
+    public $selectedPrice = null;
+
+    public $allCategories = []; // For sidebar filters
 
     protected $queryString = [
         'selectedPrice' => ['except' => null],
@@ -35,7 +35,6 @@ class CategoryView extends Component
             ->orderBy('name')
             ->get();
     }
-
 
     public function togglePrice($price)
     {
@@ -59,7 +58,7 @@ class CategoryView extends Component
 
         if ($this->selectedPrice) {
             [$min, $max] = explode('-', $this->selectedPrice);
-            $query->whereBetween('price', [(int)$min, (int)$max]);
+            $query->whereBetween('price', [(int) $min, (int) $max]);
         }
 
         return $query->paginate(20);

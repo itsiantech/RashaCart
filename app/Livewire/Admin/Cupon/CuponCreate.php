@@ -2,16 +2,35 @@
 
 namespace App\Livewire\Admin\Cupon;
 
-use Livewire\Component;
+use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Product;
-use App\Models\Category;
+use Livewire\Component;
 
 class CuponCreate extends Component
 {
     public $coupon_id;
-    public $code, $discount_type, $discount_value, $min_order_amount, $max_discount_amount, $start_date, $end_date, $usage_limit, $status;
+
+    public $code;
+
+    public $discount_type;
+
+    public $discount_value;
+
+    public $min_order_amount;
+
+    public $max_discount_amount;
+
+    public $start_date;
+
+    public $end_date;
+
+    public $usage_limit;
+
+    public $status;
+
     public $selected_products = [];
+
     public $selected_categories = [];
 
     public function mount($coupon_id = null)
@@ -36,9 +55,9 @@ class CuponCreate extends Component
 
     public function save()
     {
-        
+
         $validated = $this->validate([
-            'code' => 'required|unique:coupons,code,' . $this->coupon_id,
+            'code' => 'required|unique:coupons,code,'.$this->coupon_id,
             'discount_type' => 'required|in:percent,fixed',
             'discount_value' => 'required|numeric|min:0',
             'min_order_amount' => 'nullable|numeric|min:0',
@@ -46,10 +65,9 @@ class CuponCreate extends Component
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'usage_limit' => 'nullable|integer|min:0',
-            
-        ]);       
 
-       
+        ]);
+
         $coupon = Coupon::updateOrCreate(
             ['id' => $this->coupon_id],
             $validated
@@ -58,9 +76,9 @@ class CuponCreate extends Component
         // Sync products and categories
         $coupon->products()->sync($this->selected_products);
         $coupon->categories()->sync($this->selected_categories);
-      
+
         $this->dispatch('success', message: 'Coupon saved successfully.');
-       
+
         $this->resetInputs();
     }
 
@@ -84,7 +102,7 @@ class CuponCreate extends Component
     {
         return view('livewire.admin.cupon.cupon-create', [
             'products' => Product::all(),
-            'categories' => Category::all()
+            'categories' => Category::all(),
         ])->layout('livewire.admin.layouts.app');
     }
 }

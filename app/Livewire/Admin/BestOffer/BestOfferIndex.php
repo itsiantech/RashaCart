@@ -11,24 +11,31 @@ class BestOfferIndex extends Component
 {
     use WithPagination;
 
-    public $search        = '';
-    public $product_id    = '';
+    public $search = '';
+
+    public $product_id = '';
+
     public $discount_type = 'percent';
+
     public $discount_value = '';
-    public $days          = 7;
-    public $is_active     = true;
-    public $showForm      = false;
-    public $deleteId      = null;
+
+    public $days = 7;
+
+    public $is_active = true;
+
+    public $showForm = false;
+
+    public $deleteId = null;
 
     protected $listeners = ['deleteConfirmed'];
 
     protected function rules()
     {
         return [
-            'product_id'     => 'required|exists:products,id',
-            'discount_type'  => 'required|in:fixed,percent',
+            'product_id' => 'required|exists:products,id',
+            'discount_type' => 'required|in:fixed,percent',
             'discount_value' => 'required|numeric|min:0',
-            'days'           => 'required|integer|min:1|max:365',
+            'days' => 'required|integer|min:1|max:365',
         ];
     }
 
@@ -36,10 +43,12 @@ class BestOfferIndex extends Component
     {
         $this->calculateOfferPrice();
     }
+
     public function updatedDiscountType()
     {
         $this->calculateOfferPrice();
     }
+
     public function updatedProductId()
     {
         $this->calculateOfferPrice();
@@ -52,10 +61,14 @@ class BestOfferIndex extends Component
 
     public function getOfferPricePreviewProperty()
     {
-        if (!$this->product_id || !$this->discount_value) return null;
+        if (! $this->product_id || ! $this->discount_value) {
+            return null;
+        }
 
         $product = Product::find($this->product_id);
-        if (!$product) return null;
+        if (! $product) {
+            return null;
+        }
 
         $base = $product->sale_price ?? $product->price;
 
@@ -71,19 +84,19 @@ class BestOfferIndex extends Component
         $this->validate();
 
         $product = Product::findOrFail($this->product_id);
-        $base    = $product->sale_price ?? $product->price;
+        $base = $product->sale_price ?? $product->price;
 
         $offerPrice = $this->discount_type === 'percent'
             ? max(0, $base - ($base * $this->discount_value / 100))
             : max(0, $base - $this->discount_value);
 
         BestOffer::create([
-            'product_id'     => $this->product_id,
-            'discount_type'  => $this->discount_type,
+            'product_id' => $this->product_id,
+            'discount_type' => $this->discount_type,
             'discount_value' => $this->discount_value,
-            'offer_price'    => $offerPrice,
-            'expires_at'     => now()->addDays((int) $this->days),
-            'is_active'      => true,
+            'offer_price' => $offerPrice,
+            'expires_at' => now()->addDays((int) $this->days),
+            'is_active' => true,
         ]);
 
         $this->reset(['product_id', 'discount_type', 'discount_value', 'days', 'showForm']);
@@ -96,7 +109,7 @@ class BestOfferIndex extends Component
     {
         $offer = BestOffer::find($id);
         if ($offer) {
-            $offer->update(['is_active' => !$offer->is_active]);
+            $offer->update(['is_active' => ! $offer->is_active]);
             $this->dispatch('success', message: 'Status updated.');
         }
     }
@@ -109,7 +122,9 @@ class BestOfferIndex extends Component
 
     public function deleteConfirmed()
     {
-        if (!$this->deleteId) return;
+        if (! $this->deleteId) {
+            return;
+        }
         BestOffer::find($this->deleteId)?->delete();
         $this->deleteId = null;
         $this->dispatch('success', message: 'Offer deleted.');
@@ -120,11 +135,9 @@ class BestOfferIndex extends Component
         $offers = BestOffer::with('product')
             ->when(
                 $this->search,
-                fn($q) =>
-                $q->whereHas(
+                fn ($q) => $q->whereHas(
                     'product',
-                    fn($pq) =>
-                    $pq->where('name', 'like', '%' . $this->search . '%')
+                    fn ($pq) => $pq->where('name', 'like', '%'.$this->search.'%')
                 )
             )
             ->latest()

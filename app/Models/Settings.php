@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache; 
+use Illuminate\Support\Facades\Cache;
+
 class Settings extends Model
 {
     protected $fillable = ['key', 'value'];
+
     protected static $settings = null;
 
-   
     public static function getAllSettings()
     {
         if (is_null(self::$settings)) {
@@ -17,6 +18,7 @@ class Settings extends Model
                 return self::pluck('value', 'key')->all();
             });
         }
+
         return self::$settings;
     }
 
@@ -26,7 +28,6 @@ class Settings extends Model
         self::$settings = null;
     }
 
-  
     public function save(array $options = [])
     {
         parent::save($options);

@@ -18,7 +18,7 @@ class FlashSaleItem extends Model
     protected $casts = [
         'discount_percent' => 'decimal:2',
         'discounted_price' => 'decimal:2',
-        'is_active'        => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     // ─── Relationships ────────────────────────────────────────────────────────

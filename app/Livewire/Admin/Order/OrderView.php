@@ -2,20 +2,26 @@
 
 namespace App\Livewire\Admin\Order;
 
-use Livewire\Component;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use Livewire\Component;
 
 class OrderView extends Component
 {
     public $orderId;
+
     public $order;
+
     public $searchProduct = '';
+
     public $searchResults = [];
+
     public $selectedProduct = null;
+
     public $selectedVariant = null;
+
     public $newItemQuantity = 1;
 
     protected $listeners = ['orderUpdated' => '$refresh'];
@@ -43,34 +49,35 @@ class OrderView extends Component
     private function resolveItemImage($item): string
     {
         $fallback = $item->product?->thumbnail
-            ? asset('storage/' . $item->product->thumbnail)
+            ? asset('storage/'.$item->product->thumbnail)
             : asset('assets/admin/img/avatars/user-avater.png');
 
         if (empty($item->product_variant_id)) {
             return $fallback;
         }
 
-        if ($item->variant && !empty($item->variant->image)) {
-            return asset('storage/' . $item->variant->image);
+        if ($item->variant && ! empty($item->variant->image)) {
+            return asset('storage/'.$item->variant->image);
         }
-
 
         $colorValue = null;
         foreach ($item->variant?->variantAttributeValues ?? [] as $vav) {
-            if (!$vav->attribute || !$vav->attributeValue) continue;
+            if (! $vav->attribute || ! $vav->attributeValue) {
+                continue;
+            }
             if (in_array(strtolower($vav->attribute->name ?? ''), ['color', 'colour'])) {
                 $colorValue = $vav->attributeValue->value;
                 break;
             }
         }
 
-        if (!$colorValue && !empty($item->color)) {
+        if (! $colorValue && ! empty($item->color)) {
             $colorValue = $item->color;
         }
 
         if ($colorValue && $item->product) {
             $colorVariant = $item->product->variants->first(
-                fn($v) => !empty($v->image) &&
+                fn ($v) => ! empty($v->image) &&
                     $v->variantAttributeValues->contains(function ($vav) use ($colorValue) {
                         return $vav->attributeValue &&
                             in_array(strtolower($vav->attribute?->name ?? ''), ['color', 'colour']) &&
@@ -79,14 +86,14 @@ class OrderView extends Component
             );
 
             if ($colorVariant) {
-                return asset('storage/' . $colorVariant->image);
+                return asset('storage/'.$colorVariant->image);
             }
         }
 
         if ($item->product) {
-            $anyImageVariant = $item->product->variants->first(fn($v) => !empty($v->image));
+            $anyImageVariant = $item->product->variants->first(fn ($v) => ! empty($v->image));
             if ($anyImageVariant) {
-                return asset('storage/' . $anyImageVariant->image);
+                return asset('storage/'.$anyImageVariant->image);
             }
         }
 
@@ -115,7 +122,9 @@ class OrderView extends Component
 
     public function addItem()
     {
-        if (!$this->selectedProduct) return;
+        if (! $this->selectedProduct) {
+            return;
+        }
 
         $variantId = $this->selectedVariant ? $this->selectedVariant : null;
 
@@ -173,7 +182,6 @@ class OrderView extends Component
         $this->loadOrder();
         $this->dispatch('success', message: 'Order status updated!');
     }
-
 
     public function render()
     {

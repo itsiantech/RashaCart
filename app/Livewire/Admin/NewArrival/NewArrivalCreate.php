@@ -11,14 +11,17 @@ class NewArrivalCreate extends Component
 {
     use WithPagination;
 
-    public $search        = '';
+    public $search = '';
+
     public $searchResults = [];
+
     public $productSearch = '';
 
     public function updatedProductSearch()
     {
         if (strlen($this->productSearch) < 2) {
             $this->searchResults = [];
+
             return;
         }
 
@@ -27,7 +30,7 @@ class NewArrivalCreate extends Component
 
         $this->searchResults = Product::where('status', true)
             ->whereNotIn('id', $existingIds)
-            ->where('name', 'like', '%' . $this->productSearch . '%')
+            ->where('name', 'like', '%'.$this->productSearch.'%')
             ->limit(8)
             ->get(['id', 'name', 'thumbnail', 'price'])
             ->toArray();
@@ -38,6 +41,7 @@ class NewArrivalCreate extends Component
         // Prevent duplicates
         if (NewArrival::where('product_id', $productId)->exists()) {
             session()->flash('error', 'Product already in New Arrivals.');
+
             return;
         }
 
@@ -46,7 +50,7 @@ class NewArrivalCreate extends Component
         NewArrival::create([
             'product_id' => $productId,
             'sort_order' => $maxOrder + 1,
-            'is_active'  => true,
+            'is_active' => true,
         ]);
 
         $this->productSearch = '';
@@ -57,7 +61,7 @@ class NewArrivalCreate extends Component
     public function toggleActive($id)
     {
         $item = NewArrival::findOrFail($id);
-        $item->update(['is_active' => !$item->is_active]);
+        $item->update(['is_active' => ! $item->is_active]);
     }
 
     public function remove($id)
@@ -71,11 +75,9 @@ class NewArrivalCreate extends Component
         return NewArrival::with('product')
             ->when(
                 $this->search,
-                fn($q) =>
-                $q->whereHas(
+                fn ($q) => $q->whereHas(
                     'product',
-                    fn($q2) =>
-                    $q2->where('name', 'like', '%' . $this->search . '%')
+                    fn ($q2) => $q2->where('name', 'like', '%'.$this->search.'%')
                 )
             )
             ->ordered()
@@ -84,7 +86,7 @@ class NewArrivalCreate extends Component
 
     public function render()
     {
-        return view('livewire.admin.new-arrival.new-arrival-create', ['items' => $this->items,])
+        return view('livewire.admin.new-arrival.new-arrival-create', ['items' => $this->items])
             ->layout('livewire.admin.layouts.app');
     }
 }

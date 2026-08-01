@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     use HasFactory;
+
     protected $guarded = [];
 
     protected $fillable = [
@@ -61,7 +62,6 @@ class Product extends Model
             ->whereNull('variant_id');
     }
 
-
     public function category()
     {
         return $this->belongsTo(Category::class);
@@ -76,7 +76,6 @@ class Product extends Model
     {
         return $this->belongsTo(User::class, 'vendor_id');
     }
-
 
     public function variants()
     {
@@ -133,13 +132,18 @@ class Product extends Model
     // Helper accessor
     public function getIsPreorderActiveAttribute(): bool
     {
-        if (!$this->is_preorder) return false;
-        if ($this->preorder_start_date && $this->preorder_start_date > now()) return false;
-        if ($this->preorder_end_date && $this->preorder_end_date < now()) return false;
+        if (! $this->is_preorder) {
+            return false;
+        }
+        if ($this->preorder_start_date && $this->preorder_start_date > now()) {
+            return false;
+        }
+        if ($this->preorder_end_date && $this->preorder_end_date < now()) {
+            return false;
+        }
+
         return true;
     }
-
-
 
     protected static function booted()
     {

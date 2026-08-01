@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\FlashSaleItem;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,7 +18,7 @@ class FlashSale extends Model
 
     protected $casts = [
         'start_at' => 'datetime',
-        'end_at'   => 'datetime',
+        'end_at' => 'datetime',
         'is_active' => 'boolean',
     ];
 
@@ -79,6 +78,7 @@ class FlashSale extends Model
     public function scopeLive($query)
     {
         $now = Carbon::now();
+
         return $query->where('start_at', '<=', $now)->where('end_at', '>=', $now);
     }
 }

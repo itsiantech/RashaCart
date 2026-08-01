@@ -3,16 +3,17 @@
 namespace App\Livewire\Frontend\Brand;
 
 use App\Models\Brand;
+use App\Traits\HandlesCartActions;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Traits\HandlesCartActions;
 
 class BrandView extends Component
 {
-    use WithPagination;
     use HandlesCartActions;
+    use WithPagination;
 
     public $brand = null;
+
     public $selectedPrice = null;
 
     protected $queryString = [
@@ -21,7 +22,7 @@ class BrandView extends Component
 
     public function mount($slug = null)
     {
-        if($slug) {
+        if ($slug) {
             $this->brand = Brand::where('slug', $slug)->first();
         }
     }
@@ -35,13 +36,13 @@ class BrandView extends Component
     {
         $query = Brand::query();
 
-        if($this->brand) {
+        if ($this->brand) {
             $query->where('category_id', $this->brand->id);
         }
 
-        if($this->selectedPrice) {
+        if ($this->selectedPrice) {
             [$min, $max] = explode('-', $this->selectedPrice);
-            $query->whereBetween('price', [(int)$min, (int)$max]);
+            $query->whereBetween('price', [(int) $min, (int) $max]);
         }
 
         return $query->paginate(16);
@@ -50,8 +51,8 @@ class BrandView extends Component
     public function render()
     {
         return view('livewire.frontend.brand.brand-view',
-        [
-            'brands' => $this->brands,
-        ])->layout('livewire.frontend.layouts.app');
+            [
+                'brands' => $this->brands,
+            ])->layout('livewire.frontend.layouts.app');
     }
 }

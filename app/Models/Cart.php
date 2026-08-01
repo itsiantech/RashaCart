@@ -12,16 +12,19 @@ class Cart extends Model
         'product_variant_id', // Foreign key to the ProductVariant model
         'quantity', // Quantity of the product in the cart
     ];
-    public function user() {
+
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
-    public function product() {
+    public function product()
+    {
         return $this->belongsTo(Product::class);
     }
 
-    public function variant() {
+    public function variant()
+    {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
-
 }

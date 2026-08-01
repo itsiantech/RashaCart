@@ -11,12 +11,13 @@ class AttributeValue extends Model
         'value', // e.g. Red, Large
     ];
 
-    public function attribute() {
+    public function attribute()
+    {
         return $this->belongsTo(Attribute::class);
     }
 
-    public function variantAttributeValues() {
+    public function variantAttributeValues()
+    {
         return $this->hasMany(VariantAttributeValue::class);
     }
-
 }

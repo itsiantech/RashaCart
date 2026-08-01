@@ -2,12 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Str;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Cache;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Brand extends Model
 {
@@ -19,7 +17,7 @@ class Brand extends Model
         'description',
         'logo',
         'is_active',
-        'sort_order'
+        'sort_order',
     ];
 
     public function allChildren()
@@ -32,7 +30,8 @@ class Brand extends Model
         return $this->children()->count() === 0;
     }
 
-    public function products() {
+    public function products()
+    {
         return $this->hasMany(Product::class);
     }
 

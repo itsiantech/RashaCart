@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('orders', 'is_printed')) {
+        if (! Schema::hasColumn('orders', 'is_printed')) {
             Schema::table('orders', function (Blueprint $table) {
                 $table->boolean('is_printed')->default(false)->after('status')->comment('Track if invoice has been printed');
                 $table->timestamp('printed_at')->nullable()->after('is_printed')->comment('Last time invoice was printed');

@@ -2,14 +2,13 @@
 
 namespace App\Livewire\Auth;
 
-use Livewire\Component;
-use Livewire\Attributes\Validate;
-use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Validate;
+use Livewire\Component;
 
 #[Layout('livewire.auth.layouts.app')]
 class Login extends Component
@@ -26,7 +25,7 @@ class Login extends Component
     {
         $this->validate();
 
-        if (!Auth::attempt([
+        if (! Auth::attempt([
             'email' => $this->email,
             'password' => $this->password,
         ])) {
@@ -40,7 +39,7 @@ class Login extends Component
         $user = Auth::user();
 
         // Check if vendor is approved (Spatie role check)
-        if ($user->hasRole('vendor') && !$user->is_vendor_approved) {
+        if ($user->hasRole('vendor') && ! $user->is_vendor_approved) {
             Auth::logout();
             throw ValidationException::withMessages([
                 'email' => 'Your vendor account is pending approval.',
@@ -50,19 +49,19 @@ class Login extends Component
         // 🔑 ROLE-BASED REDIRECT (using Spatie hasRole)
         if ($user->hasRole('admin')) {
             $this->redirect(route('admin.dashboard'), navigate: true);
+
             return;
         }
 
         if ($user->hasRole('vendor')) {
             $this->redirect(route('admin.vendor.profile', $user->id), navigate: true);
+
             return;
         }
 
         // customer - regular user
         $this->redirect(route('home'), navigate: true);
     }
-
-
 
     /**
      * Ensure the authentication request is not rate limited.
@@ -90,8 +89,9 @@ class Login extends Component
      */
     protected function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->email) . '|' . request()->ip());
+        return Str::transliterate(Str::lower($this->email).'|'.request()->ip());
     }
+
     public function render()
     {
         return view('livewire.auth.login');

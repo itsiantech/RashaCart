@@ -2,22 +2,31 @@
 
 namespace App\Livewire\Admin\Banner;
 
-use Livewire\Component;
-use Livewire\WithFileUploads;
 use App\Models\Banner;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class BannerEdit extends Component
 {
     use WithFileUploads;
+
     public $bannerId;
+
     public $title;
+
     public $image;
+
     public $oldImage;
+
     public $description;
+
     public $link;
+
     public $type;
+
     public $status = true;
+
     public function mount($id)
     {
         $banner = Banner::findOrFail($id);
@@ -30,6 +39,7 @@ class BannerEdit extends Component
         $this->type = $banner->type;
         $this->status = (bool) $banner->status;
     }
+
     public function update()
     {
         $this->validate([
@@ -60,9 +70,11 @@ class BannerEdit extends Component
         $banner->update($data);
 
         // $this->dispatch('toast', type: 'success', message: 'Banner has been updated successfully.');
-       $this->dispatch('success', message: 'Banner Updated!');
+        $this->dispatch('success', message: 'Banner Updated!');
+
         return redirect()->route('admin.banner.index');
     }
+
     public function render()
     {
         return view('livewire.admin.banner.banner-edit')->layout('livewire.admin.layouts.app');

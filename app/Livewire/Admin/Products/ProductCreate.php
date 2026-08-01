@@ -51,6 +51,7 @@ class ProductCreate extends Component
     public $status = true;
 
     public $images = [];
+
     public $uploadedImages = []; // permanent storage
 
     public $meta_title;
@@ -80,8 +81,11 @@ class ProductCreate extends Component
     public $is_featured = false;
 
     public bool $is_preorder = false;
+
     public ?string $preorder_start_date = null;
+
     public ?string $preorder_end_date = null;
+
     public ?string $expected_release_date = null;
 
     public $subcategory_id;
@@ -101,7 +105,7 @@ class ProductCreate extends Component
         $this->variantSystemEnabled = setting('attribute_system');
         $this->productAttributes = Attribute::with('values')->get();
         $this->slug = '';
-        $this->sku = 'SKU-' . strtoupper(Str::random(6));
+        $this->sku = 'SKU-'.strtoupper(Str::random(6));
         $this->calculateSalePrice();
     }
 
@@ -153,7 +157,7 @@ class ProductCreate extends Component
     {
         $this->newVariant = [
             'attributes' => [],
-            'sku' => 'SKU-' . strtoupper(Str::random(6)),
+            'sku' => 'SKU-'.strtoupper(Str::random(6)),
             'variant_price' => $this->sale_price ?? 0,
             'stock' => 0,
             'image' => null,
@@ -199,7 +203,7 @@ class ProductCreate extends Component
         }
 
         $variant = [
-            'id' => 'new_' . ++$this->variantCounter,
+            'id' => 'new_'.++$this->variantCounter,
             'sku' => $this->newVariant['sku'],
             'variant_price' => (float) $this->newVariant['variant_price'],
             'stock' => (int) $this->newVariant['stock'],
@@ -238,7 +242,7 @@ class ProductCreate extends Component
         }
 
         if (! empty($missingValues)) {
-            $this->variantErrors['attribute_values'] = 'Please select values for: ' . implode(', ', $missingValues);
+            $this->variantErrors['attribute_values'] = 'Please select values for: '.implode(', ', $missingValues);
         }
 
         if (empty($this->newVariant['sku'])) {
@@ -260,7 +264,7 @@ class ProductCreate extends Component
             $this->variantErrors['stock'] = 'Stock must be a non-negative number.';
         }
 
-        if (!isset($this->newVariant['stock']) || !is_numeric($this->newVariant['stock']) || $this->newVariant['stock'] < 0) {
+        if (! isset($this->newVariant['stock']) || ! is_numeric($this->newVariant['stock']) || $this->newVariant['stock'] < 0) {
             $this->variantErrors['stock'] = 'Stock must be a non-negative number.';
         }
 
@@ -345,9 +349,9 @@ class ProductCreate extends Component
             'discount_type' => 'nullable|string|in:fixed,percentage|required_with:discount_price',
             'discount_price' => 'nullable|numeric|min:0|required_with:discount_type',
             'images.*' => 'nullable|image|max:7048',
-            'is_preorder'           => 'boolean',
-            'preorder_start_date'   => 'nullable|date|required_if:is_preorder,true',
-            'preorder_end_date'     => 'nullable|date|after_or_equal:preorder_start_date',
+            'is_preorder' => 'boolean',
+            'preorder_start_date' => 'nullable|date|required_if:is_preorder,true',
+            'preorder_end_date' => 'nullable|date|after_or_equal:preorder_start_date',
             'expected_release_date' => 'nullable|date',
         ]);
 
@@ -375,9 +379,9 @@ class ProductCreate extends Component
                 'status' => $this->status,
                 'is_featured' => $this->is_featured,
                 'has_variant' => $this->variantSystemEnabled && ! empty($this->variants),
-                'is_preorder'           => $this->is_preorder,
-                'preorder_start_date'   => $this->is_preorder ? $this->preorder_start_date : null,
-                'preorder_end_date'     => $this->is_preorder ? $this->preorder_end_date : null,
+                'is_preorder' => $this->is_preorder,
+                'preorder_start_date' => $this->is_preorder ? $this->preorder_start_date : null,
+                'preorder_end_date' => $this->is_preorder ? $this->preorder_end_date : null,
                 'expected_release_date' => $this->is_preorder ? $this->expected_release_date : null,
             ]);
 
@@ -402,7 +406,7 @@ class ProductCreate extends Component
             foreach ($this->variants as $variantData) {
                 $variant = ProductVariant::create([
                     'product_id' => $product->id,
-                    'stock'         => $variantData['stock'] ?? 0,
+                    'stock' => $variantData['stock'] ?? 0,
                     'sku' => $variantData['sku'],
                     'variant_price' => $variantData['variant_price'],
                     'image' => null,
@@ -426,7 +430,7 @@ class ProductCreate extends Component
                     'product_id' => $product->id,
                     'variant_id' => $variant->id,
                     'type' => 'in',
-                    'quantity'      => $variantData['stock'] ?? 0,
+                    'quantity' => $variantData['stock'] ?? 0,
                     'current_stock' => $variantData['stock'] ?? 0,
                     'notes' => 'Initial stock for variant',
                     'user_id' => auth()->id(),
@@ -438,7 +442,7 @@ class ProductCreate extends Component
                 $galleryPaths[] = $img->store('products/images', 'public');
             }
 
-            if (!empty($galleryPaths)) {
+            if (! empty($galleryPaths)) {
                 $product->gallery_image = $galleryPaths;
                 $product->save();
             }

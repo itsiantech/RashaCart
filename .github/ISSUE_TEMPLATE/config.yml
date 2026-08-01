@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Laravel Documentation
+    url: https://laravel.com/docs
+    about: Official Laravel 12 documentation
+  - name: 💬 Discussion / Questions
+    url: https://github.com/discussions
+    about: Use GitHub Discussions for general questions, not Issues

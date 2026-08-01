@@ -13,16 +13,21 @@ use Livewire\WithPagination;
 class CategoryProduct extends Component
 {
     public $category = null;
+
     public $selectedPrice = null;
 
     public $meta_title;
+
     public $meta_description;
+
     public $meta_keywords;
+
     public $meta_tags;
+
     public $relatedProducts;
 
-    use WithPagination;
     use HandlesCartActions;
+    use WithPagination;
 
     protected $queryString = [
         'selectedPrice' => ['except' => null],
@@ -54,6 +59,7 @@ class CategoryProduct extends Component
 
         $this->relatedProducts = $this->relatedProducts->map(function ($product) use ($totalSold) {
             $product->total_sold = $totalSold[$product->id] ?? 0;
+
             return $product;
         });
     }
@@ -84,7 +90,7 @@ class CategoryProduct extends Component
 
         if ($this->selectedPrice) {
             [$min, $max] = explode('-', $this->selectedPrice);
-            $query->whereBetween('price', [(int)$min, (int)$max]);
+            $query->whereBetween('price', [(int) $min, (int) $max]);
         }
 
         return $query->paginate(20);
@@ -103,11 +109,11 @@ class CategoryProduct extends Component
         ])->layout('livewire.frontend.layouts.app')
             ->layoutData([
                 'meta' => [
-                    'title'       => $this->meta_title ?? '',
+                    'title' => $this->meta_title ?? '',
                     'description' => $this->meta_description ?? '',
-                    'keywords'    => $this->meta_keywords ?? '',
-                    'tags'        => $this->meta_tags ?? '',
-                ]
-            ]);;
+                    'keywords' => $this->meta_keywords ?? '',
+                    'tags' => $this->meta_tags ?? '',
+                ],
+            ]);
     }
 }

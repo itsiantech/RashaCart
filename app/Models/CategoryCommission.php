@@ -9,9 +9,8 @@ class CategoryCommission extends Model
     protected $fillable = [
         'id',
         'category_id',
-        'commission_rate'
+        'commission_rate',
     ];
-
 
     public function category()
     {

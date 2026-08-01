@@ -3,12 +3,12 @@
 namespace App\Livewire\Auth\Admin;
 
 use App\Models\User;
-use Livewire\Component;
-use Illuminate\Support\Str;
-use Livewire\Attributes\Validate;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Validate;
+use Livewire\Component;
 
 class Admin extends Component
 {
@@ -34,7 +34,7 @@ class Admin extends Component
             ]);
         }
 
-        //check if user is admin
+        // check if user is admin
         if ($user->role !== 'admin') {
             throw ValidationException::withMessages([
                 'email' => __('You do not have admin access.'),
@@ -64,7 +64,7 @@ class Admin extends Component
 
     protected function ensureIsNotRateLimited(): void
     {
-        if (!RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
             return;
         }
 
@@ -80,7 +80,7 @@ class Admin extends Component
 
     protected function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->email) . '|' . request()->ip());
+        return Str::transliterate(Str::lower($this->email).'|'.request()->ip());
     }
 
     public function render()

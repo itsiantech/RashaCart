@@ -3,42 +3,53 @@
 namespace App\Livewire\Admin\Brands;
 
 use App\Models\Brand;
-use Illuminate\Container\Attributes\Log;
-use Livewire\Component;
-use Livewire\WithPagination;
-use Livewire\WithFileUploads;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log as FacadesLog;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 
 class brandIndex extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithFileUploads, WithPagination;
 
     // Pagination & Sorting
     public $search = '';
+
     public $perPage = 10;
+
     public $sortField = 'created_at';
+
     public $sortDirection = 'desc';
 
     // Selection
     public $selectedBrands = [];
+
     public $selectAll = false;
 
     // Form State
     public $showForm = false;
+
     public $isEdit = false;
+
     public $brand_id = null;
 
     // Form Fields
     public $brandName = '';
+
     public $slug = '';
+
     public $description = '';
+
     public $logo;
+
     public $is_active = true;
+
     public $sort_order = 0;
+
     public $current_logo_path = null;
 
     // Constants
@@ -51,17 +62,17 @@ class brandIndex extends Component
         'image/svg+xml',
         'application/pdf',
         'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
 
     protected const ALLOWED_EXTENSIONS = [
-        'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 
-        'pdf', 'doc', 'docx'
+        'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg',
+        'pdf', 'doc', 'docx',
     ];
 
     protected $listeners = [
         'refreshBrands' => '$refresh',
-        'deleteConfirmed' => 'deleteBrands'
+        'deleteConfirmed' => 'deleteBrands',
     ];
 
     public function rules()
@@ -71,13 +82,13 @@ class brandIndex extends Component
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('brands', 'name')->ignore($this->brand_id)
+                Rule::unique('brands', 'name')->ignore($this->brand_id),
             ],
             'slug' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('brands', 'slug')->ignore($this->brand_id)
+                Rule::unique('brands', 'slug')->ignore($this->brand_id),
             ],
             'description' => 'nullable|string',
             'logo' => $this->getLogoValidationRules(),
@@ -107,14 +118,14 @@ class brandIndex extends Component
                 if ($value === 'delete' || $value === null) {
                     return;
                 }
-                
-                if (!($value instanceof \Illuminate\Http\UploadedFile)) {
+
+                if (! ($value instanceof \Illuminate\Http\UploadedFile)) {
                     $fail('Invalid file uploaded.');
                 }
             },
             'file',
             'max:5120', // 5MB
-            'mimes:' . implode(',', self::ALLOWED_EXTENSIONS),
+            'mimes:'.implode(',', self::ALLOWED_EXTENSIONS),
         ];
     }
 
@@ -123,7 +134,7 @@ class brandIndex extends Component
      */
     public function updatedName($value)
     {
-        if (!$this->isEdit && !$this->slug) {
+        if (! $this->isEdit && ! $this->slug) {
             $this->slug = Str::slug($value);
         }
     }
@@ -133,8 +144,8 @@ class brandIndex extends Component
      */
     public function updatedSelectAll($value)
     {
-        $this->selectedBrands = $value 
-            ? $this->brands->pluck('id')->map(fn($id) => (string) $id)->toArray()
+        $this->selectedBrands = $value
+            ? $this->brands->pluck('id')->map(fn ($id) => (string) $id)->toArray()
             : [];
     }
 
@@ -167,9 +178,9 @@ class brandIndex extends Component
     public function showEditForm($id)
     {
         $brand = Brand::findOrFail($id);
-        
+
         $this->hydrateFormFromBrand($brand);
-        
+
         $this->showForm = true;
         $this->isEdit = true;
     }
@@ -184,9 +195,9 @@ class brandIndex extends Component
         try {
             DB::beginTransaction();
 
-            $brand = $this->isEdit 
+            $brand = $this->isEdit
                 ? Brand::findOrFail($this->brand_id)
-                : new Brand();
+                : new Brand;
 
             $oldLogoPath = $brand->logo;
             $newLogoPath = $this->handleLogoUpload($oldLogoPath);
@@ -204,9 +215,9 @@ class brandIndex extends Component
 
             $this->resetForm();
             $this->dispatch('refreshBrands');
-            
+
         } catch (\Exception $e) {
-            FacadesLog::error('Brand save failed: ' . $e->getMessage());
+            FacadesLog::error('Brand save failed: '.$e->getMessage());
             DB::rollBack();
             $this->handleSaveError($e, $newLogoPath ?? null);
         }
@@ -221,12 +232,13 @@ class brandIndex extends Component
 
         if (empty($ids)) {
             $this->dispatchWarningMessage('Please select at least one brand to delete.');
+
             return;
         }
 
         $count = count($ids);
-        $message = $count === 1 
-            ? 'Are you sure you want to delete this brand?' 
+        $message = $count === 1
+            ? 'Are you sure you want to delete this brand?'
             : "Are you sure you want to delete {$count} selected brands?";
 
         $this->dispatch('show-confirmation', [
@@ -247,7 +259,7 @@ class brandIndex extends Component
         try {
             DB::transaction(function () use ($ids) {
                 $brands = Brand::whereIn('id', $ids)->get();
-                
+
                 foreach ($brands as $brand) {
                     $this->deleteBrandLogo($brand);
                     $brand->delete();
@@ -255,15 +267,15 @@ class brandIndex extends Component
             });
 
             $this->resetSelection();
-            
+
             $this->dispatchSuccessMessage(
-                count($ids) . ' brand(s) deleted successfully.'
+                count($ids).' brand(s) deleted successfully.'
             );
 
             $this->dispatch('refreshBrands');
-            
+
         } catch (\Exception $e) {
-            $this->dispatchErrorMessage('Failed to delete brand(s): ' . $e->getMessage());
+            $this->dispatchErrorMessage('Failed to delete brand(s): '.$e->getMessage());
         }
     }
 
@@ -274,10 +286,10 @@ class brandIndex extends Component
     {
         try {
             $brand = Brand::findOrFail($id);
-            $brand->update(['is_active' => !$brand->is_active]);
+            $brand->update(['is_active' => ! $brand->is_active]);
 
             $this->dispatchSuccessMessage('Brand status updated successfully.');
-            
+
         } catch (\Exception $e) {
             $this->dispatchErrorMessage('Failed to update brand status.');
         }
@@ -314,9 +326,9 @@ class brandIndex extends Component
         return Brand::withCount('products')
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhere('slug', 'like', '%' . $this->search . '%')
-                      ->orWhere('description', 'like', '%' . $this->search . '%');
+                    $q->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('slug', 'like', '%'.$this->search.'%')
+                        ->orWhere('description', 'like', '%'.$this->search.'%');
                 });
             })
             ->orderBy($this->sortField, $this->sortDirection);
@@ -348,7 +360,7 @@ class brandIndex extends Component
         }
 
         // Keep old logo if no new file uploaded
-        if (!$this->logo || !($this->logo instanceof \Illuminate\Http\UploadedFile)) {
+        if (! $this->logo || ! ($this->logo instanceof \Illuminate\Http\UploadedFile)) {
             return $oldLogoPath;
         }
 
@@ -372,11 +384,11 @@ class brandIndex extends Component
         $mimeType = $file->getMimeType();
         $extension = strtolower($file->getClientOriginalExtension());
 
-        if (!in_array($mimeType, self::ALLOWED_MIME_TYPES)) {
+        if (! in_array($mimeType, self::ALLOWED_MIME_TYPES)) {
             throw new \Exception("File type '{$mimeType}' is not allowed.");
         }
 
-        if (!in_array($extension, self::ALLOWED_EXTENSIONS)) {
+        if (! in_array($extension, self::ALLOWED_EXTENSIONS)) {
             throw new \Exception("File extension '{$extension}' is not allowed.");
         }
     }
@@ -388,7 +400,7 @@ class brandIndex extends Component
     {
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $extension = strtolower($file->getClientOriginalExtension());
-        $safeName = Str::slug($originalName) . '-' . uniqid() . '.' . $extension;
+        $safeName = Str::slug($originalName).'-'.uniqid().'.'.$extension;
 
         return $safeName;
     }
@@ -430,7 +442,7 @@ class brandIndex extends Component
                 }
             }
         } catch (\Exception $e) {
-            \Log::warning('Failed to delete file: ' . $path, ['error' => $e->getMessage()]);
+            \Log::warning('Failed to delete file: '.$path, ['error' => $e->getMessage()]);
         }
     }
 
@@ -455,7 +467,7 @@ class brandIndex extends Component
         }
 
         $this->dispatchErrorMessage(
-            'Error saving brand: ' . $exception->getMessage()
+            'Error saving brand: '.$exception->getMessage()
         );
     }
 
@@ -465,11 +477,11 @@ class brandIndex extends Component
     private function resetForm()
     {
         $this->reset([
-            'name', 'slug', 'description', 'logo', 'website', 
+            'name', 'slug', 'description', 'logo', 'website',
             'is_active', 'meta_title', 'meta_description', 'sort_order',
-            'brand_id', 'isEdit', 'showForm', 'current_logo_path'
+            'brand_id', 'isEdit', 'showForm', 'current_logo_path',
         ]);
-        
+
         $this->is_active = true;
         $this->sort_order = 0;
         $this->logo = null;
@@ -492,7 +504,7 @@ class brandIndex extends Component
     {
         $this->dispatch('show-toast', [
             'type' => 'success',
-            'message' => $message
+            'message' => $message,
         ]);
     }
 
@@ -500,7 +512,7 @@ class brandIndex extends Component
     {
         $this->dispatch('show-toast', [
             'type' => 'error',
-            'message' => $message
+            'message' => $message,
         ]);
     }
 
@@ -508,7 +520,7 @@ class brandIndex extends Component
     {
         $this->dispatch('show-toast', [
             'type' => 'warning',
-            'message' => $message
+            'message' => $message,
         ]);
     }
 }

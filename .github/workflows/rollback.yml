@@ -1,0 +1,82 @@
+name: ⏪ Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Commit SHA or tag to roll back to (leave blank for previous commit)"
+        required: false
+        default: ""
+      confirm:
+        description: 'Type "rollback" to confirm this action'
+        required: true
+        default: ""
+
+jobs:
+  rollback:
+    name: ⏪ Rollback to Previous Release
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "rollback" ]; then
+            echo "❌ Rollback not confirmed. You must type 'rollback' to proceed."
+            exit 1
+          fi
+
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Execute rollback on VPS
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          TARGET_SHA="${{ github.event.inputs.commit_sha }}"
+
+          sshpass -e ssh -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash << ENDSSH
+            set -e
+            export GIT_DIR=/var/repo/bandrose.git
+            export GIT_WORK_TREE=/var/www/bandrose
+            cd ${{ secrets.DEPLOY_PATH }}
+
+            echo "Current commit: \$(git rev-parse HEAD)"
+
+            if [ -n "${TARGET_SHA}" ]; then
+              TARGET="${TARGET_SHA}"
+            else
+              TARGET="\$(git rev-parse HEAD~1)"
+            fi
+
+            echo "Rolling back to: \${TARGET}"
+
+            php artisan down --refresh=15 --retry=30
+
+            git checkout -f \${TARGET}
+
+            composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
+
+            php artisan migrate --force
+
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            php artisan queue:restart
+
+            php artisan up
+
+            echo "Rollback complete. Now on: \$(git rev-parse HEAD)"
+          ENDSSH
+
+      - name: Ensure app is online after failure
+        if: failure()
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.DEPLOY_PATH }} && php artisan up" || true

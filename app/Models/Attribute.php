@@ -7,16 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class Attribute extends Model
 {
     protected $fillable = [
-        'name', 
+        'name',
         'slug',
     ];
 
-    public function values() {
+    public function values()
+    {
         return $this->hasMany(AttributeValue::class);
     }
-    
-    public function variants() {
+
+    public function variants()
+    {
         return $this->belongsToMany(ProductVariant::class, 'varient_attribute_values');
     }
-
 }
