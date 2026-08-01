@@ -122,8 +122,15 @@ class SingleView extends Component
             $this->strikePrice  = $originalPrice;
         }
 
-        // ← ADD THIS: Update stock on mount
         $this->updateStockStatus();
+
+        $this->dispatch('track-event', event: 'ViewContent', data: [
+            'content_id'   => $this->product->id,
+            'content_name' => $this->product->name,
+            'content_type' => 'product',
+            'value'        => $this->displayPrice,
+            'currency'     => 'BDT',
+        ]);
     }
 
     public function getCurrentStock()

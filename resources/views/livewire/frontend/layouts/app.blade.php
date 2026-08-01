@@ -85,6 +85,39 @@
     <!-- Toastr CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
 
+    {!! \App\Services\PixelManager::head() !!}
+
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('track-event', ({
+                event,
+                data
+            }) => {
+                if (window.fbq) fbq('track', event, data);
+                if (window.ttq) ttq.track(mapTiktokEvent(event), data);
+                if (window.gtag) gtag('event', mapGaEvent(event), data);
+            });
+        });
+
+        function mapTiktokEvent(e) {
+            return {
+                ViewContent: 'ViewContent',
+                AddToCart: 'AddToCart',
+                InitiateCheckout: 'InitiateCheckout',
+                Purchase: 'CompletePayment'
+            } [e] || e;
+        }
+
+        function mapGaEvent(e) {
+            return {
+                ViewContent: 'view_item',
+                AddToCart: 'add_to_cart',
+                InitiateCheckout: 'begin_checkout',
+                Purchase: 'purchase'
+            } [e] || e;
+        }
+    </script>
+
     @stack('styles')
     @livewireStyles
 </head>

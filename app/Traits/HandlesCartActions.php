@@ -229,6 +229,15 @@ trait HandlesCartActions
         $this->dispatch('cartUpdated');
         $this->dispatch('success', message: 'Product added to cart!');
 
+        $this->dispatch('track-event', event: 'AddToCart', data: [
+            'content_id'   => $product->id,
+            'content_name' => $product->name,
+            'content_type' => 'product',
+            'variant'      => $variantLabel ?: null,
+            'value'        => $price * $qty,
+            'currency'     => 'BDT',
+        ]);
+
         return true;
     }
 

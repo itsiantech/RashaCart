@@ -27,6 +27,7 @@ use App\Livewire\Admin\Offers\FlashSalesView;
 use App\Livewire\Admin\Order\{OrderIndex, OrderView, OrderInhouse, OrderVendor, BulkInvoicePrint};
 use App\Livewire\Admin\Payment\ApiPaymentIndex;
 use App\Livewire\Admin\Payment\ManualPaymentIndex;
+use App\Livewire\Admin\PixelSettings;
 use App\Livewire\Admin\Products\{ProductIndex, ProductCreate, ProductEdit, ProductView, ProductStockManage};
 use App\Livewire\Admin\Settings\AppSetting;
 use App\Livewire\Admin\Settings\RolePermission\{RolePermissionIndex, RolePermissionAssign};
@@ -52,6 +53,8 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
     Route::get('/customer/index', Customer::class)->name('customer.index');
 
     Route::get('/settings', AppSetting::class)->name('settings.index')->middleware('can:setting.view');
+
+    Route::get('pixel-settings', PixelSettings::class)->name('pixel-settings.index');
 
     Route::get('/user/index', UserIndex::class)->name('user.index')->middleware('role:admin');
     Route::get('/user/create', UserCreate::class)->name('user.create')->middleware('role:admin');

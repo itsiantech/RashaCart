@@ -326,6 +326,15 @@ $currentRoute = request()->route()->getName();
                 </li>
                 @endif
 
+                @if ($isAdmin || Auth::user()->can('pixel.view'))
+                <li class="menu-item {{ Route::is('admin.pixel-settings.index') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.pixel-settings.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-bullseye"></i>
+                        <div>Pixel Tracking</div>
+                    </a>
+                </li>
+                @endif
+
                 @if ($isAdmin || Auth::user()->can('r&p.view'))
                 <li class="menu-item {{ Route::is('admin.rolepermission.index') ? 'active' : '' }}">
                     <a wire:navigate href="{{ route('admin.rolepermission.index') }}" class="menu-link">

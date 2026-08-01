@@ -80,6 +80,13 @@ class Checkout extends Component
         $this->loadPaymentMethods();
         $this->loadCart();
         $this->calculateTotals();
+
+        $this->dispatch('track-event', event: 'InitiateCheckout', data: [
+            'content_ids' => array_column($this->cartItems, 'product_id'),
+            'value'       => $this->total,
+            'currency'    => 'BDT',
+            'num_items'   => array_sum(array_column($this->cartItems, 'qty')),
+        ]);
     }
 
     // ── Payment method discovery ────────────────────────────────────────────
@@ -210,10 +217,12 @@ class Checkout extends Component
 
                 foreach ($rules as $rule) {
                     if ($rule->type === 'category' && $rule->category_id && isset($item['category_id']) && (int) $item['category_id'] === (int) $rule->category_id) {
-                        $isMatch = true; break;
+                        $isMatch = true;
+                        break;
                     }
                     if ($rule->type === 'product' && $rule->product_id && isset($item['product_id']) && (int) $item['product_id'] === (int) $rule->product_id) {
-                        $isMatch = true; break;
+                        $isMatch = true;
+                        break;
                     }
                 }
 
@@ -260,8 +269,8 @@ class Checkout extends Component
             'status'                => 'pending',
             'payment_method'        => $this->payment_method,
             'payment_status'        => in_array($this->payment_method, collect($this->manualMethods)->pluck('key')->toArray())
-                                            ? 'pending_verification'
-                                            : 'unpaid',
+                ? 'pending_verification'
+                : 'unpaid',
             'transaction_id'        => $this->transaction_id ?: null,
             'name'                  => $this->name,
             'phone'                 => $this->phone,
@@ -269,7 +278,7 @@ class Checkout extends Component
             'delivery_zone'         => $this->delivery_zone,
             'delivery_charge'       => $this->delivery_charge,
             'coupon_code'           => $this->coupon_code,
-            'coupon_discount_amount'=> $this->discount,
+            'coupon_discount_amount' => $this->discount,
             'note'                  => $this->note,
         ], $this->cartItems);
 
