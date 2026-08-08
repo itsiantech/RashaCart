@@ -32,6 +32,16 @@ $currentRoute = request()->route()->getName();
         </li>
         @endif
 
+        {{-- POS --}}
+        @if ($isAdmin || Auth::user()->can('pos.access'))
+        <li class="menu-item {{ Route::is('admin.pos.index') ? 'active' : '' }}">
+            <a href="{{ route('admin.pos.index') }}" wire:navigate class="menu-link">
+                <i class="menu-icon tf-icons bx bx-store"></i>
+                <div>POS Terminal</div>
+            </a>
+        </li>
+        @endif
+
         <!-- Product Manage -->
         @if ($isAdmin || Auth::user()->can('product.view'))
         <li class="menu-item {{ Route::is('admin.category.*','admin.attribute.*','admin.product.*') ? 'active open' : '' }}">

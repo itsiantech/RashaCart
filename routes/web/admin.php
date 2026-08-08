@@ -33,6 +33,7 @@ use App\Livewire\Admin\Order\OrderView;
 use App\Livewire\Admin\Payment\ApiPaymentIndex;
 use App\Livewire\Admin\Payment\ManualPaymentIndex;
 use App\Livewire\Admin\PixelSettings;
+use App\Livewire\Admin\Pos\PosTerminal;
 use App\Livewire\Admin\Products\{ProductIndex, ProductCreate, ProductEdit, ProductView, ProductStockManage};
 use App\Livewire\Admin\Settings\AppSetting;
 use App\Livewire\Admin\Settings\RolePermission\RolePermissionAssign;
@@ -55,6 +56,8 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
 
     Route::get('/dashboard', Dashboard::class)->name('dashboard')->middleware('can:dashboard.view');
     Route::get('/customer/index', Customer::class)->name('customer.index');
+
+    Route::get('pos', PosTerminal::class)->name('pos.index');
 
     Route::get('/settings', AppSetting::class)->name('settings.index')->middleware('can:setting.view');
 
