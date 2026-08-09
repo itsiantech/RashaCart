@@ -3,11 +3,13 @@
 
     {{-- ===== MOBILE TAB SWITCHER ===== --}}
     <div class="pos-mobile-tabs">
-        <button class="pos-mobile-tab active" id="tabProducts" onclick="switchPosTab('products')">
+        <button class="pos-mobile-tab {{ $activeMobileTab === 'products' ? 'active' : '' }}"
+            wire:click="switchMobileTab('products')">
             <i class="bx bx-store"></i>
             <span>Products</span>
         </button>
-        <button class="pos-mobile-tab" id="tabCart" onclick="switchPosTab('cart')">
+        <button class="pos-mobile-tab {{ $activeMobileTab === 'cart' ? 'active' : '' }}"
+            wire:click="switchMobileTab('cart')">
             <i class="bx bx-cart"></i>
             <span>Cart</span>
             @if(!empty($cart))
@@ -20,7 +22,7 @@
     <div class="pos-wrapper">
 
         {{-- ===== LEFT PANEL: Products ===== --}}
-        <div class="pos-left" id="posProducts">
+        <div class="pos-left {{ $activeMobileTab === 'cart' ? 'pos-panel-hidden' : '' }}" id="posProducts">
 
             {{-- Filters --}}
             <div class="pos-filter-bar">
@@ -97,8 +99,8 @@
                     $vPrice = $variant->variant_price ?? $price;
                     @endphp
                     <button wire:click="addToCart({{ $product->id }}, {{ $variant->id }})"
-                        @click="open=false; switchPosTab('cart')"
-                        class="pos-variant-item {{ $vStock <= 0 ? 'disabled' : '' }}"
+                        @click="open=false;
+                        class=" pos-variant-item {{ $vStock <= 0 ? 'disabled' : '' }}"
                         {{ $vStock <= 0 ? 'disabled' : '' }}>
                         <span>{{ $vLabel ?: 'Variant' }}</span>
                         <span>{{ setting('currency') }}{{ number_format($vPrice, 2) }}</span>
@@ -108,7 +110,6 @@
                 </div>
                 @else
                 <button wire:click="addToCart({{ $product->id }})"
-                    @click="switchPosTab('cart')"
                     class="pos-add-btn"
                     {{ $stock <= 0 ? 'disabled' : '' }}>
                     <i class="bx bx-plus"></i> Add
@@ -127,7 +128,7 @@
     </div>{{-- end pos-left --}}
 
     {{-- ===== RIGHT PANEL: Cart + Checkout ===== --}}
-    <div class="pos-right" id="posCart">
+    <div class="pos-right {{ $activeMobileTab === 'cart' ? 'pos-panel-visible' : '' }}" id="posCart">
 
         {{-- Header --}}
         <div class="pos-right-header">

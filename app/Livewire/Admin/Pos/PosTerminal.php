@@ -30,6 +30,8 @@ class PosTerminal extends Component
     public bool $createCustomerLoading = false;
     public bool $isWalkIn = false;
 
+    public string $activeMobileTab = 'products';
+
     // Cart
     public array $cart = [];
 
@@ -120,6 +122,11 @@ class PosTerminal extends Component
         $this->resetCreateForm();
 
         $this->dispatch('notify', ['type' => 'success', 'message' => "Customer '{$user->name}' created and selected!"]);
+    }
+
+    public function switchMobileTab($tab)
+    {
+        $this->activeMobileTab = $tab;
     }
 
     public function resetCreateForm(): void
@@ -222,6 +229,7 @@ class PosTerminal extends Component
         }
 
         $this->recalculate();
+        $this->activeMobileTab = 'cart';
     }
 
     public function removeFromCart(string $key)
