@@ -114,7 +114,7 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
     Route::get('/for-you', ForYouIndex::class)->name('for.you.index')->middleware('can:for.you.view');
 
     Route::get('/orders', OrderIndex::class)->name('order.index')->middleware('can:order.manage');
-    Route::get('/order/view/{orderId}', OrderView::class)->name('order.view')->middleware('can:order.view');
+    Route::get('/order/view/{orderId}', OrderView::class)->name('order.view')->middleware('can:order.manage');
     Route::get('/order/inhouse', OrderInhouse::class)->name('order.inhouse')->middleware('role:admin');
     Route::get('/order/vendor', OrderVendor::class)->name('order.vendor')->middleware('can:order.view.own');
     Route::get('/orders/bulk-print', BulkInvoicePrint::class)->name('orders.bulk-print')->middleware('can:order.bulk.invoice.print');

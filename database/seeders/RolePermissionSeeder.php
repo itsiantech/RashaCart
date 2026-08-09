@@ -30,6 +30,10 @@ class RolePermissionSeeder extends Seeder
             'flash-sale' => ['flash.sales.view', 'flash.sales.create', 'flash.sales.update', 'flash.sales.stock.manage'],
             'for-you' => ['for.you.view'],
             'vendor' => ['vendor.view', 'vendor.payout', 'vendor.profile'],
+            'dashboard' => ['dashboard.view'],
+            'admin.profile' => ['admin.profile.view'],
+            'brand' => ['brand.view', 'brand.create', 'brand.update', 'brand.delete'],
+            'new-arrival' => ['new.arrival.create'],
 
         ];
 

@@ -114,6 +114,7 @@ class RegisteredUserController extends Controller
                 'password' => Hash::make($request->password),
                 'status' => false,
                 'is_vendor_approved' => false,
+                'role' => 'vendor',
             ]);
 
             $user->assignRole('vendor');

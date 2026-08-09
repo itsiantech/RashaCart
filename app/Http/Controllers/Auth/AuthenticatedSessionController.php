@@ -61,6 +61,7 @@ class AuthenticatedSessionController extends Controller
                     'name' => $googleUserData->name,
                     'email' => $googleUserData->email,
                     'password' => Hash::make('password'),
+                    'role' => 'customer',
                 ]);
 
                 $role = Role::where('name', 'user')->first();
@@ -82,8 +83,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = Auth::user();
+        if ($user->role === 'customer' && ! $user->hasRole('customer')) {
+            $user->assignRole('customer');
+        }
+
         // Check if user is customer
-        if (Auth::user()->role !== 'customer') {
+        if ($user->role !== 'customer') {
             Auth::logout();
 
             return back()->withErrors([
@@ -101,6 +107,9 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = Auth::user();
+        if ($user->role === 'vendor' && ! $user->hasRole('vendor')) {
+            $user->assignRole('vendor');
+        }
 
         // Check if user is vendor
         if ($user->role !== 'vendor') {
@@ -128,8 +137,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = Auth::user();
+        if ($user->role === 'admin' && ! $user->hasRole('admin')) {
+            $user->assignRole('admin');
+        }
+
         // Check if user is admin
-        if (Auth::user()->role !== 'admin') {
+        if ($user->role !== 'admin') {
             Auth::logout();
 
             return back()->withErrors([

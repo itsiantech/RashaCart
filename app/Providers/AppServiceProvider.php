@@ -111,10 +111,7 @@ class AppServiceProvider extends ServiceProvider
 
         /* ---------------- Gates ---------------- */
         Gate::before(function ($user, $ability) {
-            if ($user->role === 'admin') {
-                return true; // Admin has access to everything
-            }
-            // return $user?->hasRole('admin') ? true : null;
+            return $user->hasRole('admin') ? true : null;
         });
     }
 }
