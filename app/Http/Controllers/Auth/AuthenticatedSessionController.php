@@ -41,14 +41,14 @@ class AuthenticatedSessionController extends Controller
      */
     public function googleLogin()
     {
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')->stateless()->redirect();
     }
 
     public function googleAuthentication()
     {
 
         try {
-            $googleUserData = Socialite::driver('google')->user();
+            $googleUserData = Socialite::driver('google')->stateless()->user();
             $checkUser = User::where('google_id', $googleUserData->id)->first();
 
             if ($checkUser) {
@@ -72,9 +72,12 @@ class AuthenticatedSessionController extends Controller
                 return redirect()->route('home');
             }
         } catch (\Exception $e) {
-            $this->dispatch('error', message: $e->getMessage());
-        }
+            \Log::error('Google login failed: ' . $e->getMessage());
 
+            return redirect()->route('login')->withErrors([
+                'email' => 'Google login failed. Please try again.',
+            ]);
+        }
     }
 
     public function store(LoginRequest $request): RedirectResponse
@@ -178,6 +181,5 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('home');
-
     }
 }
