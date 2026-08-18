@@ -1,5 +1,10 @@
 <header class="main-header">
     <div class="header-content">
+        <!-- Mobile hamburger (moved out to row 1) -->
+        <div class="menu-toggle d-lg-none" id="menuToggle">
+            <i class="fa fa-bars" aria-hidden="true"></i>
+        </div>
+
         <!-- Logo -->
         <div class="logo">
             <a wire:navigate href="{{ route('home') }}">
@@ -8,10 +13,7 @@
         </div>
 
         <!-- Search Bar -->
-        <div class="s">
-            <div class="menu-toggle" id="menuToggle">
-                <i class="fa fa-bars" aria-hidden="true"></i>
-            </div>
+        <div class="s d-none d-lg-block" id="mobileSearchBar">
             <livewire:frontend.components.search-bar />
         </div>
 
@@ -26,7 +28,7 @@
         <!-- Overlay for mobile sidebar -->
         <div class="sidebar-overlay" id="mobileOverlay"></div>
 
-        <!-- Side bar script for mobile view dont't remove -->
+        <!-- Side bar + mobile search script, don't remove -->
         <script>
             function initMobileSidebar() {
                 const menuToggle = document.getElementById('menuToggle');
@@ -36,7 +38,6 @@
 
                 if (!menuToggle || !sidebar || !overlay || !closeBtn) return;
 
-                // Remove existing listeners to avoid duplicates
                 menuToggle.onclick = () => {
                     sidebar.classList.toggle('active');
                     overlay.classList.toggle('active');
@@ -50,7 +51,6 @@
                     overlay.classList.remove('active');
                 }
 
-                // Submenu toggle for mobile
                 document.querySelectorAll('.has-submenu > a').forEach(item => {
                     item.onclick = (e) => {
                         e.preventDefault();
@@ -60,11 +60,24 @@
                 });
             }
 
-            // Run once on first load
-            document.addEventListener('DOMContentLoaded', initMobileSidebar);
+            function initMobileSearchToggle() {
+                const searchToggle = document.getElementById('mobileSearchToggle');
+                const searchBar = document.getElementById('mobileSearchBar');
+                if (!searchToggle || !searchBar) return;
 
-            // Run again every time Livewire navigates
-            document.addEventListener('livewire:navigated', initMobileSidebar);
+                searchToggle.onclick = () => {
+                    searchBar.classList.toggle('active');
+                };
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                initMobileSidebar();
+                initMobileSearchToggle();
+            });
+            document.addEventListener('livewire:navigated', () => {
+                initMobileSidebar();
+                initMobileSearchToggle();
+            });
         </script>
 
         @php
@@ -80,10 +93,16 @@
                 x-on:cart-updated.window="cartCount = $event.detail.count">
                 <a wire:navigate href="{{ route('frontend.cart.view') }}" class="action-btn cart-toggle" title="Cart">
                     <i class="fas fa-shopping-cart"></i>
-                    <span class="action-text"></span>
+                    <span class="action-text d-none d-lg-block">Cart</span>
                     <span class="badge cart-count" x-text="cartCount">{{ $cartCount }}</span>
                 </a>
             </div>
+
+            <span class="action-divider d-lg-none"></span>
+
+            <button type="button" class="search-toggle-btn d-lg-none" id="mobileSearchToggle" title="Search">
+                <i class="fas fa-search"></i>
+            </button>
 
             @guest
             <!-- Guest user -->
@@ -134,8 +153,11 @@
         @media (max-width: 768px) {
 
             .main-header {
-                background-color: #FF5500;
-                padding: 10px 14px 12px;
+                background: linear-gradient(135deg, #FF7A1A 0%, #FF5500 60%, #FF3D00 100%);
+                padding: 10px 10px;
+                margin: 5px 5px;
+                border-radius: 10px;
+                box-shadow: 0 12px 25px rgba(255, 85, 0, 0.28);
             }
 
             .header-content {
@@ -143,47 +165,122 @@
                 flex-wrap: wrap;
                 align-items: center;
                 gap: 0;
+                position: relative;
             }
 
-            /* ── ROW 1: Logo (left) + User Actions (right) ── */
-            .logo {
+            /* ── Hamburger box (row 1, left) ── */
+            .menu-toggle {
                 order: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: static;
+                width: 32px;
+                height: 32px;
+                flex-shrink: 0;
+                background: transparent;
+                border-radius: 7px;
+                color: #fff;
+                font-size: 17px;
+                margin-right: 10px;
+                padding: 0;
+                box-shadow: rgba(0, 0, 0, 0.07) 0px 1px 2px, rgba(0, 0, 0, 0.07) 0px 2px 4px, rgba(0, 0, 0, 0.07) 0px 4px 8px, rgba(0, 0, 0, 0.07) 0px 8px 16px, rgba(0, 0, 0, 0.07) 0px 16px 32px, rgba(0, 0, 0, 0.07) 0px 32px 64px;
+            }
+
+            /* ── Logo ── */
+            .logo {
+                order: 2;
                 flex: 1;
             }
 
             .logo img {
-                width: 140px !important;
+                width: 120px !important;
                 height: auto !important;
             }
 
+            /* ── User actions (row 1, right): cart | search ── */
             .user-actions {
-                order: 2;
+                order: 3;
                 display: flex;
                 align-items: center;
-                gap: 0px;
+                gap: 12px;
             }
 
-            /* Hide text labels on mobile */
             .user-actions .action-text {
                 display: none !important;
             }
 
-
-            /* ── ROW 2: Search bar full width ── */
-            .s {
-                order: 3;
-                width: 100%;
-                margin-top: 10px;
-                display: flex !important;
-                align-items: center;
-                gap: 0;
+            /* Hide login/vendor/dashboard/logout on mobile — reachable via bottom-nav Account */
+            .user-actions>a.action-btn:not(.cart-toggle),
+            .user-actions form {
+                display: none !important;
             }
 
-            /* Search bar pill shape */
-            .s form,
-            .s .search-form,
-            .s>div:not(.menu-toggle) {
-                flex: 1;
+            .header-preorder {
+                display: none !important;
+            }
+
+            .header-cart .action-btn {
+                color: #fff;
+                font-size: 19px;
+                position: relative;
+                padding: 0;
+            }
+
+            .header-cart .badge {
+                background: #111;
+                color: #fff;
+                font-size: 10px;
+                width: 14px;
+                height: 14px;
+                line-height: 0;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: absolute;
+                top: -13px;
+                right: 10px !important;
+                left: 3px;
+                padding: 0;
+            }
+
+            .action-divider {
+                width: 1px;
+                height: 20px;
+                background: rgba(255, 255, 255, 0.55);
+            }
+
+            .search-toggle-btn {
+                background: none;
+                border: none;
+                color: #fff;
+                font-size: 19px;
+                padding: 0;
+                cursor: pointer;
+                line-height: 1;
+            }
+
+            /* ── Search bar (row 2) — hidden by default, slides open ── */
+            .s {
+                order: 4;
+                width: 100% !important;
+                display: flex !important;
+                max-height: 0;
+                opacity: 0;
+                overflow: hidden;
+                margin-top: 0;
+                transition: max-height 0.25s ease, opacity 0.2s ease, margin-top 0.25s ease;
+            }
+
+            .s.active {
+                max-height: 60px;
+                opacity: 1;
+                margin-top: 12px;
+            }
+
+            .search-container {
+                margin-left: 0;
             }
 
             /* Force search input styling */
@@ -194,10 +291,9 @@
                 border: none;
                 padding: 10px 14px;
                 font-size: 14px;
-                width: 280px;
+                width: 100%;
                 outline: none;
                 color: #333;
-                margin-left: -30px;
             }
 
             .s button[type="submit"],
@@ -211,7 +307,6 @@
                 cursor: pointer;
             }
 
-            /* Wrap the whole search component in pill shape */
             .s .search-wrapper,
             .s form {
                 display: flex;
@@ -221,7 +316,6 @@
                 overflow: hidden;
                 width: 100%;
                 box-shadow: none;
-                margin-left: 8px;
             }
         }
 
