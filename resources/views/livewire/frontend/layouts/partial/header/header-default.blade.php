@@ -87,7 +87,7 @@
 
             @guest
             <!-- Guest user -->
-            <a href="{{ route('googleLogin') }}" class="action-btn" title="Login with Google">
+            <a href="{{ route('login') }}" class="action-btn" title="Login with Google">
                 <i class="far fa-user"></i>
                 <span class="action-text"></span>
             </a>
