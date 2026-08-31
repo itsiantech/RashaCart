@@ -2578,6 +2578,11 @@ body {
   display: none;
 }
 
+.footer-icon {
+  width: 23px;
+  height: 24px;
+}
+
 @media (max-width: 768px) {
   .bottom-nav {
    display: flex;
@@ -3507,12 +3512,13 @@ body {
 @media (max-width: 768px) {
   .categories-grid {
     grid-template-columns: repeat(3, 1fr); /* 3 img in mobile */
-    gap: 5px;
+    gap: 10px;
+    margin-left: 10px
     
   }
   .category-image{
-    width: 60px;
-    height: 60px;
+    width: 55px;
+    height: 55px;
     
     
   }
@@ -3833,7 +3839,7 @@ body {
   width: 50%;
   padding: 8px 5px;
   border: 1px solid white;
-  border-radius: 20px;
+  border-radius: 10px;
   font-weight: 600;
   font-size: 16px;
 }
@@ -3843,7 +3849,7 @@ body {
   width: 50%;
   padding: 8px 5px;
   border: 1px solid white;
-  border-radius: 20px;
+  border-radius: 10px;
 }
 
 

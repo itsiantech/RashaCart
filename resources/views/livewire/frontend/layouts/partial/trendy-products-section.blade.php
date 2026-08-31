@@ -8,6 +8,7 @@
             <span class="na-section-icon">✨</span>
             <div>
                 <h2 class="na-section-title">TRENDY PRODUCTS</h2>
+                <p class="na-section-sub">What everyone's buying right now</p>
             </div>
         </div>
         <a wire:navigate href="{{ route('frontend.trendy-products.view') }}" class="na-view-all">
@@ -68,7 +69,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 1.25rem;
+        margin-bottom: 0.2rem;
     }
 
     .na-section-left {
