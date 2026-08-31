@@ -108,7 +108,7 @@
 
 <style>
     #hero-slider {
-    padding: 15px;
+    padding: 5px 15px;
     box-sizing: border-box;
 }
 
