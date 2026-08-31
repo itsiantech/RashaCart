@@ -3,18 +3,6 @@
 
     <form wire:submit.prevent="update" enctype="multipart/form-data">
 
-        {{-- Application Name --}}
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label for="appName" class="form-label">Application Name</label>
-                <input type="text" class="form-control @error('app_name') is-invalid @enderror" id="appName"
-                    wire:model.defer="app_name" placeholder="Enter application name">
-                @error('app_name')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
-        </div>
-
         {{-- Application Logo --}}
         <div class="row mb-3">
             <div class="col-md-6">
@@ -22,7 +10,7 @@
                 <input type="file" class="form-control @error('app_logo') is-invalid @enderror" id="app_logo"
                     wire:model="app_logo">
                 @error('app_logo')
-                    <div class="invalid-feedback">{{ $message }}</div>
+                <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
 
                 {{-- Loading Indicator --}}
@@ -35,17 +23,17 @@
 
                 {{-- Current Logo Preview --}}
                 @if ($app_logo)
-                    {{-- New uploaded logo preview --}}
-                    <div class="mt-2">
-                        <img src="{{ $app_logo->temporaryUrl() }}" alt="Preview Logo" width="100">
-                        <div><small class="text-muted">Preview</small></div>
-                    </div>
-                @elseif(setting('app_logo'))
-                    {{-- Existing logo --}}
-                    <div class="mt-2">
-                        <img src="{{ asset('storage/logo/' . setting('app_logo')) }}" alt="Current Logo" width="100">
-                        <div><small class="text-muted">Current logo</small></div>
-                    </div>
+                {{-- New uploaded logo preview (before save) --}}
+                <div class="mt-2">
+                    <img src="{{ $app_logo->temporaryUrl() }}" alt="Preview Logo" width="100">
+                    <div><small class="text-muted">Preview</small></div>
+                </div>
+                @elseif ($current_app_logo)
+                {{-- Saved logo — always fresh, no cache dependency --}}
+                <div class="mt-2">
+                    <img src="{{ asset('storage/logo/' . $current_app_logo) }}?v={{ time() }}" alt="Current Logo" width="100">
+                    <div><small class="text-muted">Current logo</small></div>
+                </div>
                 @endif
             </div>
         </div>
@@ -58,7 +46,7 @@
                 <input type="file" class="form-control @error('fev_icon') is-invalid @enderror" id="fev_icon"
                     wire:model="fev_icon">
                 @error('fev_icon')
-                    <div class="invalid-feedback">{{ $message }}</div>
+                <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
 
                 {{-- Loading Indicator --}}
@@ -71,17 +59,17 @@
 
                 {{-- Current Logo Preview --}}
                 @if ($fev_icon)
-                    {{-- New uploaded logo preview --}}
-                    <div class="mt-2">
-                        <img src="{{ $fev_icon->temporaryUrl() }}" alt="Preview fev" width="100">
-                        <div><small class="text-muted">Preview</small></div>
-                    </div>
-                @elseif(setting('fev_icon'))
-                    {{-- Existing logo --}}
-                    <div class="mt-2">
-                        <img src="{{ asset('storage/logo/' . setting('fev_icon')) }}" alt="Current fev" width="100">
-                        <div><small class="text-muted">Current logo</small></div>
-                    </div>
+                {{-- New uploaded fev preview (before save) --}}
+                <div class="mt-2">
+                    <img src="{{ $fev_icon->temporaryUrl() }}" alt="Preview fev" width="100">
+                    <div><small class="text-muted">Preview</small></div>
+                </div>
+                @elseif ($current_fev_icon)
+                {{-- Saved fev icon — always fresh, no cache dependency --}}
+                <div class="mt-2">
+                    <img src="{{ asset('storage/logo/' . $current_fev_icon) }}?v={{ time() }}" alt="Current fev" width="100">
+                    <div><small class="text-muted">Current logo</small></div>
+                </div>
                 @endif
             </div>
         </div>
@@ -99,7 +87,7 @@
 
                 </select>
                 @error('theme')
-                    <div class="invalid-feedback">{{ $message }}</div>
+                <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
         </div>
@@ -110,7 +98,7 @@
             <textarea class="form-control @error('app_description') is-invalid @enderror" id="appDescription" rows="3"
                 wire:model.defer="app_description"></textarea>
             @error('app_description')
-                <div class="invalid-feedback">{{ $message }}</div>
+            <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
 
@@ -121,7 +109,7 @@
                 <input type="number" class="form-control @error('items_per_page') is-invalid @enderror"
                     id="itemsPerPage" wire:model.defer="items_per_page" min="5" max="100">
                 @error('items_per_page')
-                    <div class="invalid-feedback">{{ $message }}</div>
+                <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
         </div>
@@ -134,7 +122,7 @@
                 <input type="text" class="form-control @error('google_map_location') is-invalid @enderror"
                     id="itemsPerPage" wire:model.defer="google_map_location" min="5" max="100">
                 @error('google_map_location')
-                    <div class="invalid-feedback">{{ $message }}</div>
+                <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
         </div>

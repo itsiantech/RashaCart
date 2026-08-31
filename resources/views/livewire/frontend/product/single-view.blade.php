@@ -1929,7 +1929,7 @@
 
             .pv-sticky-inner {
                 gap: 6px;
-                padding: 32px 6px;
+                padding: 35px 6px;
                 max-height: 56px;
             }
 

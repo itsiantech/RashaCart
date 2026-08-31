@@ -23,6 +23,10 @@ class AppSetting extends Component
 
     public $fev_icon;
 
+    public $current_app_logo;
+
+    public $current_fev_icon;
+
     public $currency;
 
     public $google_map_location;
@@ -117,6 +121,10 @@ class AppSetting extends Component
         $this->google_map_location = setting('google_map_location');
         $this->theme = setting('theme');
 
+        // ✅ Fresh, direct DB read for logos — bypasses any setting()/cache staleness
+        $this->current_app_logo = Settings::where('key', 'app_logo')->value('value');
+        $this->current_fev_icon = Settings::where('key', 'fev_icon')->value('value');
+
         $this->dc_inside = setting('dc_inside');
         $this->dc_outside = setting('dc_outside');
 
@@ -169,11 +177,10 @@ class AppSetting extends Component
                 ? ($response->json()['balance'] ?? 'N/A')
                 : 'Failed to fetch balance.';
         } catch (\Exception $e) {
-            $this->balance = 'API Error: '.$e->getMessage();
+            $this->balance = 'API Error: ' . $e->getMessage();
         }
     }
 
-    // ─── Auto-called by Livewire when selected_courier changes (wire:model.live)
     public function updatedSelectedCourier($value): void
     {
         Settings::updateOrCreate(
@@ -181,10 +188,8 @@ class AppSetting extends Component
             ['value' => $value]
         );
         Settings::clearCache();
-        // $balance and $activeTab are untouched — no page jump
     }
 
-    // ─── Save all settings ───────────────────────────────────────────────────
     public function update(): void
     {
         $validatedData = $this->validate((new SettingsRequest)->rules());
@@ -194,9 +199,11 @@ class AppSetting extends Component
             if ($oldLogo && Storage::disk('public')->exists("logo/{$oldLogo}")) {
                 Storage::disk('public')->delete("logo/{$oldLogo}");
             }
-            $filename = time().'_'.$this->app_logo->getClientOriginalName();
+            $filename = time() . '_' . $this->app_logo->getClientOriginalName();
             $this->app_logo->storeAs('logo', $filename, 'public');
             $validatedData['app_logo'] = $filename;
+
+            $this->current_app_logo = $filename;
         } else {
             unset($validatedData['app_logo']);
         }
@@ -206,9 +213,11 @@ class AppSetting extends Component
             if ($oldFev && Storage::disk('public')->exists("logo/{$oldFev}")) {
                 Storage::disk('public')->delete("logo/{$oldFev}");
             }
-            $filename = time().'_'.$this->fev_icon->getClientOriginalName();
+            $filename = time() . '_' . $this->fev_icon->getClientOriginalName();
             $this->fev_icon->storeAs('logo', $filename, 'public');
             $validatedData['fev_icon'] = $filename;
+
+            $this->current_fev_icon = $filename;
         } else {
             unset($validatedData['fev_icon']);
         }
@@ -219,7 +228,6 @@ class AppSetting extends Component
 
         Settings::clearCache();
 
-        // ✅ loadSettings() instead of mount() — keeps $balance and $activeTab intact
         $this->loadSettings();
 
         $this->app_logo = null;
@@ -227,7 +235,6 @@ class AppSetting extends Component
         $this->dispatch('success', message: 'Settings Updated!');
     }
 
-    // ─── Reset form fields without touching balance or activeTab ────────────
     public function resetForm(): void
     {
         $this->loadSettings();
@@ -235,7 +242,6 @@ class AppSetting extends Component
         $this->resetErrorBag();
     }
 
-    // ─── Tab state (used by JS localStorage restore) ────────────────────────
     public function setTab(string $tab): void
     {
         $this->activeTab = $tab;
