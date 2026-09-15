@@ -1,23 +1,40 @@
-/.phpunit.cache
+# Dependencies
 /node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
 /vendor
+
+# Environment & Secrets (NEVER commit these)
 .env
 .env.backup
 .env.production
-.phpactor.json
+/storage/*.key
+/auth.json
+
+# Build assets & Symlinks
+/public/build
+/public/hot
+/public/storage
+
+# Framework Cache & Temporary files
+/.phpunit.cache
 .phpunit.result.cache
-Homestead.json
-Homestead.yaml
 npm-debug.log
 yarn-error.log
-/auth.json
+/storage/pail
+
+# OS & Editor generated files
+.DS_Store
+Thumbs.db
 /.fleet
 /.idea
 /.nova
 /.vscode
 /.zed
+.phpactor.json
+Homestead.json
+Homestead.yaml
+
+# Local test scripts & database dumps
+*.sql
+*.sqlite
+test_script.php
+create_admin.php

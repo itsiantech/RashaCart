@@ -77,7 +77,7 @@
 
     {{-- Subtotal --}}
     @if (count($cartItems) > 0)
-    <div class="cart-subtotal">
+    <div class="cart-subtotal d-none">
         <div class="summary-section">Summary</div>
         <div class="subtotal-section">
             <span class="d-flex">
