@@ -202,7 +202,7 @@
             'featuredProducts' => $featuredProducts
             ])
 
-            <section class="categories-section">
+            <section class="categories-section d-none">
                 <div class=" d-flex justify-content-between align-items-center">
                     <div class="d-flex">
                         <span class="na-section-icon">✨</span>
@@ -294,7 +294,7 @@
         <style>
 
             .tab-content {
-                padding-bottom: 5px;
+                padding-bottom: 25px;
                 margin-top: 10px;
             }
             .homepage-content {

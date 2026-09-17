@@ -68,12 +68,12 @@
 
         <a wire:navigate href="{{ route('frontend.category.view') }}"
             class="{{ request()->routeIs('frontend.category.*') ? 'active' : '' }}">
-            <i class="fa-solid fa-grip"></i><span>Categories</span>
+            <img src="{{ asset('images/category.png') }}" class="footer-icon"><span>Categories</span>
         </a>
 
         <a wire:navigate href="{{ route('frontend.order.tracking') }}"
             class="{{ request()->routeIs('frontend.order.tracking') ? 'active' : '' }}">
-            <i class="fas fa-location"></i><span>Trak Order</span>
+            <img src="{{ asset('images/tracking.png') }}" class="footer-icon"><span>Trak Order</span>
         </a>
 
         <a href="tel:{{ setting('contact_phone') }}"

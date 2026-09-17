@@ -34,20 +34,28 @@
                     </div>
 
                     {{-- Delivery Zone --}}
-                    <h3 class="co-sub">Select Delivery Option</h3>
-                    <div class="co-delivery">
-                        <label class="radio">
-                            <input type="radio" wire:model.live="delivery_zone" value="inside" />
-                            <span>Inside Dhaka ({{ setting('currency') }} {{ setting('dc_inside', 60) }})</span>
-                        </label>
-                        <label class="radio">
-                            <input type="radio" wire:model.live="delivery_zone" value="outside" />
-                            <span>Outside Dhaka ({{ setting('currency') }} {{ setting('dc_outside', 120) }})</span>
-                        </label>
+                    <div style="box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px; padding: 7px">
+                        <h3 class="co-sub">Select Delivery Option</h3>
+                        <div class="co-delivery">
+                            <label class="radio">
+                                <input type="radio" wire:model.live="delivery_zone" value="inside" />
+                                <div>
+                                    <span>Inside Dhaka</span>
+                                    <span>({{ setting('currency') }} {{ setting('dc_inside', 60) }})</span>
+                                </div>
+                            </label>
+                            <label class="radio">
+                                <input type="radio" wire:model.live="delivery_zone" value="outside" />
+                                <div>
+                                    <span>Outside Dhaka</span>
+                                    <span>({{ setting('currency') }} {{ setting('dc_outside', 120) }})</span>
+                                </div>
+                            </label>
+                        </div>
                     </div>
 
                     {{-- Note --}}
-                    <div class="co-field">
+                    <div class="co-field" style="box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px; padding: 7px">
                         <label>আপনার অর্ডার নোট লিখুন</label>
                         <input type="text" wire:model.defer="note" placeholder="যদি কোন নির্দেশনা থাকে" />
                     </div>
@@ -254,14 +262,22 @@
                  RIGHT: Order Summary
             ═══════════════════════════════════════════════════════════ --}}
             <aside class="co-right">
-                <div class="co-summary">
-                    <div class="co-summary-title">অর্ডার আইটেমস ({{ count($cartItems) }} Items)</div>
+                <div class="co-summary" style="box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px; padding: 7px">
+                    <div class="co-summary-title">
+                        <i class="fa-solid fa-bag-shopping"></i>
+                        অর্ডার আইটেমস ({{ count($cartItems) }} Items)
+                    </div>
 
                     <div class="co-items">
                         <livewire:frontend.components.cart-items :cartItems="$cartItems" />
                     </div>
 
-                    <div class="co-lines">
+                    <div class="summery-icon">
+                        <i class="fa-solid fa-table-list mt-1" style="color: orangered;"></i>
+                        <span>Summery</span>
+                    </div>
+
+                    <dicv class="co-lines">
                         <div class="line">
                             <span>সাব টোটাল:</span>
                             <strong>৳ {{ number_format($subtotal) }}</strong>
@@ -284,26 +300,29 @@
                             <span>সর্বমোট:</span>
                             <strong>৳ {{ number_format($total) }}</strong>
                         </div>
-                    </div>
+                    </dicv>
 
                     {{-- Coupon --}}
                     <div class="co-coupon">
-                        <label>আপনার কাছে কি কোন কুপন কোড আছে?</label>
+                        <label class="d-flex gap-1 mb-1">
+                            <i class="fa-solid fa-tag mt-2" style="color: orangered;"></i>
+                             আপনার কাছে কি কোন কুপন কোড আছে?
+                        </label>
                         <div class="coupon-row">
                             <input type="text" wire:model.defer="coupon_code"
                                 class="co-coupon-input" placeholder="Coupon code">
                             <button type="button" wire:click="applyCoupon"
-                                class="btn btn-secondary co-apply">Apply</button>
+                                class="btn co-apply">Apply</button>
                         </div>
                     </div>
 
                     {{-- Submit --}}
                     <button type="submit" form="orderForm"
-                        class="btn btn-dark mt-4 w-full co-submit"
+                        class="btn mt-4 w-full co-submit"
                         wire:loading.attr="disabled">
                         <span wire:loading.remove>
                             @if($payment_method === 'sslcommerz')
-                            <i class="fa-solid fa-lock me-1"></i> Proceed to Payment
+                            <i class="fa-solid fa-bag-shopping"></i> Proceed to Payment
                             @else
                             অর্ডার নিশ্চিত করুন
                             @endif
@@ -537,11 +556,12 @@
             /* Delivery radio buttons — prevent overflow */
             .co-delivery {
                 flex-direction: column !important;
-                gap: 10px !important;
+                gap: 5px !important;
             }
 
             .co-delivery .radio {
-                font-size: 13px !important;
+                font-size: 10px !important;
+                font-weight: 600 !important;
             }
 
             /* Payment cards */
@@ -579,7 +599,7 @@
             /* Submit button */
             .co-submit {
                 width: 100% !important;
-                padding: 12px !important;
+                padding: 8px !important;
                 font-size: 15px !important;
             }
         }

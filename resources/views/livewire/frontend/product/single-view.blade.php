@@ -6,13 +6,64 @@
                         <div class="pv-card">
                             <div class="pv-flex">
                                 <!-- ====== GALLERY WITH ALPINE.JS ====== -->
+                                @php
+                                // Build the full slide list: gallery images, with the active variant/thumbnail image forced first
+                                $galleryUrls = (!empty($product->gallery_image) && is_array($product->gallery_image))
+                                ? collect($product->gallery_image)->map(fn($img) => asset('storage/' . $img))->values()->all()
+                                : [];
+
+                                $initialImage = ($activeVariant && $activeVariant->image)
+                                ? asset('storage/' . $activeVariant->image)
+                                : ($product->thumbnail ? asset('storage/' . $product->thumbnail) : null);
+
+                                if ($initialImage) {
+                                $galleryUrls = collect($galleryUrls)->reject(fn($u) => $u === $initialImage)->values()->all();
+                                array_unshift($galleryUrls, $initialImage);
+                                }
+
+                                if (empty($galleryUrls)) {
+                                $galleryUrls = ['https://placehold.co/500x500'];
+                                }
+                                @endphp
+
                                 <div class="pv-gallery"
-                                    x-data="{mainImage: '', activeThumb: 0,
-                                     init() {
-                                     this.mainImage = '{{ ($activeVariant && $activeVariant->image) ? asset('storage/' . $activeVariant->image) : ($product->thumbnail ? asset('storage/' . $product->thumbnail) : 'https://placehold.co/500x500') }}';
-                                     }
-                                     }"
-                                    @set-main-image.window="if ($event.detail.src) mainImage = $event.detail.src">
+                                    x-data="{
+        images: @js($galleryUrls),
+        activeIndex: 0,
+        scrollTimer: null,
+
+        scrollToIndex(i) {
+            const track = this.$refs.track;
+            if (!track) return;
+            this.activeIndex = i;
+            track.scrollTo({ left: i * track.clientWidth, behavior: 'smooth' });
+        },
+
+        onScroll() {
+            clearTimeout(this.scrollTimer);
+            this.scrollTimer = setTimeout(() => {
+                const track = this.$refs.track;
+                if (!track || track.clientWidth === 0) return;
+                this.activeIndex = Math.round(track.scrollLeft / track.clientWidth);
+            }, 80);
+        },
+
+        addOrJumpTo(src) {
+            if (!src) return;
+            let idx = this.images.indexOf(src);
+            if (idx === -1) {
+                this.images.unshift(src);
+                idx = 0;
+            }
+            this.$nextTick(() => {
+                const track = this.$refs.track;
+                if (!track) return;
+                this.activeIndex = idx;
+                track.scrollTo({ left: idx * track.clientWidth, behavior: 'auto' });
+            });
+        }
+    }"
+                                    @set-main-image.window="if ($event.detail.src) addOrJumpTo($event.detail.src)">
 
                                     @if ($product->discount_type)
                                     <div class="pv-badge">
@@ -24,37 +75,48 @@
                                     </div>
                                     @endif
 
-                                    <!-- Main Image -->
+                                    <!-- Main Swipeable Image -->
                                     <div class="pv-image-wrapper">
-                                        <img
-                                            id="pvMainImg"
-                                            :src="mainImage"
-                                            alt="{{ $product->name }}"
-                                            loading="lazy"
-                                            class="pv-main-image"
-                                            style="transition: opacity 0.3s ease">
+                                        <div class="pv-image-track" x-ref="track" @scroll="onScroll">
+                                            <template x-for="(img, index) in images" :key="index">
+                                                <div class="pv-slide">
+                                                    <img :src="img" alt="{{ $product->name }}" loading="lazy" class="pv-main-image">
+                                                </div>
+                                            </template>
+                                        </div>
+
+                                        <!-- Counter badge, e.g. "1 / 4" -->
+                                        <div class="pv-image-counter" x-show="images.length > 1" x-cloak
+                                            x-text="(activeIndex + 1) + ' / ' + images.length"></div>
+
+                                        <!-- Dot indicators -->
+                                        <div class="pv-dots" x-show="images.length > 1" x-cloak>
+                                            <template x-for="(img, index) in images" :key="index">
+                                                <button
+                                                    type="button"
+                                                    class="pv-dot"
+                                                    :class="{ 'pv-dot--active': activeIndex === index }"
+                                                    @click="scrollToIndex(index)"
+                                                    :aria-label="'Go to image ' + (index + 1)"></button>
+                                            </template>
+                                        </div>
                                     </div>
 
                                     <!-- Thumbnails Gallery -->
-                                    @if (!empty($product->gallery_image) && is_array($product->gallery_image))
-                                    <div class="pv-thumbs-wrapper">
+                                    <div class="pv-thumbs-wrapper d-none" x-show="images.length > 1" x-cloak>
                                         <div class="pv-thumbs">
-                                            @foreach ($product->gallery_image as $key => $image)
-                                            <button
-                                                class="pv-thumb {{ $loop->first ? 'active' : '' }}"
-                                                :class="{ 'active': activeThumb === {{ $key }} }"
-                                                @click="mainImage = '{{ asset('storage/' . $image) }}'; activeThumb = {{ $key }}"
-                                                aria-label="View image {{ $key + 1 }}"
-                                                type="button">
-                                                <img
-                                                    src="{{ asset('storage/' . $image) }}"
-                                                    alt="Product thumbnail {{ $key + 1 }}"
-                                                    loading="lazy">
-                                            </button>
-                                            @endforeach
+                                            <template x-for="(img, index) in images" :key="index">
+                                                <button
+                                                    class="pv-thumb"
+                                                    :class="{ 'active': activeIndex === index }"
+                                                    @click="scrollToIndex(index)"
+                                                    :aria-label="'View image ' + (index + 1)"
+                                                    type="button">
+                                                    <img :src="img" :alt="'Product thumbnail ' + (index + 1)" loading="lazy">
+                                                </button>
+                                            </template>
                                         </div>
                                     </div>
-                                    @endif
                                 </div>
 
                                 <!-- ====== PRODUCT INFO SECTION ====== -->
@@ -67,24 +129,36 @@
                                     </div>
 
                                     <div class="pv-pricing">
-                                        <span class="pv-price">
-                                            {{ setting('currency') }}{{ number_format($displayPrice, 2) }}
-                                        </span>
+                                        <div class="gap-1">
+                                            <span class="pv-price">
+                                                {{ setting('currency') }}{{ number_format($displayPrice, 2) }}
+                                            </span>
 
-                                        @if ($flashSaleItem)
-                                        <span class="pv-price-strike">
-                                            {{ setting('currency') }}{{ number_format($strikePrice, 2) }}
-                                        </span>
-                                        <span class="badge bg-danger ms-1 d-none">
-                                            Flash Sale {{ $flashSaleItem->discount_percent }}% OFF
-                                        </span>
+                                            @if ($flashSaleItem)
+                                            <span class="pv-price-strike">
+                                                {{ setting('currency') }}{{ number_format($strikePrice, 2) }}
+                                            </span>
+                                            <span class="badge bg-danger ms-1 d-none">
+                                                Flash Sale {{ $flashSaleItem->discount_percent }}% OFF
+                                            </span>
 
-                                        @elseif ($product->discount_type)
-                                        <span class="pv-price-strike">
-                                            {{ setting('currency') }}{{ number_format($strikePrice, 2) }}
-                                        </span>
-                                        @endif
+                                            @elseif ($product->discount_type)
+                                            <span class="pv-price-strike">
+                                                {{ setting('currency') }}{{ number_format($strikePrice, 2) }}
+                                            </span>
+                                            @endif
+                                        </div>
+                                        <!-- Add stock status -->
+                                        <div class="pv-stock-status {{ $isInStock ? 'pv-stock-status--in' : 'pv-stock-status--out' }}">
+                                            @if ($isInStock)
+                                            <i class="fas fa-check-circle"></i> In Stock ({{ $currentStock }} available)
+                                            @else
+                                            <i class="fas fa-times-circle"></i> Out of Stock
+                                            @endif
+                                        </div>
                                     </div>
+
+                                    @include('livewire/frontend/components/trust-badge')
 
                                     <!-- ====== VARIANT SELECTION ====== -->
                                     <div class="pv-variant">
@@ -323,7 +397,7 @@
                                 </div>
 
                                 <!-- Add stock status -->
-                                <div class="pv-stock-status">
+                                <div class="pv-stock-status d-none">
                                     @if ($isInStock)
                                     In Stock ({{ $currentStock }} available)
                                     @else
@@ -398,13 +472,18 @@
                                 <div class="pv-meta">
                                     <div class="meta-content">
                                         <div class="meta-item">
-                                            <span class="meta-label">Category:</span>
-                                            <a
-                                                wire:navigate
-                                                href="{{ $product->category ? route('frontend.category.products.view', $product->category->slug) : '#' }}"
-                                                class="meta-link">
-                                                {{ $product->category?->name ?? 'N/A' }}
-                                            </a>
+                                            <span class="meta-icon">
+                                                <i class="fa-solid fa-person-dress"></i>
+                                            </span>
+                                            <div class="d-flex flex-column">
+                                                <span class="meta-label">Category:</span>
+                                                <a
+                                                    wire:navigate
+                                                    href="{{ $product->category ? route('frontend.category.products.view', $product->category->slug) : '#' }}"
+                                                    class="meta-link">
+                                                    {{ $product->category?->name ?? 'N/A' }}
+                                                </a>
+                                            </div>
                                         </div>
                                         <div class="meta-item d-none">
                                             <span class="meta-label">Shop:</span>
@@ -606,6 +685,75 @@
 
     <!-- ====== STYLES ====== -->
     <style>
+        .pv-image-track {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .pv-image-track::-webkit-scrollbar {
+            display: none;
+        }
+
+        .pv-slide {
+            flex: 0 0 100%;
+            width: 100%;
+            height: 100%;
+            scroll-snap-align: center;
+            scroll-snap-stop: always;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pv-image-counter {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.65rem;
+            border-radius: 20px;
+            z-index: 10;
+            letter-spacing: 0.3px;
+        }
+
+        .pv-dots {
+            position: absolute;
+            bottom: 0.85rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            z-index: 10;
+        }
+
+        .pv-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.55);
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .pv-dot--active {
+            width: 18px;
+            border-radius: 4px;
+            background: orangered;
+        }
+
         .variant-buttons-container {
             display: flex;
             gap: 8px;
@@ -874,8 +1022,8 @@
 
         .pv-pricing {
             display: flex;
-            align-items: center;
-            gap: 1rem;
+            justify-content: space-between;
+            gap: 0.8rem;
             flex-wrap: wrap;
         }
 
@@ -886,7 +1034,7 @@
         }
 
         .pv-price-strike {
-            font-size: 1rem;
+            font-size: 0.9rem;
             color: #999;
             text-decoration: line-through;
         }
@@ -1139,48 +1287,100 @@
             min-width: 250px;
         }
 
-        /* Meta Info */
         .pv-meta {
             border-top: 1px solid #efefef;
-            padding-top: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
         }
 
         .meta-content {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
         }
 
         .meta-item {
             display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
+            padding: 0.1rem 1rem;
+            background: white;
+            border: 1px solid whitesmoke;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            gap: 0.7rem;
         }
 
         .meta-label {
-            font-weight: 600;
-            color: #333;
+            font-size: 1rem;
+            font-weight: 700;
+            color: black;
+        }
+
+        .meta-icon {
+            margin-top: 5px;
+            width: 40px;
+            height: 40px;
+            padding: 25px;
+            border-radius: 50%;
+            background: #fff3ea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .meta-card-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .meta-card-link:hover {
+            border-color: orangered;
+            background: #fafafa;
+        }
+
+        .meta-card-icon {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border-radius: 8px;
+            background: #fff3ea;
+            color: orangered;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .meta-card-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.35;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .meta-card-title {
             font-size: 0.9rem;
+            font-weight: 700;
+            color: #222;
+        }
+
+        .meta-card-sub {
+            font-size: 0.8rem;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .meta-card-arrow {
+            color: #ccc;
+            font-size: 0.85rem;
         }
 
         .meta-link {
-            padding: 0.5rem 1rem;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            color: #333;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            display: inline-block;
-            font-weight: 500;
-        }
-
-        .meta-link:hover {
-            background: #f5f5f5;
-            border-color: orangered;
+            color: gray;
         }
 
         /* Tabs */
@@ -1214,8 +1414,8 @@
         }
 
         .pv-tab-btn.active {
-            color: orange;
-            border-bottom-color: orange;
+            color: orangered;
+            border-bottom-color: orangered;
             background: transparent;
         }
 
@@ -1227,11 +1427,6 @@
         .pv-tab-panel {
             width: 100%;
         }
-
-        /* .pv-tab-panel.active {
-            display: block;
-            animation: fadeIn 0.3s ease-in-out;
-        } */
 
         @keyframes fadeIn {
             from {
@@ -1506,7 +1701,7 @@
             background: orangered;
             color: white;
             border: none;
-            border-radius: 20px;
+            border-radius: 10px;
             font-size: 0.9rem;
             font-weight: 700;
             cursor: pointer;
@@ -1536,7 +1731,7 @@
             background: orange;
             color: white;
             border: none;
-            border-radius: 20px;
+            border-radius: 10px;
             font-size: 0.9rem;
             font-weight: 700;
             cursor: pointer;
@@ -1683,7 +1878,7 @@
             }
 
             .pv-price {
-                font-size: 1.1rem;
+                font-size: 1.3rem;
             }
 
             .variant-current-price {
@@ -1709,6 +1904,9 @@
 
             .pv-tab-head {
                 gap: 0.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
             .pv-tab-btn {
@@ -1731,7 +1929,7 @@
 
             .pv-sticky-inner {
                 gap: 6px;
-                padding: 32px 6px;
+                padding: 35px 6px;
                 max-height: 56px;
             }
 
@@ -1778,6 +1976,35 @@
             .pv-sticky-spacer {
                 height: 50px;
             }
+        }
+
+        .pv-stock-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            width: fit-content;
+            padding: 0.35rem 0.9rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .pv-stock-status--in {
+            background: #e6f4ea;
+            color: #1e7e34;
+        }
+
+        .pv-stock-status--in i {
+            color: #28a745;
+        }
+
+        .pv-stock-status--out {
+            background: #fdecea;
+            color: #c0392b;
+        }
+
+        .pv-stock-status--out i {
+            color: #d32f2f;
         }
     </style>
 

@@ -154,7 +154,7 @@
 
             .main-header {
                 background: linear-gradient(135deg, #FF7A1A 0%, #FF5500 60%, #FF3D00 100%);
-                padding: 10px 10px;
+                padding: 15px 10px;
                 margin: 5px 5px;
                 border-radius: 10px;
                 box-shadow: 0 12px 25px rgba(255, 85, 0, 0.28);
