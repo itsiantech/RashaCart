@@ -57,7 +57,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title m-0">Revenue Overview</h5>
-                    <small class="text-muted">Only delivered orders count as revenue</small>
+                    <small class="text-muted">Only completed orders count as revenue</small>
                 </div>
                 <div class="card-body">
                     <div wire:ignore id="revenueChart" style="height: 300px;">
@@ -75,7 +75,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title m-0">Sales by Category</h5>
-                    <small class="text-muted">Only delivered orders</small>
+                    <small class="text-muted">Only completed orders</small>
                 </div>
                 <div class="card-body">
                     <div wire:ignore id="categoryChart" style="height: 300px;">
@@ -159,7 +159,7 @@
 
      <!-- Top Cards -->
     <div class="row">
-        <!-- Total Revenue (Delivered Orders Only) -->
+        <!-- Total Revenue (Completed Orders Only) -->
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="card">
                 <div class="card-body">
@@ -171,7 +171,7 @@
                             </h3>
                             <small class="text-success fw-semibold">
                                 <i class="bx bx-up-arrow-alt"></i>
-                                From {{ $orderStats->delivered_orders ?? 0 }} Delivered Orders
+                                From {{ $orderStats->completed_orders ?? 0 }} Completed Orders
                             </small>
                             <div class="mt-2">
                                 <small class="text-muted">
@@ -495,8 +495,8 @@
                         </div>
                         <div class="col-md-2 col-6 text-center mb-3">
                             <div class="border rounded p-3">
-                                <h4 class="text-info">{{ $orderStats->confirmed_orders ?? 0 }}</h4>
-                                <small class="text-muted">Confirmed</small>
+                                <h4 class="text-info">{{ $orderStats->completed_orders ?? 0 }}</h4>
+                                <small class="text-muted">Completed</small>
                             </div>
                         </div>
                         <div class="col-md-2 col-6 text-center mb-3">
@@ -766,7 +766,7 @@
             let data = google.visualization.arrayToDataTable(rows);
 
             let options = {
-                title: "Revenue Overview (Delivered Orders Only)",
+                title: "Revenue Overview (Completed Orders Only)",
                 curveType: "function",
                 legend: {
                     position: "bottom"
@@ -830,7 +830,7 @@
             let data = google.visualization.arrayToDataTable(rows);
 
             let options = {
-                title: "Sales by Category (Delivered Orders Only)",
+                title: "Sales by Category (Completed Orders Only)",
                 pieHole: 0.4,
                 chartArea: {
                     width: "90%",

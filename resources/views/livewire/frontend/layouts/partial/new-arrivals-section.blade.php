@@ -27,6 +27,11 @@
             @if($arrival->product && $arrival->product->slug)
             <a wire:navigate href="{{ route('frontend.product.single.view', $arrival->product->slug) }}" class="flash-product-card">
 
+                {{-- Discount Badge --}}
+                @if ($arrival->product->discount_percent > 0)
+                <div class="flash-discount-badge">{{ number_format($arrival->product->discount_percent, 0) }}% OFF</div>
+                @endif
+
                 {{-- Product Image --}}
                 <div class="flash-product-image">
                     <img
@@ -41,14 +46,6 @@
                     <div class="flash-product-prices">
                         <span class="flash-sale-price">
                             ৳{{ number_format($arrival->product->sale_price ?? $arrival->product->price, 0) }}
-                            @if ($arrival->product->sale_price && $arrival->product->sale_price < $arrival->product->price)
-                                @php
-                                $discountPercent = round((($arrival->product->price - $arrival->product->sale_price) / $arrival->product->price) * 100);
-                                @endphp
-                                <span style="margin-left: 8px; color: orengered; font-weight: bold;">
-                                    -{{ $discountPercent }}%
-                                </span>
-                                @endif
                         </span>
                         <span class="flash-original-price-new-arrival d-none">৳{{ number_format($arrival->product->price, 0) }}</span>
                     </div>

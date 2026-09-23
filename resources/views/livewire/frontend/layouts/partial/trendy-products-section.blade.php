@@ -24,7 +24,7 @@
 
         <div class="na-slider" id="naSlider">
             @foreach ($featuredProducts as $product)
-             @if($product->slug)
+            @if($product->slug)
             <a wire:navigate href="{{ route('frontend.product.single.view', $product->slug) }}" class="flash-product-card">
 
                 {{-- Discount Badge --}}
@@ -42,7 +42,14 @@
                 <div class="flash-product-info">
                     <p class="flash-product-name">{{ Str::limit($product->name, 30) }}</p>
                     <div class="flash-product-prices">
-                        <span class="flash-original-price-new-arrival">৳{{ number_format($product->price, 0) }}</span>
+                        <span class="flash-original-price-new-arrival">
+                            ৳{{ number_format($product->sale_price ?? $product->price, 0) }}
+                        </span>
+                        @if ($product->discount_percent > 0)
+                        <span style="text-decoration: line-through; color: #999; font-size: 12px; margin-left: 6px; display: none;">
+                            ৳{{ number_format($product->price, 0) }}
+                        </span>
+                        @endif
                     </div>
                 </div>
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class Order extends Model
 {
@@ -23,6 +24,17 @@ class Order extends Model
         'coupon_discount_amount',
         'coupon_code',
     ];
+
+    protected static function booted()
+    {
+        static::saved(function () {
+            Cache::forever('dashboard_cache_version', now()->timestamp);
+        });
+
+        static::deleted(function () {
+            Cache::forever('dashboard_cache_version', now()->timestamp);
+        });
+    }
 
     public function user()
     {

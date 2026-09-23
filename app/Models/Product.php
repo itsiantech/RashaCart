@@ -129,6 +129,15 @@ class Product extends Model
             });
     }
 
+    public function getDiscountPercentAttribute()
+    {
+        if (! $this->sale_price || $this->sale_price >= $this->price || ! $this->price) {
+            return 0;
+        }
+
+        return round((($this->price - $this->sale_price) / $this->price) * 100);
+    }
+
     // Helper accessor
     public function getIsPreorderActiveAttribute(): bool
     {

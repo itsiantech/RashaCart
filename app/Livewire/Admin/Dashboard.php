@@ -25,10 +25,9 @@ class Dashboard extends Component
 
     public $categoryChartData = [];
 
-    // Cache configuration
     protected $cachePrefix = 'dashboard_';
 
-    protected $cacheDuration = 300; // 5 minutes
+    protected $cacheDuration = 300;
 
     public $lastUpdated;
 
@@ -129,7 +128,6 @@ class Dashboard extends Component
 
     protected function clearAllCache()
     {
-        // Get all cache keys for this dashboard
         $cacheKeys = [
             'chart_data',
             'stats',
@@ -144,17 +142,23 @@ class Dashboard extends Component
         ];
 
         foreach ($cacheKeys as $key) {
-            $fullKey = $this->getCacheKey($key);
-            Cache::forget($fullKey);
+            Cache::forget($this->getCacheKey($key));
         }
 
-        // Also clear any other dashboard-related cache
         Cache::forget('dashboard_last_updated');
     }
 
     protected function getCacheKey($type)
     {
-        return $this->cachePrefix.$type.'_'.$this->filterType.'_'.$this->startDate.'_'.$this->endDate;
+        $userPart = $this->isVendor() ? '_vendor_' . $this->vendorId() : '_admin';
+
+        // Bumped automatically (Order::booted()) whenever any order is
+        // created, updated, or deleted anywhere in the app — so a status
+        // change (e.g. to "returned") invalidates these cached stats
+        // immediately instead of waiting for $cacheDuration to expire.
+        $version = Cache::get('dashboard_cache_version', 1);
+
+        return $this->cachePrefix . $type . '_' . $this->filterType . '_' . $this->startDate . '_' . $this->endDate . $userPart . '_v' . $version;
     }
 
     protected function prepareChartData()
@@ -246,7 +250,10 @@ class Dashboard extends Component
             }
 
             return [
-                'total_revenue_all_time' => Order::where('status', 'delivered')->sum('total_amount'),
+                // Revenue only counts once an order is marked "completed" —
+                // "delivered" isn't final because a delivered order can still
+                // come back as a return.
+                'total_revenue_all_time' => Order::where('status', 'completed')->sum('total_amount'),
                 'total_orders_all_time' => Order::count(),
                 'total_products_all_time' => Product::count(),
                 'total_customers_all_time' => $totalCustomers,
@@ -260,24 +267,24 @@ class Dashboard extends Component
         $cacheKey = $this->getCacheKey('revenue_by_status');
 
         return Cache::remember($cacheKey, $this->cacheDuration, function () {
-            return Order::whereBetween('created_at', [$this->startDate.' 00:00:00', $this->endDate.' 23:59:59'])
-                ->select(
-                    DB::raw('SUM(CASE WHEN status = "pending" THEN total_amount ELSE 0 END) as pending_amount'),
-                    DB::raw('SUM(CASE WHEN status = "confirmed" THEN total_amount ELSE 0 END) as confirmed_amount'),
-                    DB::raw('SUM(CASE WHEN status = "shipped" THEN total_amount ELSE 0 END) as shipped_amount'),
-                    DB::raw('SUM(CASE WHEN status = "delivered" THEN total_amount ELSE 0 END) as delivered_amount'),
-                    DB::raw('SUM(CASE WHEN status = "cancelled" THEN total_amount ELSE 0 END) as cancelled_amount'),
-                    DB::raw('SUM(CASE WHEN status = "returned" THEN total_amount ELSE 0 END) as returned_amount'),
-                    DB::raw('SUM(total_amount) as total_amount')
-                )
-                ->first();
-        });
+            $query = Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59']);
 
-        if ($this->isVendor()) {
-            $query->whereHas('orderItems.product', function ($q) {
-                $q->where('user_id', $this->vendorId());
-            });
-        }
+            if ($this->isVendor()) {
+                $query->whereHas('orderItems.product', function ($q) {
+                    $q->where('user_id', $this->vendorId());
+                });
+            }
+
+            return $query->select(
+                DB::raw('SUM(CASE WHEN status = "pending" THEN total_amount ELSE 0 END) as pending_amount'),
+                DB::raw('SUM(CASE WHEN status = "confirmed" THEN total_amount ELSE 0 END) as confirmed_amount'),
+                DB::raw('SUM(CASE WHEN status = "shipped" THEN total_amount ELSE 0 END) as shipped_amount'),
+                DB::raw('SUM(CASE WHEN status = "delivered" THEN total_amount ELSE 0 END) as delivered_amount'),
+                DB::raw('SUM(CASE WHEN status = "cancelled" THEN total_amount ELSE 0 END) as cancelled_amount'),
+                DB::raw('SUM(CASE WHEN status = "returned" THEN total_amount ELSE 0 END) as returned_amount'),
+                DB::raw('SUM(total_amount) as total_amount')
+            )->first();
+        });
     }
 
     public function getBestSellingProducts()
@@ -285,26 +292,27 @@ class Dashboard extends Component
         $cacheKey = $this->getCacheKey('best_selling');
 
         return Cache::remember($cacheKey, $this->cacheDuration, function () {
-            return OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            $query = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
                 ->join('products', 'order_items.product_id', '=', 'products.id')
-                ->whereBetween('orders.created_at', [$this->startDate.' 00:00:00', $this->endDate.' 23:59:59'])
+                ->whereBetween('orders.created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
                 ->where('orders.status', '!=', 'cancelled')
-                ->where('orders.status', '!=', 'returned')
-                ->select(
-                    'products.name',
-                    'products.thumbnail',
-                    DB::raw('SUM(order_items.quantity) as total_sold'),
-                    DB::raw('SUM(order_items.quantity * order_items.unit_price) as total_revenue')
-                )
+                ->where('orders.status', '!=', 'returned');
+
+            if ($this->isVendor()) {
+                $query->where('products.user_id', $this->vendorId());
+            }
+
+            return $query->select(
+                'products.name',
+                'products.thumbnail',
+                DB::raw('SUM(order_items.quantity) as total_sold'),
+                DB::raw('SUM(order_items.quantity * order_items.unit_price) as total_revenue')
+            )
                 ->groupBy('products.id', 'products.name', 'products.thumbnail')
                 ->orderByDesc('total_sold')
                 ->limit(10)
                 ->get();
         });
-
-        if ($this->isVendor()) {
-            $query->where('products.user_id', $this->vendorId());
-        }
     }
 
     public function getPopularCategories()
@@ -312,20 +320,24 @@ class Dashboard extends Component
         $cacheKey = $this->getCacheKey('popular_categories');
 
         return Cache::remember($cacheKey, $this->cacheDuration, function () {
-            return OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            $query = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
                 ->join('products', 'order_items.product_id', '=', 'products.id')
                 ->join('categories', 'products.category_id', '=', 'categories.id')
-                ->whereBetween('orders.created_at', [$this->startDate.' 00:00:00', $this->endDate.' 23:59:59'])
+                ->whereBetween('orders.created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
                 ->where('orders.status', '!=', 'cancelled')
-                ->where('orders.status', '!=', 'returned')
-                ->select(
-                    'categories.name',
-                    DB::raw('COUNT(DISTINCT orders.id) as order_count'),
-                    DB::raw('SUM(order_items.quantity) as total_sold')
-                )
+                ->where('orders.status', '!=', 'returned');
+
+            if ($this->isVendor()) {
+                $query->where('products.user_id', $this->vendorId());
+            }
+
+            return $query->select(
+                'categories.name',
+                DB::raw('COUNT(DISTINCT orders.id) as order_count'),
+                DB::raw('SUM(order_items.quantity) as total_sold')
+            )
                 ->groupBy('categories.id', 'categories.name')
                 ->orderByDesc('total_sold')
-                ->limit(10)
                 ->get();
         });
     }
@@ -335,7 +347,7 @@ class Dashboard extends Component
         $cacheKey = $this->getCacheKey('golden_customers');
 
         return Cache::remember($cacheKey, $this->cacheDuration, function () {
-            return Order::whereBetween('created_at', [$this->startDate.' 00:00:00', $this->endDate.' 23:59:59'])
+            return Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
                 ->where('status', '!=', 'cancelled')
                 ->where('status', '!=', 'returned')
                 ->select(
@@ -359,30 +371,27 @@ class Dashboard extends Component
         $cacheKey = $this->getCacheKey('order_stats');
 
         return Cache::remember($cacheKey, $this->cacheDuration, function () {
-            return Order::whereBetween('created_at', [$this->startDate.' 00:00:00', $this->endDate.' 23:59:59'])
-                ->select(
-                    DB::raw('COUNT(*) as total_orders'),
-                    DB::raw('SUM(CASE WHEN status = "delivered" THEN total_amount ELSE 0 END) as total_revenue'),
-                    DB::raw('COUNT(CASE WHEN status = "pending" THEN 1 END) as pending_orders'),
-                    DB::raw('COUNT(CASE WHEN status = "confirmed" THEN 1 END) as confirmed_orders'),
-                    DB::raw('COUNT(CASE WHEN status = "shipped" THEN 1 END) as shipped_orders'),
-                    DB::raw('COUNT(CASE WHEN status = "delivered" THEN 1 END) as delivered_orders'),
-                    DB::raw('COUNT(CASE WHEN status = "cancelled" THEN 1 END) as cancelled_orders'),
-                    DB::raw('COUNT(CASE WHEN status = "returned" THEN 1 END) as returned_orders')
-                )
-                ->first();
+            $query = Order::whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59']);
+
+            if ($this->isVendor()) {
+                $query->whereHas('orderItems.product', function ($q) {
+                    $q->where('user_id', $this->vendorId());
+                });
+            }
+
+            return $query->select(
+                DB::raw('COUNT(*) as total_orders'),
+                // Revenue only counts once an order is "completed" — see
+                // getTotalStats() for why "delivered" isn't final.
+                DB::raw('SUM(CASE WHEN status = "completed" THEN total_amount ELSE 0 END) as total_revenue'),
+                DB::raw('COUNT(CASE WHEN status = "pending" THEN 1 END) as pending_orders'),
+                DB::raw('COUNT(CASE WHEN status = "completed" THEN 1 END) as completed_orders'),
+                DB::raw('COUNT(CASE WHEN status = "shipped" THEN 1 END) as shipped_orders'),
+                DB::raw('COUNT(CASE WHEN status = "delivered" THEN 1 END) as delivered_orders'),
+                DB::raw('COUNT(CASE WHEN status = "cancelled" THEN 1 END) as cancelled_orders'),
+                DB::raw('COUNT(CASE WHEN status = "returned" THEN 1 END) as returned_orders')
+            )->first();
         });
-
-        $query = Order::whereBetween('created_at', [
-            $this->startDate.' 00:00:00',
-            $this->endDate.' 23:59:59',
-        ]);
-
-        if ($this->isVendor()) {
-            $query->whereHas('orderItems.product', function ($q) {
-                $q->where('user_id', $this->vendorId());
-            });
-        }
     }
 
     public function getStockStats()
@@ -423,8 +432,8 @@ class Dashboard extends Component
         $outOfStockCount = 0;
         $products = $this->isVendor()
             ? Product::where('user_id', $this->vendorId())
-                ->with(['inventories', 'variants.inventories'])
-                ->get()
+            ->with(['inventories', 'variants.inventories'])
+            ->get()
             : Product::with(['inventories', 'variants.inventories'])->get();
 
         foreach ($products as $product) {
@@ -473,10 +482,12 @@ class Dashboard extends Component
     public function getRevenueChartData()
     {
         $query = Order::whereBetween('created_at', [
-            $this->startDate.' 00:00:00',
-            $this->endDate.' 23:59:59',
+            $this->startDate . ' 00:00:00',
+            $this->endDate . ' 23:59:59',
         ])
-            ->where('status', 'delivered');
+            // Revenue only counts once an order is "completed" — see
+            // getTotalStats() for why "delivered" isn't final.
+            ->where('status', 'completed');
 
         if ($this->isVendor()) {
             $query->whereHas('orderItems.product', function ($q) {
@@ -500,10 +511,12 @@ class Dashboard extends Component
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->join('categories', 'products.category_id', '=', 'categories.id')
             ->whereBetween('orders.created_at', [
-                $this->startDate.' 00:00:00',
-                $this->endDate.' 23:59:59',
+                $this->startDate . ' 00:00:00',
+                $this->endDate . ' 23:59:59',
             ])
-            ->where('orders.status', 'delivered');
+            // Revenue only counts once an order is "completed" — see
+            // getTotalStats() for why "delivered" isn't final.
+            ->where('orders.status', 'completed');
 
         if ($this->isVendor()) {
             $query->where('products.user_id', $this->vendorId());

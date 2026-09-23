@@ -25,7 +25,7 @@ $courier = new \App\Services\CourierService();
                             All ({{ array_sum($statusCounts) ?? 0 }})
                         </button>
 
-                        @foreach (['pending','Call Not Received', 'confirmed', 'shipped', 'delivered', 'cancelled', 'returned','Pending Return','Pending Cancelled'] as $status)
+                        @foreach (['pending','Call Not Received', 'completed', 'shipped', 'delivered', 'cancelled', 'returned','Pending Return','Pending Cancelled'] as $status)
                         <button type="button"
                             wire:click="filterByStatus('{{ $status }}')"
                             class="btn {{ $statusFilter == $status ? 'btn-primary' : 'btn-outline-primary' }}">
@@ -115,7 +115,7 @@ $courier = new \App\Services\CourierService();
                             <select wire:change="updateStatus({{ $order->id }}, $event.target.value)"
                                 wire:loading.attr="disabled"
                                 class="form-select form-select-sm">
-                                @foreach (['pending','Call Not Received','completed', 'confirmed', 'shipped', 'delivered', 'cancelled', 'returned','Pending Return','Pending Cancelled'] as $status)
+                                @foreach (['pending','Call Not Received','completed', 'shipped', 'delivered', 'cancelled', 'returned','Pending Return','Pending Cancelled'] as $status)
                                 <option value="{{ $status }}" {{ $order->status == $status ? 'selected' : '' }}>
                                     {{ ucfirst($status) }}
                                 </option>
