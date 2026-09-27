@@ -127,6 +127,12 @@
                                     // Avoid double initialization
                                     if (editorEl.__quill) return;
 
+                                    // IMPORTANT: capture the original content BEFORE Quill transforms the DOM.
+                                    // Once `new Quill()` runs, editorEl.innerHTML becomes Quill's internal
+                                    // markup (contenteditable wrapper, ql-clipboard, ql-tooltip, etc.) —
+                                    // reading it afterwards is what corrupted saved descriptions.
+                                    var originalContent = hiddenInput.value || editorEl.innerHTML || '';
+
                                     var quill = new Quill(editorEl, {
                                         theme: 'snow',
                                         modules: {
@@ -149,18 +155,19 @@
 
                                     editorEl.__quill = quill;
 
-                                    // Initialize content (use the rendered HTML if present)
-                                    var initial = editorEl.innerHTML || hiddenInput.value || '';
-                                    if (initial) {
-                                        // Use Quill's paste API to preserve formatting and avoid Quill clearing unsafe HTML
-                                        quill.clipboard.dangerouslyPasteHTML(initial);
-                                        hiddenInput.value = initial;
-                                        try {
-                                            hiddenInput.dispatchEvent(new Event('input', {
-                                                bubbles: true
-                                            }));
-                                        } catch (e) {}
+                                    if (originalContent) {
+                                        quill.clipboard.dangerouslyPasteHTML(originalContent);
                                     }
+
+                                    // Always read clean content back from quill.root (the actual
+                                    // .ql-editor node) — never from editorEl, which also contains
+                                    // the toolbar and other Quill internals.
+                                    hiddenInput.value = quill.root.innerHTML;
+                                    try {
+                                        hiddenInput.dispatchEvent(new Event('input', {
+                                            bubbles: true
+                                        }));
+                                    } catch (e) {}
 
                                     quill.on('text-change', function() {
                                         var html = quill.root.innerHTML;
@@ -210,10 +217,8 @@
                                 // load CSS + JS and initialize
                                 loadCssOnce(QUILL_CSS);
                                 loadScript(QUILL_JS, function() {
-                                    // initialize after Livewire is ready
                                     if (window.Livewire) {
                                         document.addEventListener('livewire:load', initQuill);
-                                        // also init in case Livewire already loaded
                                         initQuill();
                                     } else {
                                         initQuill();

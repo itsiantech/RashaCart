@@ -172,7 +172,9 @@
 
     </main>
 
+    @unless(request()->routeIs('frontend.product.single.view'))
     @include('livewire.frontend.layouts.partial.footer.footer-default')
+    @endunless
 
 
     <!-- Scripts -->

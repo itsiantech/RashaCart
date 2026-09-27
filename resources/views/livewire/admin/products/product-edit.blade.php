@@ -110,8 +110,10 @@
                                     var hiddenInput = document.getElementById('long_description_input');
                                     if (!editorEl || !window.Quill) return;
 
-                                    // Avoid double initialization
                                     if (editorEl.__quill) return;
+
+                                    // Capture original content BEFORE Quill transforms the DOM
+                                    var originalContent = hiddenInput.value || editorEl.innerHTML || '';
 
                                     var quill = new Quill(editorEl, {
                                         theme: 'snow',
@@ -135,18 +137,17 @@
 
                                     editorEl.__quill = quill;
 
-                                    // Initialize content (use the rendered HTML if present)
-                                    var initial = editorEl.innerHTML || hiddenInput.value || '';
-                                    if (initial) {
-                                        // Use Quill's paste API to preserve formatting and avoid Quill clearing unsafe HTML
-                                        quill.clipboard.dangerouslyPasteHTML(initial);
-                                        hiddenInput.value = initial;
-                                        try {
-                                            hiddenInput.dispatchEvent(new Event('input', {
-                                                bubbles: true
-                                            }));
-                                        } catch (e) {}
+                                    if (originalContent) {
+                                        quill.clipboard.dangerouslyPasteHTML(originalContent);
                                     }
+
+                                    // Always read clean content from quill.root, never from editorEl
+                                    hiddenInput.value = quill.root.innerHTML;
+                                    try {
+                                        hiddenInput.dispatchEvent(new Event('input', {
+                                            bubbles: true
+                                        }));
+                                    } catch (e) {}
 
                                     quill.on('text-change', function() {
                                         var html = quill.root.innerHTML;
@@ -156,7 +157,7 @@
                                                 bubbles: true
                                             }));
                                         } catch (e) {}
-                                        // Prefer direct update using component id if available
+
                                         function findClosestLivewireId(node) {
                                             var el = node;
                                             while (el) {
@@ -181,7 +182,6 @@
                                         }
                                     });
 
-                                    // Keep Quill in sync after Livewire updates
                                     if (window.Livewire && Livewire.hook) {
                                         Livewire.hook('message.processed', function() {
                                             var current = quill.root.innerHTML;

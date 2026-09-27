@@ -40,7 +40,6 @@
         border: 1px solid #eee;
         border-radius: 10px;
         padding: 0.9rem 0.75rem;
-        margin-top: 0.5rem;
     }
 
     .pv-trust-item {
@@ -86,6 +85,7 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        display: none;
     }
 
     @media (max-width: 576px) {
@@ -101,11 +101,12 @@
         }
 
         .pv-trust-title {
-            font-size: 0.7rem;
+            font-size: 0.62rem;
         }
 
         .pv-trust-sub {
-            font-size: 0.55rem;
+            font-size: 0.5rem;
+            display: none;
         }
     }
 
@@ -127,6 +128,7 @@
 
         .pv-trust-sub {
             font-size: 0.5rem;
+            display: none;
         }
     }
 </style>

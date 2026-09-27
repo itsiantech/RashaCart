@@ -151,7 +151,7 @@
                                         <!-- Add stock status -->
                                         <div class="pv-stock-status {{ $isInStock ? 'pv-stock-status--in' : 'pv-stock-status--out' }}">
                                             @if ($isInStock)
-                                            <i class="fas fa-check-circle"></i> In Stock ({{ $currentStock }} available)
+                                            <i class="fas fa-check-circle"></i> In Stock
                                             @else
                                             <i class="fas fa-times-circle"></i> Out of Stock
                                             @endif
@@ -471,7 +471,7 @@
                                 <!-- Meta Information -->
                                 <div class="pv-meta">
                                     <div class="meta-content">
-                                        <div class="meta-item">
+                                        <div class="meta-item d-none">
                                             <span class="meta-icon">
                                                 <i class="fa-solid fa-person-dress"></i>
                                             </span>
@@ -528,7 +528,7 @@
 
                     <div class="pv-tab-body">
                         <!-- Description Tab -->
-                        <div x-show="activeTab === 'desc'" x-transition>
+                        <div class="pv-tab-content" x-show="activeTab === 'desc'" x-transition>
                             {!! $product->long_description !!}
                         </div>
 
@@ -1386,11 +1386,13 @@
         /* Tabs */
         .pv-tabs {
             width: 100%;
-            margin-top: 2rem;
+            margin-top: 1rem;
         }
 
         .pv-tab-head {
             display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
             border-bottom: 2px solid #e0e0e0;
             gap: 2rem;
             background: white;
@@ -1422,6 +1424,11 @@
         .pv-tab-body {
             padding: 2rem 0;
             width: 100%;
+        }
+
+        .pv-tab-content {
+            padding: 10px;
+            border: 1px solid #333;
         }
 
         .pv-tab-panel {
@@ -1817,7 +1824,7 @@
             }
 
             .pv-price {
-                font-size: 1.3rem;
+                font-size: 1.5rem;
             }
 
             .pv-actions {
@@ -1905,8 +1912,8 @@
             .pv-tab-head {
                 gap: 0.5rem;
                 display: flex;
-                align-items: center;
-                justify-content: center;
+                align-items: flex-end;
+                justify-content: space-between;
             }
 
             .pv-tab-btn {
