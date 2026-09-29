@@ -158,7 +158,9 @@
                                         </div>
                                     </div>
 
-                                    @include('livewire/frontend/components/trust-badge')
+                                    <div class="d-none">
+                                        @include('livewire/frontend/components/trust-badge')
+                                    </div>
 
                                     <!-- ====== VARIANT SELECTION ====== -->
                                     <div class="pv-variant">
@@ -528,8 +530,40 @@
 
                     <div class="pv-tab-body">
                         <!-- Description Tab -->
-                        <div class="pv-tab-content" x-show="activeTab === 'desc'" x-transition>
-                            {!! $product->long_description !!}
+                        <div class="pv-tab-content" x-show="activeTab === 'desc'" x-transition
+                            x-data="{
+        expanded: false,
+        needsToggle: false,
+        fullHeight: 0,
+        collapsedHeight: 0,
+        init() {
+            this.$nextTick(() => this.measure());
+            new ResizeObserver(() => this.measure()).observe(this.$refs.inner);
+        },
+        measure() {
+            const full = this.$refs.inner.offsetHeight;
+            if (!full) return; // tab hidden thakle skip
+            this.fullHeight = full;
+            // 200px er kom hole toggle dorkar nai
+            this.needsToggle = full > 200;
+            this.collapsedHeight = Math.round(full * 0.2);
+        }
+    }">
+
+                            <div class="pv-desc-clamp"
+                                :class="{ 'is-collapsed': needsToggle && !expanded }"
+                                :style="needsToggle ? `max-height: ${expanded ? fullHeight : collapsedHeight}px` : ''">
+                                <div x-ref="inner">
+                                    {!! $product->long_description !!}
+                                </div>
+                            </div>
+
+                            <template x-if="needsToggle">
+                                <button type="button" class="pv-desc-toggle" @click="expanded = !expanded">
+                                    <span x-text="expanded ? 'Show less' : 'Show more'"></span>
+                                    <i class="fas" :class="expanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                </button>
+                            </template>
                         </div>
 
                         <!-- Reviews Tab -->
@@ -1002,7 +1036,6 @@
         .pv-info {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
         }
 
         .pv-title {
@@ -1391,7 +1424,7 @@
 
         .pv-tab-head {
             display: flex;
-            justify-content: space-between;
+            justify-content: space-around;
             align-items: flex-end;
             border-bottom: 2px solid #e0e0e0;
             gap: 2rem;
@@ -1422,13 +1455,14 @@
         }
 
         .pv-tab-body {
-            padding: 2rem 0;
+            padding: 1rem 0;
             width: 100%;
         }
 
         .pv-tab-content {
             padding: 10px;
-            border: 1px solid #333;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
         }
 
         .pv-tab-panel {
@@ -1838,7 +1872,7 @@
             .review-summary-box {
                 flex-direction: column;
                 gap: 1.5rem;
-                padding: 1rem;
+                padding: 0.7rem;
             }
 
             .review-summary-left {
@@ -1885,7 +1919,7 @@
             }
 
             .pv-price {
-                font-size: 1.3rem;
+                font-size: 1.5rem;
             }
 
             .variant-current-price {
@@ -1913,7 +1947,7 @@
                 gap: 0.5rem;
                 display: flex;
                 align-items: flex-end;
-                justify-content: space-between;
+                justify-content: space-around;
             }
 
             .pv-tab-btn {
@@ -1922,7 +1956,7 @@
             }
 
             .pv-tab-body {
-                padding: 1rem 0;
+                padding: 0.3rem 0;
             }
 
             .review-avg-score {
@@ -2012,6 +2046,45 @@
 
         .pv-stock-status--out i {
             color: #d32f2f;
+        }
+
+        .pv-desc-clamp {
+            position: relative;
+            overflow: hidden;
+            transition: max-height 0.35s ease;
+        }
+
+        /* fade effect niche */
+        .pv-desc-clamp.is-collapsed::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 50px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #fff);
+            pointer-events: none;
+        }
+
+        .pv-desc-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin: 0.75rem auto 0;
+            padding: 0.4rem 1.2rem;
+            background: transparent;
+            border: 1px solid orangered;
+            color: orangered;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .pv-desc-toggle:hover {
+            background: orangered;
+            color: #fff;
         }
     </style>
 

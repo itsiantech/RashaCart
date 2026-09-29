@@ -68,17 +68,17 @@
 
         <a wire:navigate href="{{ route('frontend.category.view') }}"
             class="{{ request()->routeIs('frontend.category.*') ? 'active' : '' }}">
-            <img src="{{ asset('images/category.png') }}" class="footer-icon"><span>Categories</span>
-        </a>
-
-        <a wire:navigate href="{{ route('frontend.order.tracking') }}"
-            class="{{ request()->routeIs('frontend.order.tracking') ? 'active' : '' }}">
-            <img src="{{ asset('images/tracking.png') }}" class="footer-icon"><span>Trak Order</span>
+            <i class="fa-solid fa-table-list"></i><span>Categories</span>
         </a>
 
         <a href="tel:{{ setting('contact_phone') }}"
             class="{{ request()->routeIs('contact_phone') ? 'active' : '' }}">
             <i class="fas fa-phone"></i><span>Call</span>
+        </a>
+
+        <a wire:navigate href="{{ route('frontend.order.tracking') }}"
+            class="{{ request()->routeIs('frontend.order.tracking') ? 'active' : '' }}">
+            <i class="fa-solid fa-cube"></i><span>Trak Order</span>
         </a>
 
         <a wire:navigate href="{{ route('login') }}"

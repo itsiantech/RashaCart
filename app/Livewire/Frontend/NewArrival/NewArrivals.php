@@ -57,7 +57,7 @@ class NewArrivals extends Component
 
     public function render()
     {
-        $query = NewArrival::with('product.category')->active();
+        $query = NewArrival::with(['product.category', 'product.activeFlashSaleItem'])->active();
 
         // Get all, then filter/sort on collection
         $all = $query->ordered()->get();

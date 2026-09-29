@@ -62,34 +62,34 @@ class TrendyProduct extends Component
 
     public function render()
     {
-        // Query featured products (you can adjust the query based on your logic)
         $query = Product::where('status', 1)
-            ->where('is_featured', 1) // Assuming you have an is_featured flag
-            ->with('category');
-
-        // Get all, then filter/sort on collection
+            ->where('is_featured', 1)
+            ->with(['category', 'activeFlashSaleItem']);
+            
         $all = $query->get();
 
         // Filter by category
         if ($this->selectedCategory) {
-            $all = $all->filter(fn ($p) => $p->category_id == $this->selectedCategory
+            $all = $all->filter(
+                fn($p) => $p->category_id == $this->selectedCategory
             );
         }
 
         // Filter by price range
         if ($this->selectedPrice) {
             [$min, $max] = explode('-', $this->selectedPrice);
-            $all = $all->filter(fn ($p) => $p->sale_price >= $min &&
-                $p->sale_price <= $max
+            $all = $all->filter(
+                fn($p) => $p->sale_price >= $min &&
+                    $p->sale_price <= $max
             );
         }
 
         // Sort
         $all = match ($this->sortBy) {
-            'price_low' => $all->sortBy(fn ($p) => $p->sale_price ?? 0),
-            'price_high' => $all->sortByDesc(fn ($p) => $p->sale_price ?? 0),
-            'name_az' => $all->sortBy(fn ($p) => $p->name ?? ''),
-            default => $all->sortByDesc(fn ($p) => $p->created_at),
+            'price_low' => $all->sortBy(fn($p) => $p->sale_price ?? 0),
+            'price_high' => $all->sortByDesc(fn($p) => $p->sale_price ?? 0),
+            'name_az' => $all->sortBy(fn($p) => $p->name ?? ''),
+            default => $all->sortByDesc(fn($p) => $p->created_at),
         };
 
         $total = $all->count();

@@ -72,7 +72,7 @@ class Welcome extends Component
             ->orderBy('name')
             ->get();
 
-        $this->newArrivals = NewArrival::with('product')->active()->ordered()->get();
+        $this->newArrivals = NewArrival::with('product.activeFlashSaleItem')->active()->ordered()->get();
 
         $this->loadFlashSale();
         $this->loadProducts();
@@ -107,7 +107,8 @@ class Welcome extends Component
         $this->featuredProducts = $allCachedProducts
             ->where('is_featured', 1)
             ->take($this->perPage)
-            ->values();
+            ->values()
+            ->load('activeFlashSaleItem');
 
         // Attach total_sold
         $totalSold = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
@@ -129,15 +130,18 @@ class Welcome extends Component
             $this->brandProducts[$brand->id] = $allCachedProducts
                 ->where('brand_id', $brand->id)
                 ->take($this->perPage)
-                ->values();
+                ->values()
+                ->load('activeFlashSaleItem');
         }
 
         // All products (from DB directly)
-        $this->allProducts = Product::where('status', 1)
+        $this->allProducts = Product::with('activeFlashSaleItem')
+            ->where('status', 1)
             ->latest()
             ->take($this->allProductsPerPage)
             ->get()
             ->all();
+
         $this->allProductsLoadedCount = count($this->allProducts);
     }
 
@@ -147,7 +151,8 @@ class Welcome extends Component
 
         $more = $allProducts->where('is_featured', 1)
             ->slice($this->featuredLoadedCount, $this->perPage)
-            ->values();
+            ->values()
+            ->load('activeFlashSaleItem');
 
         $this->featuredProducts = $this->featuredProducts->concat($more);
         $this->featuredLoadedCount = $this->featuredProducts->count();
@@ -156,7 +161,8 @@ class Welcome extends Component
     public function loadMoreAllProducts(): void
     {
         $this->allProductsPerPage += 12;
-        $this->allProducts = Product::where('status', 1)
+        $this->allProducts = Product::with('activeFlashSaleItem')
+            ->where('status', 1)
             ->latest()
             ->take($this->allProductsPerPage)
             ->get()

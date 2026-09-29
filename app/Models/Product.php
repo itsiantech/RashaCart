@@ -154,6 +154,41 @@ class Product extends Model
         return true;
     }
 
+    public function activeFlashSaleItem()
+    {
+        return $this->hasOne(FlashSaleItem::class)
+            ->whereHas('flashSale', fn($q) => $q
+                ->where('is_active', true)
+                ->where('start_at', '<=', now())
+                ->where('end_at', '>=', now()))
+            ->latestOfMany();
+    }
+
+    public function getPriceInfoAttribute(): array
+    {
+        $original = (float) $this->price;
+        $flash    = $this->activeFlashSaleItem;
+
+        // Flash sale er priority shobar upore
+        if ($flash && $flash->discount_percent > 0) {
+            $percent = (float) $flash->discount_percent;
+            $final   = round($original - ($original * $percent / 100), 2);
+        } else {
+            $final   = (float) $this->sale_price;
+            $percent = $original > 0 ? round((($original - $final) / $original) * 100) : 0;
+        }
+
+        $hasDiscount = $original > 0 && $final < $original;
+
+        return [
+            'original'     => $original,
+            'final'        => $final,
+            'percent'      => $hasDiscount ? (int) round($percent) : 0,
+            'has_discount' => $hasDiscount,
+            'is_flash'     => (bool) $flash,
+        ];
+    }
+
     protected static function booted()
     {
         static::saved(function () {

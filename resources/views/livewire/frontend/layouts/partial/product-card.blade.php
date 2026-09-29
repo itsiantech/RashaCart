@@ -1,3 +1,4 @@
+@php $p = $product->price_info; @endphp
 <div class="product-card">
 
     <div class="product-image">
@@ -21,23 +22,18 @@
         <h3 class="product-title">{{ $product->name }}</h3>
 
         <div class="product-price d-flex justify-content-between gap-1">
-            <div class="">
+            <div>
                 <span class="current-price">
-                    {{ setting('currency') }}{{ number_format($product->sale_price ?? $product->price, 2) }}
+                    {{ setting('currency') }}{{ number_format($p['final'], 2) }}
                 </span>
-                @if ($product->sale_price)
-                <span class="original-price">{{ number_format($product->price, 2) }}</span>
+                @if ($p['has_discount'])
+                <span class="original-price">{{ number_format($p['original'], 2) }}</span>
                 @endif
             </div>
 
-            @if ($product->sale_price && $product->sale_price < $product->price)
-                <div class="product-badge">
-                    @php
-                    $discountPercent = round((($product->price - $product->sale_price) / $product->price) * 100);
-                    @endphp
-                    -{{ $discountPercent }}%
-                </div>
-                @endif
+            @if ($p['has_discount'])
+            <div class="product-badge">-{{ $p['percent'] }}%</div>
+            @endif
         </div>
 
         <div class="product-cta">

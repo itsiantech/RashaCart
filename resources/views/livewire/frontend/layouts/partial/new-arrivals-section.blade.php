@@ -25,11 +25,12 @@
         <div class="na-slider" id="naSlider">
             @foreach($newArrivals as $arrival)
             @if($arrival->product && $arrival->product->slug)
+            @php $p = $arrival->product->price_info; @endphp
             <a wire:navigate href="{{ route('frontend.product.single.view', $arrival->product->slug) }}" class="flash-product-card">
 
                 {{-- Discount Badge --}}
-                @if ($arrival->product->discount_percent > 0)
-                <div class="flash-discount-badge">{{ number_format($arrival->product->discount_percent, 0) }}% OFF</div>
+                @if ($p['has_discount'])
+                <div class="flash-discount-badge">{{ $p['percent'] }}% OFF</div>
                 @endif
 
                 {{-- Product Image --}}
@@ -44,13 +45,14 @@
                 <div class="flash-product-info">
                     <p class="flash-product-name">{{ Str::limit($arrival->product->name, 30) }}</p>
                     <div class="flash-product-prices">
-                        <span class="flash-sale-price">
-                            ৳{{ number_format($arrival->product->sale_price ?? $arrival->product->price, 0) }}
+                        <span class="flash-sale-price">৳{{ number_format($p['final'], 0) }}</span>
+                        @if ($p['has_discount'])
+                        <span style="text-decoration: line-through; color: #999; font-size: 12px; margin-left: 6px; display: none;">
+                            ৳{{ number_format($p['original'], 0) }}
                         </span>
-                        <span class="flash-original-price-new-arrival d-none">৳{{ number_format($arrival->product->price, 0) }}</span>
+                        @endif
                     </div>
                 </div>
-
             </a>
             @endif
             @endforeach
