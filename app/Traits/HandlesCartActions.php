@@ -11,9 +11,7 @@ trait HandlesCartActions
 {
     public $quantity = 1;
 
-    /**
-     * Get all unique attribute types that exist for a product's variants
-     */
+
     private function getProductAttributeTypes($product)
     {
         $attributeTypes = collect();
@@ -68,16 +66,20 @@ trait HandlesCartActions
 
     public function addToCart($productId)
     {
+        // CHANGED (1): 'activeFlashSaleItem' added to eager load
         $product = Product::with([
             'variants.variantAttributeValues.attribute',
             'variants.variantAttributeValues.attributeValue',
             'variants.inventories',
+            'activeFlashSaleItem',
         ])->findOrFail($productId);
 
         $cart = session()->get('cart', []);
         $key = $productId;
         $qty = $this->quantity > 0 ? $this->quantity : 1;
-        $price = $product->sale_price ?? $product->price;
+
+        // CHANGED (2): flash sale + normal discount, both handled
+        $price = $product->price_info['final'];
 
         $variantImage = null;
         $variantId = null;
@@ -164,7 +166,17 @@ trait HandlesCartActions
                     return false;
                 }
 
-                $price = $variant->variant_price ?? $price;
+                // CHANGED (3): variant price + flash sale discount
+                $variantBase = $variant->variant_price ?? null;
+
+                if ($variantBase !== null) {
+                    $flash = $product->activeFlashSaleItem;
+
+                    $price = ($flash && $flash->discount_percent > 0)
+                        ? round($variantBase - ($variantBase * $flash->discount_percent / 100), 2)
+                        : $variantBase;
+                }
+
                 $variantImage = ! empty($variant->image) ? asset('storage/' . $variant->image) : null;
 
                 foreach ($variant->variantAttributeValues as $vav) {
