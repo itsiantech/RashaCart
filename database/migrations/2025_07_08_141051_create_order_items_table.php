@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('order_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('order_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('order_id')->constrained('orders')->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->foreignId('vendor_id')->nullable()->constrained('users')->cascadeOnDelete(); // for multivendor
             $table->foreignId('product_variant_id')->nullable()->constrained()->setNullOnDelete();

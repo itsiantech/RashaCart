@@ -173,9 +173,12 @@ class Product extends Model
         if ($flash && $flash->discount_percent > 0) {
             $percent = (float) $flash->discount_percent;
             $final   = round($original - ($original * $percent / 100), 2);
-        } else {
+        } elseif ($this->sale_price && (float) $this->sale_price < $original) {
             $final   = (float) $this->sale_price;
             $percent = $original > 0 ? round((($original - $final) / $original) * 100) : 0;
+        } else {
+            $final   = $original;
+            $percent = 0;
         }
 
         $hasDiscount = $original > 0 && $final < $original;

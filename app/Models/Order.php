@@ -23,6 +23,8 @@ class Order extends Model
         'total_amount',
         'coupon_discount_amount',
         'coupon_code',
+        'transaction_id',
+        'payment_status',
     ];
 
     protected static function booted()
