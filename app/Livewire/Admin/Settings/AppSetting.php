@@ -190,6 +190,16 @@ class AppSetting extends Component
         Settings::clearCache();
     }
 
+    public function updatedAttributeSystem($value): void
+    {
+        Settings::updateOrCreate(
+            ['key' => 'attribute_system'],
+            ['value' => $value ? 1 : 0]
+        );
+        Settings::clearCache();
+        $this->dispatch('success', message: $value ? 'Attribute system turned ON.' : 'Attribute system turned OFF.');
+    }
+
     public function update(): void
     {
         $validatedData = $this->validate((new SettingsRequest)->rules());
@@ -199,7 +209,7 @@ class AppSetting extends Component
             if ($oldLogo && Storage::disk('public')->exists("logo/{$oldLogo}")) {
                 Storage::disk('public')->delete("logo/{$oldLogo}");
             }
-            $filename = time() . '_' . $this->app_logo->getClientOriginalName();
+            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9._-]+/', '-', $this->app_logo->getClientOriginalName());
             $this->app_logo->storeAs('logo', $filename, 'public');
             $validatedData['app_logo'] = $filename;
 
@@ -213,7 +223,7 @@ class AppSetting extends Component
             if ($oldFev && Storage::disk('public')->exists("logo/{$oldFev}")) {
                 Storage::disk('public')->delete("logo/{$oldFev}");
             }
-            $filename = time() . '_' . $this->fev_icon->getClientOriginalName();
+            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9._-]+/', '-', $this->fev_icon->getClientOriginalName());
             $this->fev_icon->storeAs('logo', $filename, 'public');
             $validatedData['fev_icon'] = $filename;
 

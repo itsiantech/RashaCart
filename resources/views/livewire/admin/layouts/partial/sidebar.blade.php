@@ -1,7 +1,7 @@
 @php
 $user = Auth::user();
 $isAdmin = $user && $user->hasRole('admin');
-$currentRoute = request()->route()->getName();
+$currentRoute = request()->route()?->getName() ?? '';
 @endphp
 
 <aside wire:ignore id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme"
@@ -76,6 +76,72 @@ $currentRoute = request()->route()->getName();
                     </a>
                 </li>
                 @endif
+            </ul>
+        </li>
+        @endif
+
+        <!-- Inventory & Stock -->
+        @if ($isAdmin)
+        <li class="menu-item {{ Route::is('admin.inventory.*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-package"></i>
+                <div>Inventory & Stock</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ Route::is('admin.inventory.overview') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.inventory.overview') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-box"></i>
+                        <div>Stock Overview</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::is('admin.inventory.category-wise') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.inventory.category-wise') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-sitemap"></i>
+                        <div>Category Wise Stock</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::is('admin.inventory.variant-stock') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.inventory.variant-stock') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-grid-alt"></i>
+                        <div>Attribute / Variant Stock</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::is('admin.inventory.supplier-stock') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.inventory.supplier-stock') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-truck"></i>
+                        <div>Supplier Stock (Purchase)</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::is('admin.inventory.movements') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.inventory.movements') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-bar-chart-alt-2"></i>
+                        <div>Stock Movements</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::is('admin.inventory.damage') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.inventory.damage') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-error-circle text-danger"></i>
+                        <div>Damage & Returned Stock</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::is('admin.inventory.adjustment') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.inventory.adjustment') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-edit-alt"></i>
+                        <div>Stock Adjustment</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::is('admin.inventory.transfer') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.inventory.transfer') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-repeat"></i>
+                        <div>Warehouse Transfer</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::is('admin.inventory.low-stock') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.inventory.low-stock') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-bell text-warning"></i>
+                        <div>Low Stock Alerts</div>
+                    </a>
+                </li>
             </ul>
         </li>
         @endif
@@ -300,6 +366,112 @@ $currentRoute = request()->route()->getName();
                 @endif
             </ul>
         </li>
+		
+		
+		
+		<!-- Accounts & Finance -->
+        @if ($isAdmin || Auth::user()->can('accounts.view'))
+        <li class="menu-item {{ Route::is('admin.accounts.*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-calculator"></i>
+                <div>Accounts & Finance</div>
+            </a>
+            <ul class="menu-sub">
+                
+                <!-- Accounts Dashboard -->
+                <li class="menu-item {{ Route::is('admin.accounts.dashboard') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.accounts.dashboard') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-pie-chart-alt-2"></i>
+                        <div>Accounts Dashboard</div>
+                    </a>
+                </li>
+
+                <!-- Sales & Category Costs -->
+                <li class="menu-item {{ Route::is('admin.accounts.sales-category') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.accounts.sales-category') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-cart"></i>
+                        <div>Sales & Return Cost</div>
+                    </a>
+                </li>
+
+                <!-- Supplier Ledger -->
+                <li class="menu-item {{ Route::is('admin.accounts.supplier-ledger') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.accounts.supplier-ledger') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-truck"></i>
+                        <div>Supplier Ledger</div>
+                    </a>
+                </li>
+
+                <!-- Office Operating Cost -->
+                <li class="menu-item {{ Route::is('admin.accounts.office-expenses') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.accounts.office-expenses') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-wallet"></i>
+                        <div>Office Operating Cost</div>
+                    </a>
+                </li>
+
+                <!-- Tech & Server Maintenance -->
+                <li class="menu-item {{ Route::is('admin.accounts.tech-cost') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.accounts.tech-cost') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-server"></i>
+                        <div>Tech & Server Cost</div>
+                    </a>
+                </li>
+
+                <!-- Marketing & Ads Expense -->
+                <li class="menu-item {{ Route::is('admin.accounts.marketing-ads') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.accounts.marketing-ads') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-bullseye"></i>
+                        <div>Marketing & Ads Cost</div>
+                    </a>
+                </li>
+
+                <!-- Payroll & Investment -->
+                <li class="menu-item {{ Route::is('admin.accounts.payroll-investment') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.accounts.payroll-investment') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-user-check"></i>
+                        <div>Salary & Investment</div>
+                    </a>
+                </li>
+
+                <!-- Void & Cancel Logs -->
+                <li class="menu-item {{ Route::is('admin.accounts.void-logs') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.accounts.void-logs') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-block text-danger"></i>
+                        <div class="text-danger fw-bold">Void & Cancel Logs</div>
+                    </a>
+                </li>
+
+                <!-- Excel Reports Download -->
+                <li class="menu-item {{ Route::is('admin.accounts.export-reports') ? 'active' : '' }}">
+                    <a href="{{ route('admin.accounts.export-reports') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-file text-success"></i>
+                        <div class="text-success fw-bold">Export Excel Report</div>
+                    </a>
+                </li>
+
+            </ul>
+        </li>
+        @endif
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 
         <!-- Our Staffs -->
         @if ($isAdmin || Auth::user()->can('user.view'))
@@ -319,6 +491,30 @@ $currentRoute = request()->route()->getName();
             </a>
         </li>
 
+        <!-- Landing Page -->
+        @if ($isAdmin)
+        <li class="menu-item {{ Route::is('admin.landing-page.*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-layout"></i>
+                <div>Landing Page</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ Route::is('admin.landing-page.create') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.landing-page.create') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-plus-circle"></i>
+                        <div>Create Landing Page</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::is('admin.landing-page.index') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.landing-page.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-list-ul"></i>
+                        <div>Landing Page List</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        @endif
+
         <!-- Settings -->
         <li class="menu-header small text-uppercase"><span class="menu-header-text">APP MANAGE</span></li>
         <li class="menu-item {{ Route::is('admin.settings.*','admin.rolepermission.*') ? 'active open' : '' }}">
@@ -337,10 +533,16 @@ $currentRoute = request()->route()->getName();
                 @endif
 
                 @if ($isAdmin || Auth::user()->can('pixel.view'))
-                <li class="menu-item {{ Route::is('admin.pixel-settings.index') ? 'active' : '' }}">
-                    <a wire:navigate href="{{ route('admin.pixel-settings.index') }}" class="menu-link">
-                        <i class="menu-icon tf-icons bx bx-bullseye"></i>
-                        <div>Pixel Tracking</div>
+                <li class="menu-item {{ Route::is('admin.server-side-tracking.index') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.server-side-tracking.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-data"></i>
+                        <div>Server Side Tracking</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::is('admin.server-side-tracking.logs') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.server-side-tracking.logs') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-list-ul"></i>
+                        <div>Tracking Logs</div>
                     </a>
                 </li>
                 @endif
@@ -350,6 +552,15 @@ $currentRoute = request()->route()->getName();
                     <a wire:navigate href="{{ route('admin.rolepermission.index') }}" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-key"></i>
                         <div>User Permission</div>
+                    </a>
+                </li>
+                @endif
+
+                @if ($isAdmin)
+                <li class="menu-item {{ Route::is('admin.settings.homepage') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.settings.homepage') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-home-alt"></i>
+                        <div>Home Page Settings</div>
                     </a>
                 </li>
                 @endif

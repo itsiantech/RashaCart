@@ -34,6 +34,7 @@ class PermissionSeeder extends Seeder
 
             // Orders
             'order.manage',
+            'order.view',
             'order.view.own',
             'order.bulk.invoice.print',
 

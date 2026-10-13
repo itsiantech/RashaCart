@@ -34,6 +34,7 @@ class User extends Authenticatable
         'phone',
         'email',
         'password',
+        'sidebar_theme',
     ];
 
     public function user_profile()
@@ -171,5 +172,6 @@ class User extends Authenticatable
         'is_vendor_approved' => 'boolean',
         'status' => 'boolean',
         'password' => 'hashed',
+        'sidebar_theme' => 'array',
     ];
 }

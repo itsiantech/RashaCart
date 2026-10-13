@@ -33,6 +33,25 @@
                         @endforeach
                     </div>
                 </div>
+
+                @foreach ($this->filterAttributes as $filterAttr)
+                <div class="filter-card pb-3 sidebar-body" :class="open ? 'd-block' : ''">
+                    <h3 class="filter-title"><i class="fas fa-filter"></i> {{ $filterAttr->name }}</h3>
+                    <div class="size-options">
+                        @foreach ($filterAttr->values as $filterVal)
+                        @php $isOn = in_array($filterVal->id, $selectedAttrs[$filterAttr->id] ?? []); @endphp
+                        <button
+                            wire:click.prevent="toggleAttrValue({{ $filterAttr->id }}, {{ $filterVal->id }})"
+                            class="size-option {{ $isOn ? 'active' : '' }}">
+                            @if ($filterVal->color_hex)
+                            <span class="d-inline-block rounded-circle border me-1" style="width:12px;height:12px;background:{{ $filterVal->color_hex }};vertical-align:-1px;"></span>
+                            @endif
+                            {{ $filterVal->value }}
+                        </button>
+                        @endforeach
+                    </div>
+                </div>
+                @endforeach
             </aside>
 
             <!-- Products Grid -->

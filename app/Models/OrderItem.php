@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
 use Illuminate\Database\Eloquent\Model;
 
 class OrderItem extends Model
@@ -11,10 +12,21 @@ class OrderItem extends Model
         'product_id',
         'vendor_id',
         'product_variant_id',
+        'variant_sku',
+        'variant_name',
+        'variant_image',
+        'image_option_id',
+        'option_label',
+        'option_image',
         'quantity',
         'unit_price',
         'is_preorder',
     ];
+
+    public function imageOption()
+    {
+        return $this->belongsTo(ImageOption::class);
+    }
 
     public function order()
     {
@@ -39,5 +51,23 @@ class OrderItem extends Model
     public function variant()
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+    }
+
+    protected static function booted()
+    {
+        static::created(function (OrderItem $item) {
+            InventoryService::syncOrderItem($item);
+            \App\Services\ImageOptionStock::ensureOrderItemOut($item);
+        });
+
+        static::updated(function (OrderItem $item) {
+            if ($item->wasChanged('quantity')) {
+                InventoryService::syncOrderItem($item);
+            }
+        });
+
+        static::deleted(function (OrderItem $item) {
+            InventoryService::removeOrderItemMovements($item);
+        });
     }
 }

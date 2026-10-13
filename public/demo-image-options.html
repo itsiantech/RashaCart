@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEMO — Image Options + Attributes (Two Layers)</title>
+<style>
+  * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { margin: 0; background: #f1f2f6; color: #222; }
+  .tabs { display: flex; gap: 8px; padding: 14px 20px 0; }
+  .tabs button { border: 1px solid #ddd; background: #fff; padding: 10px 22px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 15px; font-weight: 600; }
+  .tabs button.on { background: #12225B; color: #fff; border-color: #12225B; }
+  .page { display: none; padding: 20px; max-width: 1100px; margin: 0 auto; }
+  .page.on { display: block; }
+  .card { background: #fff; border-radius: 10px; padding: 18px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .card h3 { margin: 0 0 4px; }
+  .muted { color: #777; font-size: 13px; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .pill { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+  .on-pill { background: #e6f7ee; color: #0a7d3b; } .off-pill { background: #eee; color: #888; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+  th, td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; }
+  th { background: #f8fafc; }
+  .opt-strip { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+  .opt { width: 76px; cursor: pointer; border: 2px solid #e5e7eb; border-radius: 8px; padding: 3px; background: #fff; text-align: center; }
+  .opt img { width: 64px; height: 64px; object-fit: cover; border-radius: 5px; display: block; margin: 0 auto; }
+  .opt small { font-size: 11px; color: #555; display: block; margin-top: 2px; }
+  .opt.sel { border-color: #f97316; box-shadow: 0 0 0 1px #f97316; }
+  .opt.out { opacity: .45; cursor: not-allowed; position: relative; }
+  .opt.out::after { content: 'শেষ'; position: absolute; top: 22px; left: 0; right: 0; text-align: center;
+    background: rgba(0,0,0,.55); color: #fff; font-size: 11px; padding: 2px 0; border-radius: 4px; }
+  .chip { border: 1px solid #e5e7eb; background: #fff; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; }
+  .chip.sel { border: 2px solid #111827; padding: 5px 13px; }
+  .chip.out { opacity: .4; cursor: not-allowed; text-decoration: line-through; }
+  .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; border: 1px solid #ccc; }
+  .main { width: 100%; max-width: 340px; border-radius: 10px; border: 1px solid #eee; }
+  .price { font-size: 26px; font-weight: 800; color: #111; }
+  .old { text-decoration: line-through; color: #999; margin-left: 8px; }
+  .btn { border: 0; border-radius: 8px; padding: 12px 26px; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .cart { background: #f97316; color: #fff; } .buy { background: #12225B; color: #fff; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .warn { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-top: 8px; }
+  .ok { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-top: 8px; }
+  code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+  .url { background: #0f172a; color: #7dd3fc; padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-top: 8px; font-family: monospace; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button id="t1" class="on" onclick="show('p1','t1')">🛠 Admin ডেমো</button>
+  <button id="t2" onclick="show('p2','t2')">🛍 Storefront ডেমো</button>
+</div>
+
+<!-- ================= ADMIN ================= -->
+<div id="p1" class="page on">
+  <div class="card">
+    <h3>Add Product — Linen Gown 3piece</h3>
+    <span class="muted">দুইটা layer স্বাধীনভাবে ON/OFF করা যায়। দুটোই একসাথে চলতে পারে।</span>
+    <div class="row" style="margin-top:10px">
+      <label><input type="checkbox" id="fAttr" checked onchange="renderPreview()"> <b>has_attributes</b> (Color/Size variants)</label>
+      <label><input type="checkbox" id="fImg" checked onchange="renderPreview()"> <b>has_image_options</b> (ছবির option)</label>
+    </div>
+  </div>
+
+  <div class="card" id="attrPanel">
+    <h3>Attributes Panel <span class="pill on-pill">has_attributes ON</span></h3>
+    <span class="muted">Color: Red(৳1500/stock 10), Green(৳1500/stock 0 ⛔) × Size: M(+৳0/stock 10), L(+৳100/stock 5)</span>
+    <table>
+      <tr><th>Variant SKU</th><th>Attributes</th><th>Price</th><th>Stock</th></tr>
+      <tr><td>GOWN-RED-M</td><td>Color: Red, Size: M</td><td>৳1,500</td><td>10</td></tr>
+      <tr><td>GOWN-RED-L</td><td>Color: Red, Size: L</td><td>৳1,600</td><td>5</td></tr>
+      <tr><td>GOWN-GREEN-M</td><td>Color: Green, Size: M</td><td>৳1,500</td><td style="color:red">0 (sold out)</td></tr>
+      <tr><td>GOWN-GREEN-L</td><td>Color: Green, Size: L</td><td>৳1,600</td><td>5</td></tr>
+    </table>
+  </div>
+
+  <div class="card" id="imgPanel">
+    <h3>Image Options Panel <span class="pill on-pill">has_image_options ON</span></h3>
+    <span class="muted">প্রতিটি option: ছবি + label + নিজস্ব দাম/স্টক (খালি রাখলে variant-এর দাম/স্টক)।</span>
+    <table>
+      <tr><th>ছবি</th><th>Label</th><th>নিজস্ব দাম</th><th>নিজস্ব স্টক</th></tr>
+      <tr><td>🖼️ red-dress.jpg</td><td>Red — সামনের ভিউ</td><td>৳1,450 (special)</td><td>3</td></tr>
+      <tr><td>🖼️ red-back.jpg</td><td>Red — পেছনের ভিউ</td><td>— (variant দাম)</td><td>— (variant স্টক)</td></tr>
+      <tr><td>🖼️ green-dress.jpg</td><td>Green — সামনের ভিউ</td><td>—</td><td style="color:red">0 (sold out)</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>⚡ Effective Price & Stock — live preview <span class="muted">(customer exactly এটাই পাবে)</span></h3>
+    <div id="preview"></div>
+  </div>
+</div>
+
+<!-- ================= STOREFRONT ================= -->
+<div id="p2" class="page">
+  <div class="card">
+    <div class="row">
+      <div>
+        <img id="main" class="main" src="https://placehold.co/340x420?text=Front+View" alt="main">
+        <div class="muted" style="margin-top:6px">⬆️ Image option সিলেক্ট করলে main image বদলায়। Attribute (color/size) বদলালে image বদলায় না।</div>
+      </div>
+      <div style="flex:1;min-width:260px">
+        <h3 style="margin-top:0">Linen Gown 3piece</h3>
+        <div><span class="price" id="sPrice">৳1,500</span><span class="old" id="sOld"></span></div>
+        <div id="sStock" class="muted">একটি image option সিলেক্ট করুন</div>
+
+        <h4 style="margin:14px 0 6px">Color</h4>
+        <div id="sColor"></div>
+        <h4 style="margin:14px 0 6px">Size <span class="muted" id="sizeReq"></span></h4>
+        <div id="sSize"></div>
+
+        <h4 style="margin:14px 0 6px">Design / View <span class="muted" id="imgReq"></span></h4>
+        <div class="opt-strip" id="sOpts"></div>
+
+        <div id="sMsg"></div>
+        <div class="url" id="sUrl">/product/gown</div>
+        <div style="margin-top:12px;display:flex;gap:10px">
+          <button class="btn cart" id="sCart" disabled>🛒 Add to Cart</button>
+          <button class="btn buy" id="sBuy" disabled>⚡ Buy Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Rule demo (try করে দেখুন)</h3>
+    <span class="muted">1) Red + M + "Red-সামনে" → দাম ৳1,450 (option price জিতেছে), স্টক min(10, 3) = 3 &nbsp;•&nbsp;
+    2) Green সিলেক্ট → M disabled (কারণ Green-M stock 0, reason সহ) &nbsp;•&nbsp;
+    3) "Green-সামনে" option sold out → strip-এ disabled + কারণ &nbsp;•&nbsp;
+    4) URL-এ <code>?opt=1&size=L</code> — শেয়ার করলে same selection খোলে</span>
+    <div class="row" style="margin-top:10px">
+      <label><input type="checkbox" id="reqSize" checked onchange="renderShop()"> <b>Size required</b> <span class="muted">(t-shirt: ON / গাছ: N/A)</span></label>
+      <label><input type="checkbox" id="reqImg" checked onchange="renderShop()"> <b>Image option required</b> <span class="muted">(OFF করলে শুধু Color+Size-এই order হয়)</span></label>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(p, t) {
+  document.querySelectorAll('.page').forEach(e => e.classList.remove('on'));
+  document.querySelectorAll('.tabs button').forEach(e => e.classList.remove('on'));
+  document.getElementById(p).classList.add('on');
+  document.getElementById(t).classList.add('on');
+}
+
+/* ---------- Admin preview ---------- */
+const PV = [
+  { sku: 'GOWN-RED-M', attr: 'Red / M', vp: 1500, vs: 10 },
+  { sku: 'GOWN-RED-L', attr: 'Red / L', vp: 1600, vs: 5 },
+  { sku: 'GOWN-GREEN-M', attr: 'Green / M', vp: 1500, vs: 0 },
+  { sku: 'GOWN-GREEN-L', attr: 'Green / L', vp: 1600, vs: 5 },
+];
+const OPTS = [
+  { id: 1, label: 'Red-সামনে', price: 1450, stock: 3 },
+  { id: 2, label: 'Red-পেছনে', price: null, stock: null },
+  { id: 3, label: 'Green-সামনে', price: null, stock: 0 },
+];
+function renderPreview() {
+  const ha = document.getElementById('fAttr').checked;
+  const hi = document.getElementById('fImg').checked;
+  document.getElementById('attrPanel').style.display = ha ? '' : 'none';
+  document.getElementById('imgPanel').style.display = hi ? '' : 'none';
+  const rows = [];
+  const combos = ha ? PV : [{ sku: 'GOWN', attr: '—', vp: 1500, vs: 20 }];
+  const opts = hi ? OPTS : [{ id: null, label: '—', price: null, stock: null }];
+  combos.forEach(c => opts.forEach(o => {
+    const price = o.price ?? c.vp;
+    const oStock = (o.stock === null || o.stock === undefined) ? Infinity : o.stock;
+    const stock = Math.min(c.vs, oStock);
+    const ok = stock > 0;
+    rows.push(`<tr><td>${c.sku}${o.id ? '-OPT' + o.id : ''}</td><td>${c.attr}</td><td>${o.label}</td>` +
+      `<td>৳${price.toLocaleString()} <small class="muted">(option ${o.price ?? '—'} → variant ${c.vp})</small></td>` +
+      `<td>min(${c.vs}, ${oStock === Infinity ? '∞' : oStock}) = <b>${stock}</b> ${ok ? '✅' : '⛔ sold out'}</td></tr>`);
+  }));
+  document.getElementById('preview').innerHTML =
+    `<span class="muted">Price: option.price ?? variant.price &nbsp;•&nbsp; Stock: min(variant, option)</span>` +
+    `<table><tr><th>Combination SKU</th><th>Variant</th><th>Image option</th><th>Effective price</th><th>Available</th></tr>${rows.join('')}</table>`;
+}
+renderPreview();
+
+/* ---------- Storefront demo ---------- */
+const S = {
+  colors: [{ v: 'Red', hex: '#DC2626', stock: 18 }, { v: 'Green', hex: '#16A34A', stock: 5 }],
+  sizes: [{ v: 'M', stock: 10 }, { v: 'L', stock: 5 }],
+  opts: [
+    { id: 1, label: 'Red-সামনে', img: 'https://placehold.co/64x64/DC2626/fff?text=R1', main: 'https://placehold.co/340x420/DC2626/fff?text=Red+Front', price: 1450, stock: 3, okColor: 'Red' },
+    { id: 2, label: 'Red-পেছনে', img: 'https://placehold.co/64x64/991111/fff?text=R2', main: 'https://placehold.co/340x420/991111/fff?text=Red+Back', price: null, stock: null, okColor: 'Red' },
+    { id: 3, label: 'Green-সামনে', img: 'https://placehold.co/64x64/16A34A/fff?text=G1', main: 'https://placehold.co/340x420/16A34A/fff?text=Green+Front', price: null, stock: 0, okColor: 'Green' },
+  ],
+  vprice: { 'Red|M': 1500, 'Red|L': 1600, 'Green|M': 1500, 'Green|L': 1600 },
+  vstock: { 'Red|M': 10, 'Red|L': 5, 'Green|M': 0, 'Green|L': 5 },
+  sel: { color: null, size: null, opt: null },
+};
+function vKey() { return S.sel.color && S.sel.size ? S.sel.color + '|' + S.sel.size : null; }
+function renderShop() {
+  const { color, size, opt } = S.sel;
+  const reqSize = document.getElementById('reqSize').checked;
+  const reqImg = document.getElementById('reqImg').checked;
+  // colors
+  document.getElementById('sColor').innerHTML = S.colors.map(c =>
+    `<button class="chip ${color === c.v ? 'sel' : ''}" onclick="pick('color','${c.v}')">` +
+    `<span class="dot" style="background:${c.hex}"></span>${c.v}</button>`).join(' ');
+  // sizes (disable OOS wrt selected color)
+  document.getElementById('sSize').innerHTML = S.sizes.map(s => {
+    let out = false, reason = '';
+    if (color) { const st = S.vstock[color + '|' + s.v] ?? 0; out = st <= 0; if (out) reason = `${color}-${s.v} stock শেষ`; }
+    return `<button class="chip ${size === s.v ? 'sel' : ''} ${out ? 'out' : ''}" ${out ? 'disabled title="' + reason + '"' : ''} onclick="pick('size','${s.v}')">${s.v}</button>`;
+  }).join(' ');
+  // options strip (independent; sold-out disabled with reason)
+  document.getElementById('sOpts').innerHTML = S.opts.map(o => {
+    const out = (o.stock !== null && o.stock <= 0);
+    return `<div class="opt ${opt === o.id ? 'sel' : ''} ${out ? 'out' : ''}" ${out ? '' : `onclick="pick('opt',${o.id})"`} title="${o.label}${out ? ' — stock শেষ' : ''}">` +
+      `<img src="${o.img}" alt="${o.label}"><small>${o.label}</small></div>`;
+  }).join('');
+  // price/stock resolution (size optional + skipped → color-এর first in-stock variant)
+  const k = vKey();
+  const fallbackK = (!k && !reqSize && color)
+    ? (Object.keys(S.vprice).find(key => key.startsWith(color + '|') && S.vstock[key] > 0) || null)
+    : null;
+  const useK = k || fallbackK;
+  const base = useK ? S.vprice[useK] : 1500;
+  const vStock = useK ? S.vstock[useK] : Infinity;
+  const o = S.opts.find(x => x.id === opt);
+  const price = (o && o.price !== null) ? o.price : base;
+  const oStock = o ? (o.stock === null ? Infinity : o.stock) : Infinity;
+  const avail = Math.min(vStock, oStock);
+  document.getElementById('sPrice').textContent = '৳' + ((isFinite(avail) && useK) ? price.toLocaleString() : base.toLocaleString());
+  if (o) document.getElementById('main').src = o.main;
+  document.getElementById('sizeReq').textContent = reqSize ? '(required *)' : '(optional — ছাড়াই order হবে)';
+  document.getElementById('imgReq').textContent = reqImg ? '(image options — required *)' : '(image options — optional)';
+  const msg = document.getElementById('sMsg');
+  const missing = [];
+  if (!color) missing.push('Color');
+  if (reqSize && !size) missing.push('Size');
+  if (reqImg && !opt) missing.push('Design option');
+  let ok = true, txt = '';
+  if (missing.length) { ok = false; txt = '⚠️ সিলেক্ট করুন: ' + missing.join(' + ') + '।'; }
+  else if (!isFinite(avail) || avail <= 0) {
+    ok = false;
+    txt = '⛔ এই combination এখন নেই — ' + (!isFinite(vStock) || vStock <= 0 ? `${useK || ''} sold out` : `"${o.label}" sold out`) + '।';
+  } else if (!o) { txt = `✅ ${useK}${size ? '' : ' (Size ছাড়া)'} — স্টক ${avail}টি। চাইলে একটি design option-ও বেছে নিন।`; }
+  else { txt = `✅ ${useK} + "${o.label}" — দাম ৳${price.toLocaleString()} (option${o.price !== null ? ' জিতেছে' : ' খালি, variant দাম'}), স্টক min = ${avail}টি।`; }
+  msg.className = ok ? 'ok' : 'warn'; msg.innerHTML = txt;
+  document.getElementById('sStock').textContent = (k && isFinite(avail)) ? (avail > 0 ? `In Stock (${avail}টি)` : 'Out of Stock') : '—';
+  document.getElementById('sCart').disabled = !ok;
+  document.getElementById('sBuy').disabled = !ok;
+  const q = [];
+  if (opt) q.push('opt=' + opt);
+  if (size) q.push('size=' + size);
+  document.getElementById('sUrl').textContent = '/product/gown' + (q.length ? '?' + q.join('&') : '');
+}
+function pick(kind, val) {
+  if (kind === 'opt') {
+    const o = S.opts.find(x => x.id === val);
+    if (o.stock !== null && o.stock <= 0) return;
+    S.sel.opt = (S.sel.opt === val) ? null : val;
+  } else { S.sel[kind] = val; }
+  renderShop();
+}
+renderShop();
+// deep-link demo: ?opt=1&size=L preselect
+try {
+  const u = new URLSearchParams(location.search);
+  if (u.get('opt')) S.sel.opt = parseInt(u.get('opt'));
+  if (u.get('size')) S.sel.size = u.get('size');
+  if (u.get('opt') || u.get('size')) renderShop();
+} catch (e) {}
+</script>
+</body>
+</html>

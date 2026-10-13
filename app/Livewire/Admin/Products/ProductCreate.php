@@ -2,6 +2,9 @@
 
 namespace App\Livewire\Admin\Products;
 
+use App\Livewire\Admin\Products\Concerns\ManagesImageOptions;
+use App\Livewire\Admin\Products\Concerns\ManagesProductImages;
+use App\Livewire\Admin\Products\Concerns\ManagesProductVariants;
 use App\Models\Attribute;
 use App\Models\Brand;
 use App\Models\Category;
@@ -16,7 +19,15 @@ use Livewire\WithFileUploads;
 
 class ProductCreate extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, ManagesProductVariants, ManagesProductImages, ManagesImageOptions;
+
+    public $has_attributes = true;
+
+    public $has_image_options = false;
+
+    public $require_image_option = true;
+
+    public $attrRequired = [];
 
     public $name;
 
@@ -102,7 +113,7 @@ class ProductCreate extends Component
 
     public function mount()
     {
-        $this->variantSystemEnabled = setting('attribute_system');
+        $this->variantSystemEnabled = (bool) setting('attribute_system', true);
         $this->productAttributes = Attribute::with('values')->get();
         $this->slug = '';
         $this->sku = 'SKU-'.strtoupper(Str::random(6));
@@ -349,6 +360,7 @@ class ProductCreate extends Component
             'discount_type' => 'nullable|string|in:fixed,percentage|required_with:discount_price',
             'discount_price' => 'nullable|numeric|min:0|required_with:discount_type',
             'images.*' => 'nullable|image|max:7048',
+            'imageUploads.*' => 'nullable|image|max:7048',
             'is_preorder' => 'boolean',
             'preorder_start_date' => 'nullable|date|required_if:is_preorder,true',
             'preorder_end_date' => 'nullable|date|after_or_equal:preorder_start_date',
@@ -357,6 +369,31 @@ class ProductCreate extends Component
 
         DB::beginTransaction();
         try {
+            $useAttributes = $this->variantSystemEnabled && $this->has_attributes;
+            $useOptions = $this->has_image_options;
+
+            // Server-side validation for variant rows (Bangla messages)
+            if ($useAttributes && ! empty($this->variants)) {
+                $rowErrors = $this->validateVariantRows();
+                if (! empty($rowErrors)) {
+                    DB::rollBack();
+                    $this->dispatch('error', message: collect($rowErrors)->flatten()->implode(' '));
+
+                    return;
+                }
+            }
+
+            // Server-side validation for image options (Bangla messages)
+            if ($useOptions && ! empty($this->imageOptions)) {
+                $optErrors = $this->validateImageOptions();
+                if (! empty($optErrors)) {
+                    DB::rollBack();
+                    $this->dispatch('error', message: implode(' ', $optErrors));
+
+                    return;
+                }
+            }
+
             $product = Product::create([
                 'user_id' => auth()->id(),
                 'name' => $this->name,
@@ -378,7 +415,10 @@ class ProductCreate extends Component
                 'video' => $this->video,
                 'status' => $this->status,
                 'is_featured' => $this->is_featured,
-                'has_variant' => $this->variantSystemEnabled && ! empty($this->variants),
+                'has_variant' => $useAttributes && ! empty($this->variants),
+                'has_attributes' => $useAttributes,
+                'has_image_options' => $useOptions && ! empty($this->imageOptions),
+                'require_image_option' => (bool) $this->require_image_option,
                 'is_preorder' => $this->is_preorder,
                 'preorder_start_date' => $this->is_preorder ? $this->preorder_start_date : null,
                 'preorder_end_date' => $this->is_preorder ? $this->preorder_end_date : null,
@@ -403,12 +443,17 @@ class ProductCreate extends Component
                 ]);
             }
 
-            foreach ($this->variants as $variantData) {
+            // Variants persist only when the attributes layer is ON (else simple product)
+            foreach ($useAttributes ? $this->variants : [] as $i => $variantData) {
                 $variant = ProductVariant::create([
                     'product_id' => $product->id,
                     'stock' => $variantData['stock'] ?? 0,
                     'sku' => $variantData['sku'],
-                    'variant_price' => $variantData['variant_price'],
+                    'variant_price' => $this->nullIfEmpty($variantData['variant_price'] ?? null),
+                    'sale_price' => $this->nullIfEmpty($variantData['sale_price'] ?? null),
+                    'low_stock_threshold' => $variantData['low_stock_threshold'] ?? 5,
+                    'is_active' => $variantData['is_active'] ?? true,
+                    'is_default' => $variantData['is_default'] ?? false,
                     'image' => null,
                 ]);
 
@@ -435,6 +480,21 @@ class ProductCreate extends Component
                     'notes' => 'Initial stock for variant',
                     'user_id' => auth()->id(),
                 ]);
+
+                // Wholesale slabs for this row
+                $this->syncVariantSlabs($variant, $this->variantSlabs[$this->rowKey($variantData, $i)] ?? []);
+            }
+
+            // Link product ↔ attributes used by its variants
+            $attrIds = collect($this->variants)
+                ->flatMap(fn ($v) => array_column($v['values'] ?? [], 'attribute_id'))
+                ->unique()->values()->all();
+            if ($useAttributes && ! empty($attrIds)) {
+                $sync = [];
+                foreach ($attrIds as $attrId) {
+                    $sync[$attrId] = ['is_required' => (bool) ($this->attrRequired[$attrId] ?? true)];
+                }
+                $product->productAttributes()->sync($sync);
             }
 
             $galleryPaths = [];
@@ -445,6 +505,16 @@ class ProductCreate extends Component
             if (! empty($galleryPaths)) {
                 $product->gallery_image = $galleryPaths;
                 $product->save();
+            }
+
+            // Persist swatch-linked gallery
+            $this->persistImageLinks($product->id);
+
+            // Persist image options layer
+            if ($useOptions && ! empty($this->imageOptions)) {
+                foreach ($this->persistImageOptions($product->id) as $warning) {
+                    $this->dispatch('warning', message: $warning);
+                }
             }
 
             DB::commit();

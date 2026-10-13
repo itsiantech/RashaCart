@@ -13,6 +13,9 @@ class Inventory extends Model
         'quantity',
         'current_stock',
         'notes',
+        'reference_type',
+        'reference_id',
+        'supplier_id',
         'user_id',
     ];
 
@@ -29,5 +32,10 @@ class Inventory extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
     }
 }

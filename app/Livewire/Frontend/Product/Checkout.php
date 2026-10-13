@@ -281,7 +281,8 @@ class Checkout extends Component
             return $this->initiateSslPayment($orderService);
         }
 
-        $order = $orderService->createOrder([
+        try {
+            $order = $orderService->createOrder([
             'user_id'               => auth()->id() ?? null,
             'invoice_no'            => $orderService->generateInvoice(),
             'total_amount'          => $this->total,
@@ -301,9 +302,14 @@ class Checkout extends Component
             'note'                  => $this->note,
         ], $this->cartItems);
 
-        session()->forget('cart');
+            session()->forget('cart');
 
-        return $this->redirectRoute('frontend.order.success', ['order' => $order->id], navigate: true);
+            return $this->redirectRoute('frontend.order.success', ['order' => $order->id], navigate: true);
+        } catch (\Exception $e) {
+            $this->dispatch('error', ['message' => $e->getMessage()]);
+
+            return null;
+        }
     }
 
     private function initiateSslPayment(OrderService $orderService): void

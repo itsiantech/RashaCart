@@ -53,8 +53,11 @@
     <meta property="twitter:description" content="{{ $meta_description ?? 'Shop the latest products at Ordinary Bangladesh. Fast delivery, secure payments, and excellent customer service.' }}">
     <meta property="twitter:image" content="{{ $og_image ?? 'https://www.medleybiz.com.bd/og-image.jpg' }}">
 
-    <!-- Favicon -->
-    <link rel="icon" href="https://zetech.top/demo/img/tara-mart-logo-icon.png">
+    <!-- Favicon (Dynamic from Admin Settings) -->
+    @php $favicon = setting('fev_icon') ?: setting('app_logo'); @endphp
+    @if($favicon)
+    <link rel="icon" href="{{ asset('storage/logo/' . rawurlencode($favicon)) }}">
+    @endif
 
     <!-- Custom Meta Tags (Raw HTML) -->
     {!! $meta_tags ?? '' !!}
@@ -86,6 +89,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
 
     {!! \App\Services\PixelManager::head() !!}
+
+    {{-- Server-Side Tracking Pixel --}}
+    @include('partials.tracking-pixel')
 
     <script>
         document.addEventListener('livewire:init', () => {

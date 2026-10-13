@@ -7,6 +7,9 @@ use App\Livewire\Admin\Attribute\AttributeComponent;
 use App\Livewire\Admin\Banner\BannerCreate;
 use App\Livewire\Admin\Banner\BannerEdit;
 use App\Livewire\Admin\Banner\BannerIndex;
+use App\Livewire\Admin\LandingPage\LandingPageCreate;
+use App\Livewire\Admin\LandingPage\LandingPageEdit;
+use App\Livewire\Admin\LandingPage\LandingPageIndex;
 use App\Livewire\Admin\BestOffer\BestOfferIndex;
 use App\Livewire\Admin\Brands\Create;
 use App\Livewire\Admin\Brands\Edit;
@@ -19,6 +22,7 @@ use App\Livewire\Admin\Customer;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\ForYou\ForYouIndex;
 use App\Livewire\Admin\FreeShippig\FreeShipping;
+use App\Livewire\Admin\Inventory\{StockOverview, CategoryWiseStock, VariantStock, SupplierStock, StockMovements, DamageStock, StockAdjustmentComponent, LowStockAlerts};
 use App\Livewire\Admin\NewArrival\NewArrivalCreate;
 use App\Livewire\Admin\Offers\FlashSalesCreate;
 use App\Livewire\Admin\Offers\FlashSalesEdit;
@@ -33,14 +37,17 @@ use App\Livewire\Admin\Order\OrderView;
 use App\Livewire\Admin\Payment\ApiPaymentIndex;
 use App\Livewire\Admin\Payment\ManualPaymentIndex;
 use App\Livewire\Admin\PixelSettings;
+use App\Livewire\Admin\ServerSideTracking;
 use App\Livewire\Admin\Pos\PosTerminal;
 use App\Livewire\Admin\Products\{ProductIndex, ProductCreate, ProductEdit, ProductView, ProductStockManage};
 use App\Livewire\Admin\Settings\AppSetting;
+use App\Livewire\Admin\Settings\HomePageSettings;
 use App\Livewire\Admin\Settings\RolePermission\RolePermissionAssign;
 use App\Livewire\Admin\Settings\RolePermission\RolePermissionIndex;
 use App\Livewire\Admin\Settings\User\UserCreate;
 use App\Livewire\Admin\Settings\User\UserEdit;
 use App\Livewire\Admin\Settings\User\UserIndex;
+use App\Livewire\Admin\Tracking\TrackingLogIndex;
 use App\Livewire\Admin\Vendor\ManageCommission;
 use App\Livewire\Admin\Vendor\VendorApplied;
 use App\Livewire\Admin\Vendor\VendorIndex;
@@ -60,8 +67,10 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
     Route::get('pos', PosTerminal::class)->name('pos.index');
 
     Route::get('/settings', AppSetting::class)->name('settings.index')->middleware('can:setting.view');
+    Route::get('/settings/homepage', HomePageSettings::class)->name('settings.homepage')->middleware('role:admin');
 
-    Route::get('pixel-settings', PixelSettings::class)->name('pixel-settings.index');
+    Route::get('server-side-tracking', ServerSideTracking::class)->name('server-side-tracking.index')->middleware('role:admin');
+    Route::get('server-side-tracking/logs', TrackingLogIndex::class)->name('server-side-tracking.logs')->middleware('role:admin');
 
     Route::get('/user/index', UserIndex::class)->name('user.index')->middleware('role:admin');
     Route::get('/user/create', UserCreate::class)->name('user.create')->middleware('role:admin');
@@ -84,6 +93,11 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
     Route::get('/banner', BannerIndex::class)->name('banner.index')->middleware('role:admin');
     Route::get('/banner/create', BannerCreate::class)->name('banner.create')->middleware('role:admin');
     Route::get('/banner/edit/{id}', BannerEdit::class)->name('banner.edit')->middleware('role:admin');
+
+    // Landing Pages
+    Route::get('/landing-page', LandingPageIndex::class)->name('landing-page.index')->middleware('role:admin');
+    Route::get('/landing-page/create', LandingPageCreate::class)->name('landing-page.create')->middleware('role:admin');
+    Route::get('/landing-page/edit/{id}', LandingPageEdit::class)->name('landing-page.edit')->middleware('role:admin');
 
     Route::get('/category', CategoryComponent::class)->name('category.index')->middleware('role:admin');
     Route::get('/attribute', AttributeComponent::class)->name('attribute.index')->middleware('role:admin');
@@ -131,6 +145,19 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
     Route::get('/cupon/create/{coupon_id?}', CuponCreate::class)->name('cupon.create')->middleware('can:cupon.create');
 
     Route::get('/cupon/edit/{id}', CuponEdit::class)->name('cupon.edit')->middleware('can:cupon.update');
+
+    // Inventory & Stock
+    Route::prefix('inventory')->name('inventory.')->group(function () {
+        Route::get('/overview', \App\Livewire\Admin\Inventory\StockOverview::class)->name('overview');
+        Route::get('/category-wise', \App\Livewire\Admin\Inventory\CategoryWiseStock::class)->name('category-wise');
+        Route::get('/variant-stock', \App\Livewire\Admin\Inventory\VariantStock::class)->name('variant-stock');
+        Route::get('/supplier-stock', \App\Livewire\Admin\Inventory\SupplierStock::class)->name('supplier-stock');
+        Route::get('/movements', \App\Livewire\Admin\Inventory\StockMovements::class)->name('movements');
+        Route::get('/damage-return', \App\Livewire\Admin\Inventory\DamageStock::class)->name('damage');
+        Route::get('/adjustment', \App\Livewire\Admin\Inventory\StockAdjustmentComponent::class)->name('adjustment');
+        Route::get('/transfer', \App\Livewire\Admin\Inventory\WarehouseTransferComponent::class)->name('transfer');
+        Route::get('/low-stock', \App\Livewire\Admin\Inventory\LowStockAlerts::class)->name('low-stock');
+    });
 });
 
 // Route::controller(SettingsController::class)->prefix('settings')->name('settings.')->group(function () {

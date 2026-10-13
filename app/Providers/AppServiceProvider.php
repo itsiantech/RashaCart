@@ -51,6 +51,8 @@ class AppServiceProvider extends ServiceProvider
                         Cache::remember('categories', now()->addDays(7), function () {
                             return Category::with('allChildren')
                                 ->where('status', true)
+                                ->orderBy('sort_order')
+                                ->orderBy('name')
                                 ->get();
                         });
 

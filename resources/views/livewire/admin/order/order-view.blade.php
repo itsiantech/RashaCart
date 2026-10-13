@@ -149,6 +149,9 @@
                         @else
                         <span class="text-muted">No attributes</span>
                         @endif
+                        @elseif($item->variant_name)
+                        <span class="badge bg-secondary me-1">{{ $item->variant_name }}</span>
+                        @if($item->variant_sku)<small class="text-muted d-block">{{ $item->variant_sku }}</small>@endif
                         @else
                         -
                         @endif

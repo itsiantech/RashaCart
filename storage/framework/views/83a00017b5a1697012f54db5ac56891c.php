@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<!-- beautify ignore:start -->
+<html
+  lang="en"
+  class="light-style layout-menu-fixed"
+  dir="ltr"
+  data-theme="theme-default"
+  data-assets-path="<?php echo e(asset('assets/admin')); ?>/"
+  data-template="vertical-menu-template-free">
+
+<head>
+  <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>"> <!--this is for ajax delete  -->
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+
+
+  <title><?php echo e(config('app.name')); ?></title>
+  <meta name="description" content="" />
+
+  <!-- SweetAlert -->
+  <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+
+  <!-- Toster Alert -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" integrity="sha512-vKMx8UnXk60zUwyUnUPM3HbQo8QfmNx7+ltw8Pm5zLusl1XIfwcxo8DbWCqMGKaWeNxWA8yrx5v3SaVpMvR3CA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="<?php echo e(asset('assets/admin')); ?>/img/favicon/favicon.ico" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
+    rel="stylesheet" />
+
+  <!-- Icons. Uncomment required icon fonts -->
+  <link rel="stylesheet" href="<?php echo e(asset('assets/admin')); ?>/vendor/fonts/boxicons.css" />
+
+  <!-- Core CSS -->
+  <link rel="stylesheet" href="<?php echo e(asset('assets/admin')); ?>/vendor/css/core.css" class="template-customizer-core-css" />
+  <link rel="stylesheet" href="<?php echo e(asset('assets/admin')); ?>/vendor/css/theme-default.css" class="template-customizer-theme-css" />
+  <link rel="stylesheet" href="<?php echo e(asset('assets/admin')); ?>/css/demo.css" />
+
+  <!-- Page CSS -->
+
+  <!-- Helpers -->
+  <script src="<?php echo e(asset('assets/admin')); ?>/vendor/js/helpers.js"></script>
+
+  <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
+  <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
+  <script src="<?php echo e(asset('assets/admin')); ?>/js/config.js"></script>
+
+  <?php echo \Livewire\Mechanisms\FrontendAssets\FrontendAssets::styles(); ?>
+
+
+</head>
+
+<body>
+
+  <div class="authentication-wrapper authentication-basic container-p-y">
+    <div class="authentication-inner">
+      <?php echo e($slot); ?>
+
+    </div>
+  </div>
+
+  <?php echo \Livewire\Mechanisms\FrontendAssets\FrontendAssets::scripts(); ?>
+
+</body>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const toggle = document.getElementById('togglePassword');
+    if (!toggle) return;
+
+    toggle.addEventListener('click', function() {
+      const passwordField = document.getElementById('password');
+      const icon = this.querySelector('i');
+
+      if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        icon.classList.replace('bx-hide', 'bx-show');
+      } else {
+        passwordField.type = 'password';
+        icon.classList.replace('bx-show', 'bx-hide');
+      }
+    });
+  });
+</script>
+
+
+
+
+</html><?php /**PATH C:\Users\user\bandrose\resources\views/livewire/auth/layouts/app.blade.php ENDPATH**/ ?>

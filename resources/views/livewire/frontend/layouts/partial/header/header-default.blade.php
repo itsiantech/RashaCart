@@ -8,7 +8,11 @@
         <!-- Logo -->
         <div class="logo">
             <a wire:navigate href="{{ route('home') }}">
-                <img src="{{ asset('storage/logo/' . setting('app_logo')) }}" alt="{{ setting('app_name') }}" style="width: 140px; height: auto;">
+                @if(setting('app_logo'))
+                    <img src="{{ asset('storage/logo/' . rawurlencode(setting('app_logo'))) }}" alt="{{ setting('app_name') ?: config('app.name') }}" style="width: 140px; height: auto;">
+                @else
+                    <span class="text-white fw-bold" style="font-size:1.3rem">{{ setting('app_name') ?: config('app.name') }}</span>
+                @endif
             </a>
         </div>
 
@@ -153,11 +157,11 @@
         @media (max-width: 768px) {
 
             .main-header {
-                background: linear-gradient(135deg, #FF7A1A 0%, #FF5500 60%, #FF3D00 100%);
+                background: #12225B;
                 padding: 15px 10px;
                 margin: 5px 5px;
                 border-radius: 10px;
-                box-shadow: 0 12px 25px rgba(255, 85, 0, 0.28);
+                box-shadow: 0 12px 25px rgba(18, 34, 91, 0.28);
             }
 
             .header-content {

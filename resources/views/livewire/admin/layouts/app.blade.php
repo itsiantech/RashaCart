@@ -30,6 +30,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
     <!-- Icons -->
     <link rel="stylesheet" href="{{ asset('assets/admin')}}/vendor/fonts/boxicons.css" />
@@ -44,6 +45,17 @@
     <link rel="stylesheet" href="{{ asset('assets/admin')}}/vendor/css/theme-default.css" />
     <link rel="stylesheet" href="{{ asset('assets/admin')}}/css/demo.css" />
     <link rel="stylesheet" href="{{ asset('assets/admin')}}/css/myCss.css" />
+    <link rel="stylesheet" href="{{ asset('assets/admin')}}/css/sidebar-theme.css" />
+
+    @php
+        $sbVars = \App\Services\SidebarTheme::cssVarsForUser(Auth::user());
+    @endphp
+    <style id="sb-theme-vars">
+        :root {
+            @foreach ($sbVars as $k => $v){{ $k }}: {{ $v }};
+            @endforeach
+        }
+    </style>
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="{{ asset('assets/admin')}}/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
@@ -74,6 +86,9 @@
                     </div>
                 </div>
             </div>
+            @endauth
+            @auth
+            @livewire('admin.settings.sidebar-theme-picker')
             @endauth
             <div class="layout-overlay"></div>
         </div>
@@ -130,6 +145,18 @@
             Livewire.on('error', (event) => {
                 const message = event.message || event[0]?.message || 'Error!';
                 toastr.error(message);
+            });
+
+            Livewire.on('warning', (event) => {
+                const message = event.message || event[0]?.message || 'Warning!';
+                toastr.warning(message);
+            });
+
+            // Sidebar theme: instant apply without reload
+            Livewire.on('sidebar-theme-applied', (event) => {
+                const vars = event.vars || (event[0] && event[0].vars) || {};
+                const root = document.documentElement;
+                Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
             });
         });
 

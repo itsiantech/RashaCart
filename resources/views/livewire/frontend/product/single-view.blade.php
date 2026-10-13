@@ -1,2107 +1,1624 @@
-    <div class="bg-white">
-        <section class="product-view">
-            <div class="container">
-                <div class="pv-grid">
-                    <div class="pv-main">
-                        <div class="pv-card">
-                            <div class="pv-flex">
-                                <!-- ====== GALLERY WITH ALPINE.JS ====== -->
-                                @php
-                                // Build the full slide list: gallery images, with the active variant/thumbnail image forced first
-                                $galleryUrls = (!empty($product->gallery_image) && is_array($product->gallery_image))
-                                ? collect($product->gallery_image)->map(fn($img) => asset('storage/' . $img))->values()->all()
-                                : [];
+@php
+    // ── Dynamic helpers ──
+    $cur = setting('currency') ?: '৳';
+    $fmt = function ($n) {
+        $n = (float) $n;
+        return number_format($n, fmod($n, 1) ? 2 : 0);
+    };
 
-                                $initialImage = ($activeVariant && $activeVariant->image)
-                                ? asset('storage/' . $activeVariant->image)
-                                : ($product->thumbnail ? asset('storage/' . $product->thumbnail) : null);
+    $showDiscount = $strikePrice > $displayPrice && $strikePrice > 0;
+    $discountPercent = $showDiscount ? (int) round((($strikePrice - $displayPrice) / $strikePrice) * 100) : 0;
 
-                                if ($initialImage) {
-                                $galleryUrls = collect($galleryUrls)->reject(fn($u) => $u === $initialImage)->values()->all();
-                                array_unshift($galleryUrls, $initialImage);
-                                }
+    $phoneRaw = setting('contact_phone') ?: '';
+    $waNumber = preg_replace('/\D+/', '', $phoneRaw);
+    $waText = rawurlencode(
+        'Hello, I want to order: ' .
+            $product->name .
+            ($product->sku ? ' (SKU: ' . $product->sku . ')' : '') .
+            ' - ' .
+            $cur .
+            $fmt($displayPrice),
+    );
 
-                                if (empty($galleryUrls)) {
-                                $galleryUrls = ['https://placehold.co/500x500'];
-                                }
-                                @endphp
+    $soldBy = $product->user->name ?? 'Admin';
+    $brandName = $product->brand->name ?? null;
 
-                                <div class="pv-gallery"
-                                    x-data="{
-        images: @js($galleryUrls),
-        activeIndex: 0,
-        scrollTimer: null,
+    // Category ancestor chain for breadcrumb
+    $categoryChain = collect();
+    $catCursor = $product->category;
+    while ($catCursor) {
+        $categoryChain->prepend($catCursor);
+        $catCursor = $catCursor->parent;
+    }
 
-        scrollToIndex(i) {
-            const track = this.$refs.track;
-            if (!track) return;
-            this.activeIndex = i;
-            track.scrollTo({ left: i * track.clientWidth, behavior: 'smooth' });
-        },
-
-        onScroll() {
-            clearTimeout(this.scrollTimer);
-            this.scrollTimer = setTimeout(() => {
-                const track = this.$refs.track;
-                if (!track || track.clientWidth === 0) return;
-                this.activeIndex = Math.round(track.scrollLeft / track.clientWidth);
-            }, 80);
-        },
-
-        addOrJumpTo(src) {
-            if (!src) return;
-            let idx = this.images.indexOf(src);
-            if (idx === -1) {
-                this.images.unshift(src);
-                idx = 0;
-            }
-            this.$nextTick(() => {
-                const track = this.$refs.track;
-                if (!track) return;
-                this.activeIndex = idx;
-                track.scrollTo({ left: idx * track.clientWidth, behavior: 'auto' });
-            });
+    // ── Image options own the gallery when present ──
+    $optionItems = [];
+    $hasOptions = false;
+    if ($product->relationLoaded('imageOptions')) {
+        $activeOpts = $product->imageOptions->where('is_active', true)->sortBy('sort_order')->values();
+        $hasOptions = $activeOpts->isNotEmpty();
+        foreach ($activeOpts as $ao) {
+            $optionItems[] = ['src' => asset('storage/'.$ao->image), 'value' => null, 'option_id' => $ao->id];
         }
-    }"
-                                    @set-main-image.window="if ($event.detail.src) addOrJumpTo($event.detail.src)">
+    }
 
-                                    @if ($product->discount_type)
-                                    <div class="pv-badge">
-                                        @if ($product->discount_type == 'percent')
-                                        -{{ $product->discount_price }}% OFF
-                                        @else
-                                        -{{ setting('currency') }}{{ $product->discount_price }} OFF
-                                        @endif
-                                    </div>
-                                    @endif
+    // ── Gallery images (each item: src + optional swatch value/option for thumb→select sync) ──
+    $galleryItems = [];
 
-                                    <!-- Main Swipeable Image -->
-                                    <div class="pv-image-wrapper">
-                                        <div class="pv-image-track" x-ref="track" @scroll="onScroll">
-                                            <template x-for="(img, index) in images" :key="index">
-                                                <div class="pv-slide">
-                                                    <img :src="img" alt="{{ $product->name }}" loading="lazy" class="pv-main-image">
-                                                </div>
-                                            </template>
-                                        </div>
-
-                                        <!-- Counter badge, e.g. "1 / 4" -->
-                                        <div class="pv-image-counter" x-show="images.length > 1" x-cloak
-                                            x-text="(activeIndex + 1) + ' / ' + images.length"></div>
-
-                                        <!-- Dot indicators -->
-                                        <div class="pv-dots" x-show="images.length > 1" x-cloak>
-                                            <template x-for="(img, index) in images" :key="index">
-                                                <button
-                                                    type="button"
-                                                    class="pv-dot"
-                                                    :class="{ 'pv-dot--active': activeIndex === index }"
-                                                    @click="scrollToIndex(index)"
-                                                    :aria-label="'Go to image ' + (index + 1)"></button>
-                                            </template>
-                                        </div>
-                                    </div>
-
-                                    <!-- Thumbnails Gallery -->
-                                    <div class="pv-thumbs-wrapper d-none" x-show="images.length > 1" x-cloak>
-                                        <div class="pv-thumbs">
-                                            <template x-for="(img, index) in images" :key="index">
-                                                <button
-                                                    class="pv-thumb"
-                                                    :class="{ 'active': activeIndex === index }"
-                                                    @click="scrollToIndex(index)"
-                                                    :aria-label="'View image ' + (index + 1)"
-                                                    type="button">
-                                                    <img :src="img" :alt="'Product thumbnail ' + (index + 1)" loading="lazy">
-                                                </button>
-                                            </template>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- ====== PRODUCT INFO SECTION ====== -->
-                                <div class="pv-info">
-                                    <h1 class="pv-title">{{ $product->name }}</h1>
-                                    <p class="pv-description">{{ $product->short_description }}</p>
-
-                                    <div class="product-rating">
-                                        <x-rating-stars :rating="$product->reviews_avg_rating" :count="$product->reviews_count" />
-                                    </div>
-
-                                    <div class="pv-pricing">
-                                        <div class="gap-1">
-                                            <span class="pv-price">
-                                                {{ setting('currency') }}{{ number_format($displayPrice, 2) }}
-                                            </span>
-
-                                            @if ($flashSaleItem)
-                                            <span class="pv-price-strike">
-                                                {{ setting('currency') }}{{ number_format($strikePrice, 2) }}
-                                            </span>
-                                            <span class="badge bg-danger ms-1 d-none">
-                                                Flash Sale {{ $flashSaleItem->discount_percent }}% OFF
-                                            </span>
-
-                                            @elseif ($product->discount_type)
-                                            <span class="pv-price-strike">
-                                                {{ setting('currency') }}{{ number_format($strikePrice, 2) }}
-                                            </span>
-                                            @endif
-                                        </div>
-                                        <!-- Add stock status -->
-                                        <div class="pv-stock-status {{ $isInStock ? 'pv-stock-status--in' : 'pv-stock-status--out' }}">
-                                            @if ($isInStock)
-                                            <i class="fas fa-check-circle"></i> In Stock
-                                            @else
-                                            <i class="fas fa-times-circle"></i> Out of Stock
-                                            @endif
-                                        </div>
-                                    </div>
-
-                                    <div class="d-none">
-                                        @include('livewire/frontend/components/trust-badge')
-                                    </div>
-
-                                    <!-- ====== VARIANT SELECTION ====== -->
-                                    <div class="pv-variant">
-                                        @if ($enableVariant && $product->variants->count())
-                                        @php
-                                        $selectedVariantData = $product->variants->firstWhere('id', $selectedVariant) ?? $product->variants->first();
-                                        $selectedPrice = $selectedVariantData->variant_price ?? $product->sale_price ?? 0;
-                                        $originalPrice = $selectedVariantData->product->price ?? 0;
-                                        $discountPercent = ($originalPrice > 0 && $selectedPrice < $originalPrice)
-                                            ? round((($originalPrice - $selectedPrice) / $originalPrice) * 100)
-                                            : 0;
-                                            @endphp
-
-                                            <div class="variant-wrapper">
-                                            <h6 class="variant-section-title">
-                                                <i class="fas fa-palette me-2"></i>
-                                                Choose Variant
-                                            </h6>
-
-                                            <!-- Variant Selection - Smart Display -->
-                                            @php
-                                            // Get all unique attribute types across all variants
-                                            $allAttributeNames = collect();
-                                            foreach ($product->variants as $variant) {
-                                            foreach ($variant->variantAttributeValues as $vav) {
-                                            $attrName = $vav->attribute?->name ?? 'Variant';
-                                            if (!$allAttributeNames->contains($attrName)) {
-                                            $allAttributeNames->push($attrName);
-                                            }
-                                            }
-                                            }
-
-
-                                            $allAttributeNames = $allAttributeNames->sortBy(function ($name) {
-                                            $lower = strtolower($name);
-                                            if (str_contains($lower, 'color') || str_contains($lower, 'colour')) return 0;
-                                            if (str_contains($lower, 'size')) return 1;
-                                            return 2;
-                                            })->values();
-                                            @endphp
-
-                                            @forelse ($allAttributeNames as $attributeName)
-                                            @php
-                                            // Get all unique values for this specific attribute type
-                                            $attributeValues = collect();
-                                            $variantsWithAttr = collect();
-
-                                            foreach ($product->variants as $variant) {
-                                            foreach ($variant->variantAttributeValues as $vav) {
-                                            if ($vav->attribute?->name === $attributeName) {
-                                            $value = $vav->attributeValue?->value ?? 'Variant';
-                                            if (!$attributeValues->contains('value', $value)) {
-                                            $attributeValues->push([
-                                            'value' => $value,
-                                            'variant_id' => $variant->id,
-                                            'image' => $variant->image,
-                                            ]);
-                                            }
-                                            if (!$variantsWithAttr->contains($variant->id)) {
-                                            $variantsWithAttr->push($variant->id);
-                                            }
-                                            break;
-                                            }
-                                            }
-                                            }
-
-                                            $attrNameLower = strtolower($attributeName);
-                                            $isColorAttribute = str_contains($attrNameLower, 'color') || str_contains($attrNameLower, 'colour');
-                                            $isSizeAttribute = str_contains($attrNameLower, 'size');
-                                            $isImageVariant = $isColorAttribute || ($attributeValues->first()['image'] ?? null) !== null;
-                                            @endphp
-
-                                            <div class="variant-attribute-group">
-                                                <label class="variant-attribute-name">
-                                                    {{ $attributeName }}
-                                                    @if($isColorAttribute && !empty($selectedColor))
-                                                    <span class="selected-indicator">(Selected: {{ $selectedColor }})</span>
-                                                    @elseif($isSizeAttribute && !empty($selectedSize))
-                                                    <span class="selected-indicator">(Selected: {{ $selectedSize }})</span>
-                                                    @endif
-                                                </label>
-
-                                                @if ($isImageVariant)
-                                                <!-- IMAGE VARIANTS (Colors) -->
-                                                <div class="variant-images-container">
-                                                    @foreach ($attributeValues as $attrOption)
-                                                    @php
-                                                    // Find first variant with this attribute value for stock check
-                                                    $matchingVariant = null;
-                                                    foreach ($product->variants as $v) {
-                                                    foreach ($v->variantAttributeValues as $vav) {
-                                                    if ($vav->attribute?->name === $attributeName &&
-                                                    $vav->attributeValue?->value === $attrOption['value']) {
-                                                    $matchingVariant = $v;
-                                                    break 2;
-                                                    }
-                                                    }
-                                                    }
-
-                                                    $variantStock = $matchingVariant?->inventories->sortByDesc('id')->first()?->current_stock ?? 0;
-                                                    $variantLabel = $attrOption['value'];
-                                                    $isSelected = $isColorAttribute ? ($selectedColor == $variantLabel) : ($selectedVariant == $attrOption['variant_id']);
-                                                    $hasImage = !empty($attrOption['image']);
-                                                    @endphp
-
-                                                    <div class="variant-item {{ $isSelected ? 'variant-item--selected' : '' }}"
-                                                        @if($isColorAttribute)
-                                                        wire:click="selectColor('{{ $variantLabel }}')"
-                                                        @click="$dispatch('set-main-image', { src: '{{ $hasImage ? asset('storage/' . $attrOption['image']) : '' }}' })"
-                                                        @else
-                                                        wire:click="selectVariant({{ $attrOption['variant_id'] }})"
-                                                        @endif
-                                                        role="button"
-                                                        tabindex="0"
-                                                        aria-pressed="{{ $isSelected ? 'true' : 'false' }}"
-                                                        aria-label="Select variant: {{ $variantLabel }}"
-                                                        @keydown.enter="@if($isColorAttribute)selectColor('{{ $variantLabel }}')@else selectVariant({{ $attrOption['variant_id'] }})@endif"
-                                                        @keydown.space.prevent="@if($isColorAttribute)selectColor('{{ $variantLabel }}')@else selectVariant({{ $attrOption['variant_id'] }})@endif">
-                                                        <div class="variant-image-box {{ $isSelected ? 'variant-image-box--selected' : '' }}">
-                                                            @if ($hasImage)
-                                                            <img src="{{ asset('storage/' . $attrOption['image']) }}"
-                                                                alt="Variant: {{ $variantLabel }}"
-                                                                class="variant-image"
-                                                                loading="lazy">
-                                                            @else
-                                                            <div class="variant-image-placeholder">
-                                                                <i class="fas fa-image"></i>
-                                                            </div>
-                                                            @endif
-
-                                                            @if ($isSelected)
-                                                            <div class="variant-checkmark">
-                                                                <i class="fas fa-check"></i>
-                                                            </div>
-                                                            @endif
-                                                        </div>
-                                                        <div class="variant-info">
-                                                            <div class="variant-label">{{ $variantLabel }}</div>
-                                                        </div>
-                                                    </div>
-                                                    @endforeach
-                                                </div>
-
-                                                @else
-                                                <!-- TEXT VARIANTS (Sizes) - Show as Buttons Only -->
-                                                <div class="variant-buttons-container">
-                                                    @foreach ($attributeValues as $attrOption)
-                                                    @php
-                                                    // Find first variant with this attribute value for stock check
-                                                    $matchingVariant = null;
-                                                    foreach ($product->variants as $v) {
-                                                    foreach ($v->variantAttributeValues as $vav) {
-                                                    if ($vav->attribute?->name === $attributeName &&
-                                                    $vav->attributeValue?->value === $attrOption['value']) {
-                                                    $matchingVariant = $v;
-                                                    break 2;
-                                                    }
-                                                    }
-                                                    }
-
-                                                    $variantStock = $matchingVariant?->inventories->sortByDesc('id')->first()?->current_stock ?? 0;
-                                                    $variantLabel = $attrOption['value'];
-                                                    $isSelected = $isSizeAttribute ? ($selectedSize == $variantLabel) : ($selectedVariant == $attrOption['variant_id']);
-                                                    @endphp
-
-                                                    <button type="button"
-                                                        class="variant-button {{ $isSelected ? 'variant-button--selected' : '' }} {{ $variantStock == 0 ? 'variant-button--disabled' : '' }}"
-                                                        @if($isSizeAttribute)
-                                                        wire:click="selectSize('{{ $variantLabel }}')"
-                                                        @else
-                                                        wire:click="selectVariant({{ $attrOption['variant_id'] }})"
-                                                        @endif
-                                                        {{ $variantStock == 0 ? 'disabled' : '' }}
-                                                        aria-pressed="{{ $isSelected ? 'true' : 'false' }}"
-                                                        aria-label="Select {{ strtolower($attributeName) }}: {{ $variantLabel }}">
-                                                        {{ $variantLabel }}
-                                                        @if ($variantStock == 0)
-                                                        <span class="stock-badge">Out of Stock</span>
-                                                        @endif
-                                                    </button>
-                                                    @endforeach
-                                                </div>
-                                                @endif
-                                            </div>
-                                            @empty
-                                            <p class="text-muted text-center">No variants available</p>
-                                            @endforelse
-
-                                            @if ($selectedVariantData)
-                                            <div class="variant-price-box">
-                                                <div class="variant-price-display">
-                                                    <span class="variant-current-price">
-                                                        {{ setting('currency') }}{{ number_format($selectedPrice, 2) }}
-                                                    </span>
-                                                </div>
-
-                                                @php
-                                                $attributes = $selectedVariantData->variantAttributeValues
-                                                ->mapWithKeys(fn($vav) => [
-                                                $vav->attribute?->name ?? 'Attribute' => $vav->attributeValue?->value ?? 'N/A'
-                                                ]);
-                                                @endphp
-
-                                                @if ($attributes->count())
-                                                <div class="variant-attributes">
-                                                    @foreach ($attributes as $attributeName => $attributeValue)
-                                                    <span class="variant-attribute-item">
-                                                        <strong>{{ $attributeName }}:</strong> {{ $attributeValue }}
-                                                    </span>
-                                                    @endforeach
-                                                </div>
-                                                @endif
-                                            </div>
-                                            @else
-                                            @php
-                                            $hasColor = $variantsByAttribute->keys()->some(fn($k) => in_array(strtolower($k), ['color', 'colour']));
-                                            $hasSize = $variantsByAttribute->keys()->some(fn($k) => in_array(strtolower($k), ['size', 'siize']));
-                                            $needsBothAttributes = $hasColor && $hasSize;
-                                            @endphp
-                                            @if($needsBothAttributes && (empty($selectedColor) || empty($selectedSize)))
-                                            <div class="variant-price-placeholder">
-                                                <p class="text-muted text-center">
-                                                    <i class="fas fa-info-circle"></i>
-                                                    Select both color and size to see the final price
-                                                </p>
-                                            </div>
-                                            @endif
-                                            @endif
-                                    </div>
-                                    @endif
-                                    <div id="variant-select-warning" class="variant-select-warning" style="display: none;">
-                                        <i class="fas fa-exclamation-circle"></i>
-                                        <span>Please select all variant options before adding to cart.</span>
-                                        <button type="button" class="warning-close" onclick="document.getElementById('variant-select-warning').style.display='none';">×</button>
-                                    </div>
-                                </div>
-
-                                <!-- Add stock status -->
-                                <div class="pv-stock-status d-none">
-                                    @if ($isInStock)
-                                    In Stock ({{ $currentStock }} available)
-                                    @else
-                                    Out of Stock
-                                    @endif
-                                </div>
-                                <!-- Qty + Actions -->
-                                <div class="pv-qty-actions pv-inline-actions">
-                                    <div class="pv-qty">
-                                        <button
-                                            wire:loading.attr="disabled"
-                                            wire:target="decreaseQty"
-                                            wire:click="decreaseQty"
-                                            class="pv-qty-btn"
-                                            @disabled($quantity <=1)
-                                            type="button">
-                                            <span wire:loading.remove wire:target="decreaseQty">−</span>
-                                            <i wire:loading wire:target="decreaseQty" class="fa-solid fa-spinner fa-spin"></i>
-                                        </button>
-                                        <input
-                                            type="number"
-                                            wire:model="quantity"
-                                            min="1"
-                                            class="pv-qty-input">
-                                        <button
-                                            wire:loading.attr="disabled"
-                                            wire:target="increaseQty"
-                                            wire:click="increaseQty"
-                                            class="pv-qty-btn"
-                                            type="button">
-                                            <span wire:loading.remove wire:target="increaseQty">+</span>
-                                            <i wire:loading wire:target="increaseQty" class="fa-solid fa-spinner fa-spin"></i>
-                                        </button>
-                                    </div>
-
-
-                                    <div class="pv-actions">
-                                        <button
-                                            class="addToCart"
-                                            wire:click="addToCart({{ $product->id }})"
-                                            wire:loading.attr="disabled"
-                                            wire:target="addToCart"
-                                            type="button">
-                                            <span wire:loading.remove wire:target="addToCart">
-                                                <i class="fa fa-shopping-basket"></i>
-                                                Add to Cart
-                                            </span>
-                                            <span wire:loading wire:target="addToCart">
-                                                <i class="fa fa-spinner fa-spin"></i>
-                                                Adding to Cart...
-                                            </span>
-                                        </button>
-
-                                        <button
-                                            class="btn-order-now"
-                                            wire:click="buyNow({{ $product->id }})"
-                                            wire:loading.attr="disabled"
-                                            wire:target="buyNow"
-                                            type="button">
-                                            <span wire:loading.remove wire:target="buyNow">
-                                                <i class="fa fa-bolt"></i>
-                                                Buy Now
-                                            </span>
-                                            <span wire:loading wire:target="buyNow">
-                                                <i class="fa fa-spinner fa-spin"></i> Wait...
-                                            </span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Meta Information -->
-                                <div class="pv-meta">
-                                    <div class="meta-content">
-                                        <div class="meta-item d-none">
-                                            <span class="meta-icon">
-                                                <i class="fa-solid fa-person-dress"></i>
-                                            </span>
-                                            <div class="d-flex flex-column">
-                                                <span class="meta-label">Category:</span>
-                                                <a
-                                                    wire:navigate
-                                                    href="{{ $product->category ? route('frontend.category.products.view', $product->category->slug) : '#' }}"
-                                                    class="meta-link">
-                                                    {{ $product->category?->name ?? 'N/A' }}
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <div class="meta-item d-none">
-                                            <span class="meta-label">Shop:</span>
-                                            <a
-                                                wire:navigate
-                                                href="{{ route('frontend.user.products.view', $product->user?->id) }}"
-                                                class="meta-link">
-                                                @if($product->user && $product->user->hasRole('vendor'))
-                                                {{ $product->user->name }}
-                                                @else
-                                                System
-                                                @endif
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ====== TABS ====== -->
-                </div> <!-- closes pv-flex -->
-
-                <!-- ====== TABS ====== -->
-                <div class="pv-tabs" x-data="{ activeTab: 'desc' }">
-                    <div class="pv-tab-head">
-                        <button
-                            class="pv-tab-btn active"
-                            :class="{ 'active': activeTab === 'desc' }"
-                            @click="activeTab = 'desc'"
-                            type="button">
-                            Description
-                        </button>
-                        <button
-                            class="pv-tab-btn"
-                            :class="{ 'active': activeTab === 'rev' }"
-                            @click="activeTab = 'rev'"
-                            type="button">
-                            Reviews ({{ $product->reviews_count }})
-                        </button>
-                    </div>
-
-                    <div class="pv-tab-body">
-                        <!-- Description Tab -->
-                        <div class="pv-tab-content" x-show="activeTab === 'desc'" x-transition
-                            x-data="{
-        expanded: false,
-        needsToggle: false,
-        fullHeight: 0,
-        collapsedHeight: 0,
-        init() {
-            this.$nextTick(() => this.measure());
-            new ResizeObserver(() => this.measure()).observe(this.$refs.inner);
-        },
-        measure() {
-            const full = this.$refs.inner.offsetHeight;
-            if (!full) return; // tab hidden thakle skip
-            this.fullHeight = full;
-            // 200px er kom hole toggle dorkar nai
-            this.needsToggle = full > 200;
-            this.collapsedHeight = Math.round(full * 0.2);
+    if ($hasOptions) {
+        // Options own the gallery: selected option's image first
+        if (!empty($selectedOption)) {
+            usort($optionItems, fn ($a, $b) => (($b['option_id'] ?? null) == $selectedOption) <=> (($a['option_id'] ?? null) == $selectedOption));
         }
-    }">
+        $galleryItems = $optionItems;
+    } else {
+        $legacyUrls = !empty($product->gallery_image) && is_array($product->gallery_image)
+            ? collect($product->gallery_image)->map(fn($img) => ['src' => asset('storage/' . $img), 'value' => null, 'option_id' => null])->values()->all()
+            : [];
+        $galleryItems = $legacyUrls;
 
-                            <div class="pv-desc-clamp"
-                                :class="{ 'is-collapsed': needsToggle && !expanded }"
-                                :style="needsToggle ? `max-height: ${expanded ? fullHeight : collapsedHeight}px` : ''">
-                                <div x-ref="inner">
-                                    {!! $product->long_description !!}
-                                </div>
-                            </div>
+        $initialImage = $activeVariant && $activeVariant->image
+            ? asset('storage/' . $activeVariant->image)
+            : ($product->thumbnail
+                ? asset('storage/' . $product->thumbnail)
+                : null);
 
-                            <template x-if="needsToggle">
-                                <button type="button" class="pv-desc-toggle" @click="expanded = !expanded">
-                                    <span x-text="expanded ? 'Show less' : 'Show more'"></span>
-                                    <i class="fas" :class="expanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                                </button>
-                            </template>
-                        </div>
+        if ($initialImage) {
+            $galleryItems = collect($galleryItems)->reject(fn($it) => $it['src'] === $initialImage)->values()->all();
+            array_unshift($galleryItems, ['src' => $initialImage, 'value' => null, 'option_id' => null]);
+        }
 
-                        <!-- Reviews Tab -->
-                        <div x-show="activeTab === 'rev'" x-transition>
-                            @php
-                            $totalReviews = $reviews->total();
-                            $avgRating = $totalReviews > 0 ? $reviews->getCollection()->avg('rating') : 0;
-                            $starCounts = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
-                            foreach ($reviews->getCollection() as $r) {
-                            $starCounts[(int)$r->rating] = ($starCounts[(int)$r->rating] ?? 0) + 1;
-                            }
-                            @endphp
+        // ── Swatch-linked gallery (product_images): matched value's images first ──
+        if ($product->relationLoaded('images') && $product->images->isNotEmpty()) {
+            $selValues = array_filter([$selectedColor ?? null, $selectedSize ?? null]);
+            [$matched, $rest] = $product->images->sortBy('sort_order')->partition(
+                fn ($im) => $im->attributeValue && in_array($im->attributeValue->value, $selValues, true)
+            );
+            $extra = $matched->merge($rest)
+                ->map(fn ($im) => ['src' => asset('storage/'.$im->path), 'value' => $im->attributeValue?->value, 'option_id' => null])
+                ->reject(fn ($it) => collect($galleryItems)->contains('src', $it['src']))->values()->all();
+            array_splice($galleryItems, 1, 0, $extra);
+        }
+    }
 
-                            <div class="review-summary-box">
-                                <div class="review-summary-left">
-                                    <div class="review-avg-score">
-                                        {{ number_format($avgRating, 1) }}
-                                        <span>/5</span>
-                                    </div>
-                                    <div class="review-stars-display">
-                                        @for ($i = 1; $i <= 5; $i++)
-                                            <i class="{{ $i <= round($avgRating) ? 'fas' : 'far' }} fa-star"></i>
-                                            @endfor
-                                    </div>
-                                    <div class="review-count-label">({{ $totalReviews }} Reviews)</div>
-                                </div>
-                                <div class="review-summary-right">
-                                    @foreach ([5, 4, 3, 2, 1] as $star)
-                                    @php
-                                    $count = $starCounts[$star] ?? 0;
-                                    $pct = $totalReviews > 0 ? ($count / $totalReviews * 100) : 0;
-                                    @endphp
-                                    <div class="review-bar-row">
-                                        <div class="review-bar-stars">
-                                            @for ($i = 1; $i <= 5; $i++)
-                                                <i class="{{ $i <= $star ? 'fas' : 'far' }} fa-star"></i>
-                                                @endfor
-                                        </div>
-                                        <div class="review-bar-track">
-                                            <div class="review-bar-fill" style="width: {{ $pct }}%"></div>
-                                        </div>
-                                        <span class="review-bar-count">({{ $count }})</span>
-                                    </div>
-                                    @endforeach
-                                </div>
-                            </div>
+    $galleryUrls = array_column($galleryItems, 'src');
 
-                            <!-- Individual Reviews List -->
-                            <div class="reviews-list-container">
-                                @if ($reviews->count() > 0)
-                                @foreach ($reviews as $review)
-                                <div class="review-item">
-                                    <div class="review-header">
-                                        <div class="review-user-info">
-                                            <div class="review-user-avatar">
-                                                @if ($review->user && $review->user->profile_image)
-                                                <img src="{{ asset('storage/' . $review->user->profile_image) }}" alt="{{ $review->user->name }}">
-                                                @else
-                                                <div class="avatar-placeholder">{{ strtoupper(substr($review->user?->name ?? 'U', 0, 1)) }}</div>
-                                                @endif
-                                            </div>
-                                            <div class="review-user-details">
-                                                <h5 class="review-user-name">{{ $review->user?->name ?? 'Anonymous' }}</h5>
-                                                <p class="review-user-date">{{ $review->created_at->format('M d, Y') }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="review-rating">
-                                        @for ($i = 1; $i <= 5; $i++)
-                                            <i class="{{ $i <= $review->rating ? 'fas' : 'far' }} fa-star"></i>
-                                            @endfor
-                                            <span class="rating-value">({{ $review->rating }}.0/5.0)</span>
-                                    </div>
-                                    <div class="review-content">
-                                        <p>{{ $review->comment }}</p>
-                                    </div>
-                                </div>
-                                @endforeach
+    if (empty($galleryItems)) {
+        $galleryItems = [['src' => 'https://placehold.co/600x600', 'value' => null]];
+        $galleryUrls = ['https://placehold.co/600x600'];
+    }
+    $galleryFirst = $galleryItems[0]['src'];
 
-                                <!-- Pagination -->
-                                <div class="reviews-pagination mt-3">
-                                    {{ $reviews->links() }}
-                                </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    // ── Reviews summary ──
+    $reviewCount = (int) ($product->reviews_count ?? 0);
+@endphp
 
-
-                <!-- Related Products -->
-                <div class="pv-sidebar mt-4">
-                    <div class="pv-side-card">
-                        <h3 class="pv-side-title">Related Products</h3>
-                        <div class="products-grid">
-                            @if (!isset($relatedProducts) || $relatedProducts->isEmpty())
-                            <p class="text-center text-muted">Loading related products...</p>
-                            @else
-                            @foreach ($relatedProducts as $product)
-                            @include('livewire.frontend.layouts.partial.product-card', ['product' => $product])
-                            @endforeach
-                            @endif
-                        </div>
-                    </div>
-                </div>
-        </section>
-
-        <!-- Sticky Bottom Bar -->
-        <div class="pv-sticky-bar" id="pvStickyBar">
-            <div class="pv-sticky-inner">
-                <button
-                    class="favorite-heart"
-                    wire:click="addToWishlist({{ $product->id }})"
-                    aria-label="Add to wishlist"
-                    type="button">
-                    <i class="far fa-heart"></i>
-                </button>
-
-                <button
-                    class="pv-sticky-cart"
-                    wire:click="addToCart({{ $product->id }})"
-                    data-requires-variant="{{ ($enableVariant && $product->variants->count()) ? 'true' : 'false' }}"
-                    wire:loading.attr="disabled"
-                    wire:target="addToCart"
-                    type="button">
-                    <span wire:loading.remove wire:target="addToCart">
-                        <i class="fa fa-shopping-basket"></i>Add To Cart
-                    </span>
-                    <span wire:loading wire:target="addToCart">
-                        <i class="fa fa-spinner fa-spin"></i>
-                    </span>
-                </button>
-
-                <button
-                    class="pv-sticky-buynow"
-                    wire:click="buyNow({{ $product->id }})"
-                    data-requires-variant="{{ ($enableVariant && $product->variants->count()) ? 'true' : 'false' }}"
-                    wire:loading.attr="disabled"
-                    wire:target="buyNow"
-                    type="button">
-                    <span wire:loading.remove wire:target="buyNow">
-                        <i class="fa fa-bolt"></i> Buy Now
-                    </span>
-                    <span wire:loading wire:target="buyNow">
-                        <i class="fa fa-spinner fa-spin"></i>
-                    </span>
-                </button>
-            </div>
-        </div>
-
-        <div class="pv-sticky-spacer"></div>
-    </div>
-
-    <!-- ====== STYLES ====== -->
+<div class="bg-white">
     <style>
-        .pv-image-track {
-            display: flex;
-            width: 100%;
-            height: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
-            scroll-snap-type: x mandatory;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
-
-        .pv-image-track::-webkit-scrollbar {
-            display: none;
-        }
-
-        .pv-slide {
-            flex: 0 0 100%;
-            width: 100%;
-            height: 100%;
-            scroll-snap-align: center;
-            scroll-snap-stop: always;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .pv-image-counter {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: rgba(0, 0, 0, 0.55);
-            color: #fff;
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.25rem 0.65rem;
-            border-radius: 20px;
-            z-index: 10;
-            letter-spacing: 0.3px;
-        }
-
-        .pv-dots {
-            position: absolute;
-            bottom: 0.85rem;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            z-index: 10;
-        }
-
-        .pv-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.55);
-            border: none;
-            padding: 0;
-            cursor: pointer;
-            transition: all 0.25s ease;
-        }
-
-        .pv-dot--active {
-            width: 18px;
-            border-radius: 4px;
-            background: orangered;
-        }
-
-        .variant-buttons-container {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .variant-button {
-            padding: 10px 16px;
-            border: 2px solid #ddd;
+        /* ===== Product Details Page ===== */
+        .pd-crumb-bar {
             background: #fff;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 13px;
-            color: #333;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--line, #e5e7eb);
         }
 
-        .variant-button:hover:not(:disabled) {
-            border-color: #333;
-        }
-
-        .variant-button--selected {
-            border-color: #333;
-            background: #333;
-            color: #fff;
-        }
-
-        .variant-button--disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .stock-badge {
-            display: block;
-            font-size: 10px;
-            margin-top: 4px;
-            color: #d32f2f;
-            font-weight: 600;
-        }
-
-        .variant-attribute-name {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 12px;
-            font-size: 14px;
-            color: #333;
-            text-transform: capitalize;
-        }
-
-        .selected-indicator {
-            font-weight: 400;
-            font-size: 12px;
-            color: #d32f2f;
-            margin-left: 0.5rem;
-            font-style: italic;
-        }
-
-        /* Variant Selections Summary */
-        .variant-selections-summary {
-            background: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1.5rem;
-        }
-
-        .selections-header {
+        .pd-crumb {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 1rem;
-            font-size: 0.95rem;
-        }
-
-        .selections-header i {
-            color: #0056b3;
-            font-size: 1.1rem;
-        }
-
-        .selections-content {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .selection-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem;
-            background: white;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-        }
-
-        .selection-label {
-            font-weight: 600;
-            color: #555;
-            min-width: 80px;
-        }
-
-        .selection-value {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #333;
-        }
-
-        .selection-value strong {
-            color: #d32f2f;
-            font-weight: 700;
-        }
-
-        .selection-clear {
-            background: none;
-            border: none;
-            color: #999;
-            font-size: 1.3rem;
-            cursor: pointer;
-            padding: 0 0.25rem;
-            line-height: 1;
-            transition: all 0.2s ease;
-        }
-
-        .selection-clear:hover {
-            color: #d32f2f;
-            font-weight: bold;
-        }
-
-        .selection-status {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem;
-            background: #f0f0f0;
-            border-radius: 6px;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .selection-status i {
-            font-size: 1.1rem;
-        }
-
-        .text-success {
-            color: #28a745;
-        }
-
-        .text-warning {
-            color: #ffc107;
-        }
-
-        /* Image Wrapper */
-        .pv-image-wrapper {
-            width: 100%;
-            aspect-ratio: 1;
-            background: #f5f5f5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .pv-main-image {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-        }
-
-        /* Gallery */
-        .pv-gallery {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .pv-badge {
-            position: absolute;
-            top: 1rem;
-            left: 1rem;
-            background: #d32f2f;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            font-weight: 600;
-            font-size: 0.875rem;
-            z-index: 10;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .pv-thumbs-wrapper {
-            padding: 0.5rem 0;
-        }
-
-        .pv-thumbs {
-            display: flex;
-            gap: 0.5rem;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scroll-behavior: smooth;
-            padding: 0.25rem;
-        }
-
-        .pv-thumb {
-            flex: 0 0 auto;
-            width: 80px;
-            height: 80px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            padding: 4px;
-            cursor: pointer;
-            background: white;
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-
-        .pv-thumb:hover {
-            border-color: orangered;
-            box-shadow: 0 0 8px rgba(255, 165, 0, 0.2);
-        }
-
-        .pv-thumb.active {
-            border-color: orangered;
-            box-shadow: 0 0 12px rgba(255, 165, 0, 0.3);
-        }
-
-        .pv-thumb img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 3px;
-        }
-
-        /* Product Info */
-        .pv-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .pv-title {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #333;
-            margin: 0;
-            line-height: 1.3;
-        }
-
-        .pv-description {
-            font-size: 0.95rem;
-            color: #666;
-            margin: 0;
-            line-height: 1.5;
-        }
-
-        .pv-pricing {
-            display: flex;
-            justify-content: space-between;
-            gap: 0.8rem;
             flex-wrap: wrap;
-        }
-
-        .pv-price {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #d32f2f;
-        }
-
-        .pv-price-strike {
-            font-size: 0.9rem;
-            color: #999;
-            text-decoration: line-through;
-        }
-
-        /* Variant Styles */
-        .pv-variant {
-            width: 100%;
-        }
-
-        .variant-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .variant-section-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #333;
+            gap: 6px;
+            font-size: .8rem;
+            color: #6b7280;
+            padding: 10px 0;
             margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            list-style: none;
         }
 
-        .variant-images-container {
-            display: grid;
-            grid-template-columns: repeat(6, 105px);
-            gap: 0.7rem;
-        }
-
-        @media (max-width: 460px) {
-            .variant-images-container {
-                grid-template-columns: repeat(4, 95px);
-            }
-        }
-
-        @media (max-width: 430px) {
-            .variant-images-container {
-                grid-template-columns: repeat(4, 90px);
-            }
-        }
-
-        @media (max-width: 412px) {
-            .variant-images-container {
-                grid-template-columns: repeat(3, 90px);
-            }
-        }
-
-        .variant-item {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-            position: relative;
-        }
-
-        .variant-item:hover {
-            transform: translateY(-2px);
-        }
-
-        .variant-item:focus-visible {
-            outline: 2px solid orangered;
-            outline-offset: 4px;
-            border-radius: 8px;
-        }
-
-        .variant-image-box {
-            position: relative;
-            width: 105px;
-            height: 105px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            padding: 8px;
-            background: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .variant-image-box--selected {
-            border-color: orangered;
-            background: #f1f8f5;
-            box-shadow: 0 0 12px rgba(255, 165, 0, 0.35);
-        }
-
-        .variant-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 4px;
-        }
-
-        .variant-image-placeholder {
-            width: 100%;
-            height: 100%;
-            background: #f5f5f5;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #bbb;
-            font-size: 1.5rem;
-        }
-
-        .variant-checkmark {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            width: 26px;
-            height: 26px;
-            background: orangered;
-            border: 3px solid white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 0.75rem;
-            box-shadow: 0 2px 8px rgba(255, 165, 0, 0.4);
-        }
-
-        .variant-info {
-            text-align: center;
-        }
-
-        .variant-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 0.25rem;
-            line-height: 1.2;
-        }
-
-        .variant-price-box {
-            padding: 0.5rem;
-            border: 1px solid #efefef;
-            border-radius: 8px;
-        }
-
-        .variant-price-placeholder {
-            padding: 1rem;
-            border: 1px dashed #ccc;
-            border-radius: 8px;
-            background: #f9f9f9;
-        }
-
-        .variant-price-placeholder p {
-            margin: 0;
-            font-size: 0.9rem;
-        }
-
-        .variant-price-display {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-            margin-bottom: 0.75rem;
-        }
-
-        .variant-current-price {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #d32f2f;
-            line-height: 1;
-        }
-
-        .variant-attributes {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-top: 0.5rem;
-            padding-top: 0.5rem;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        .variant-attribute-item {
-            font-size: 0.9rem;
-            color: #555;
-        }
-
-        .variant-attribute-item strong {
-            color: #333;
-        }
-
-        /* Quantity */
-        .pv-qty {
-            display: flex;
-            align-items: stretch;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            overflow: hidden;
-            background: white;
-        }
-
-        .pv-qty-btn {
-            width: 40px;
-            border: none;
-            background: white;
-            color: #333;
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-        }
-
-        .pv-qty-btn:hover:not(:disabled) {
-            background: #f5f5f5;
-        }
-
-        .pv-qty-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .pv-qty-input {
-            border: none;
-            border-left: 1px solid #ddd;
-            border-right: 1px solid #ddd;
-            width: 60px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 1rem;
-            padding: 0;
-        }
-
-        .pv-qty-input:focus {
-            outline: none;
-            background: #f5f5f5;
-        }
-
-        /* Actions */
-        .pv-qty-actions {
-            display: flex;
-            align-items: stretch;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .pv-actions {
-            display: flex;
-            gap: 0.75rem;
-            flex: 1;
-            min-width: 250px;
-        }
-
-        .pv-meta {
-            border-top: 1px solid #efefef;
-        }
-
-        .meta-content {
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
-        }
-
-        .meta-item {
-            display: flex;
-            padding: 0.1rem 1rem;
-            background: white;
-            border: 1px solid whitesmoke;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
+        .pd-crumb a {
+            color: #6b7280;
             text-decoration: none;
-            transition: all 0.2s ease;
-            gap: 0.7rem;
         }
 
-        .meta-label {
-            font-size: 1rem;
-            font-weight: 700;
-            color: black;
+        .pd-crumb a:hover {
+            color: var(--navy, #12225B);
         }
 
-        .meta-icon {
-            margin-top: 5px;
-            width: 40px;
-            height: 40px;
-            padding: 25px;
-            border-radius: 50%;
-            background: #fff3ea;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
+        .pd-crumb .sep {
+            font-size: .6rem;
+            color: #9ca3af;
         }
 
-        .meta-card-link {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+        .pd-crumb .cur {
+            color: #111827;
+            font-weight: 600;
+            max-width: 260px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        .meta-card-link:hover {
-            border-color: orangered;
-            background: #fafafa;
+        .pd-wrap {
+            margin-top: 16px;
         }
 
-        .meta-card-icon {
-            width: 36px;
-            height: 36px;
-            min-width: 36px;
-            border-radius: 8px;
-            background: #fff3ea;
-            color: orangered;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
+        .pd-box {
+            background: #fff;
+            border: 1px solid var(--line, #e5e7eb);
+            border-radius: 12px;
+            padding: 20px;
         }
 
-        .meta-card-text {
-            display: flex;
-            flex-direction: column;
-            line-height: 1.35;
-            flex: 1;
+        .pd-box + .pd-box {
+            margin-top: 16px;
+        }
+
+        /* ---- Top product box (3 cols on desktop) ---- */
+        .pd-product {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        @media (min-width: 992px) {
+            .pd-product {
+                grid-template-columns: minmax(300px, 400px) 1fr;
+            }
+
+            .pd-aside {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .pd-product {
+                grid-template-columns: minmax(320px, 420px) 1fr 260px;
+            }
+
+            .pd-aside {
+                grid-column: auto;
+            }
+        }
+
+        /* ---- Gallery / zoom ---- */
+        .pd-gallery {
             min-width: 0;
         }
 
-        .meta-card-title {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: #222;
-        }
-
-        .meta-card-sub {
-            font-size: 0.8rem;
-            color: #888;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .meta-card-arrow {
-            color: #ccc;
-            font-size: 0.85rem;
-        }
-
-        .meta-link {
-            color: gray;
-        }
-
-        /* Tabs */
-        .pv-tabs {
-            width: 100%;
-            margin-top: 1rem;
-        }
-
-        .pv-tab-head {
-            display: flex;
-            justify-content: space-around;
-            align-items: flex-end;
-            border-bottom: 2px solid #e0e0e0;
-            gap: 2rem;
-            background: white;
-        }
-
-        .pv-tab-btn {
-            padding: 1rem 0;
-            border: none;
-            background: transparent;
-            color: #666;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border-bottom: 3px solid transparent;
-            font-size: 0.95rem;
+        .pd-main-image {
             position: relative;
-        }
-
-        .pv-tab-btn:hover {
-            color: #333;
-        }
-
-        .pv-tab-btn.active {
-            color: orangered;
-            border-bottom-color: orangered;
-            background: transparent;
-        }
-
-        .pv-tab-body {
-            padding: 1rem 0;
-            width: 100%;
-        }
-
-        .pv-tab-content {
-            padding: 10px;
-            border: 1px solid #e0e0e0;
+            aspect-ratio: 1 / 1;
+            background: #fafafa;
+            border: 1px solid var(--line, #e5e7eb);
             border-radius: 10px;
+            overflow: hidden;
         }
 
-        .pv-tab-panel {
+        @media (min-width: 992px) {
+            .pd-main-image {
+                cursor: zoom-in;
+            }
+        }
+
+        .pd-main-image img {
             width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transform-origin: var(--ox, 50%) var(--oy, 50%);
+            transition: transform .18s ease;
+            will-change: transform;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
+        .pd-main-image.pd-zoomed img {
+            transform: scale(2.2);
+        }
+
+        @media (max-width: 991.98px) {
+            .pd-main-image.pd-zoomed img {
+                transform: none;
             }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
-        /* Review Section */
-        .review-summary-box {
-            display: flex;
-            align-items: flex-start;
-            gap: 2rem;
-            background: #f9f9f9;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .review-summary-left {
-            display: flex;
-            flex-direction: column;
+        .pd-zoom-hint {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            background: rgba(17, 24, 39, .72);
+            color: #fff;
+            font-size: .68rem;
+            padding: 4px 9px;
+            border-radius: 20px;
+            pointer-events: none;
+            display: inline-flex;
             align-items: center;
-            gap: 0.75rem;
-            min-width: 120px;
-            text-align: center;
+            gap: 5px;
         }
 
-        .review-avg-score {
-            font-size: 2.5rem;
+        @media (max-width: 991.98px) {
+            .pd-zoom-hint {
+                display: none !important;
+            }
+        }
+
+        .pd-thumbs {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+
+        .pd-thumb {
+            flex: 0 0 64px;
+            width: 64px;
+            height: 64px;
+            border: 2px solid var(--line, #e5e7eb);
+            border-radius: 8px;
+            background: #fff;
+            padding: 2px;
+            cursor: pointer;
+        }
+
+        .pd-thumb.active {
+            border-color: #111827;
+        }
+
+        .pd-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 5px;
+        }
+
+        /* ---- Info column ---- */
+        .pd-title {
+            font-size: 1.25rem;
             font-weight: 700;
-            color: #333;
-            line-height: 1;
+            color: #111827;
+            line-height: 1.4;
+            margin-bottom: 6px;
         }
 
-        .review-avg-score span {
-            font-size: 1.2rem;
-            color: #999;
-            font-weight: 400;
-        }
-
-        .review-stars-display {
-            color: #ffa500;
-            font-size: 0.95rem;
-            display: flex;
-            gap: 0.25rem;
-        }
-
-        .review-count-label {
-            font-size: 0.85rem;
-            color: #999;
-        }
-
-        .review-summary-right {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .review-bar-row {
-            display: flex;
+        .stars {
+            display: inline-flex;
             align-items: center;
-            gap: 1rem;
+            gap: 2px;
         }
 
-        .review-bar-stars {
-            color: #ffa500;
-            font-size: 0.8rem;
-            min-width: 80px;
+        .stars i {
+            font-size: .62rem;
+            color: #111827;
+        }
+
+        .stars .rating-count {
+            margin-left: 5px;
+            font-size: .72rem;
+            color: #6b7280;
+        }
+
+        .pd-price-row {
             display: flex;
-            gap: 0.15rem;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0 6px;
         }
 
-        .review-bar-track {
-            flex: 1;
-            height: 8px;
-            background: #e0e0e0;
+        .pd-price {
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: #111827;
+        }
+
+        .pd-price-old {
+            font-size: .95rem;
+            color: #9ca3af;
+            text-decoration: line-through;
+        }
+
+        .pd-off {
+            color: #dc2626;
+            font-weight: 700;
+            font-size: .9rem;
+        }
+
+        .pd-flash {
+            background: #dc2626;
+            color: #fff;
+            font-size: .68rem;
+            font-weight: 700;
+            padding: 3px 8px;
             border-radius: 4px;
-            overflow: hidden;
         }
 
-        .review-bar-fill {
-            height: 100%;
-            background: #ffa500;
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
-
-        .review-bar-count {
-            font-size: 0.8rem;
-            color: #999;
-            min-width: 40px;
-            text-align: right;
-        }
-
-        /* Individual Reviews */
-        .reviews-list-container {
-            margin-top: 1rem;
-        }
-
-        .review-item {
-            border-bottom: 1px solid #e0e0e0;
-            padding: 1.5rem 0;
-        }
-
-        .review-item:first-child {
-            padding-top: 0;
-        }
-
-        .review-item:last-child {
-            border-bottom: none;
-        }
-
-        .review-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 0.75rem;
-        }
-
-        .review-user-info {
-            display: flex;
-            gap: 0.75rem;
-        }
-
-        .review-user-avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            overflow: hidden;
-            background: #f0f0f0;
-            display: flex;
+        .pd-stock {
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
+            gap: 6px;
+            font-size: .78rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
         }
 
-        .review-user-avatar img {
-            width: 100%;
-            height: 100%;
+        .pd-stock--in {
+            background: #ecfdf5;
+            color: #047857;
+        }
+
+        .pd-stock--out {
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        /* ---- Variants ---- */
+        .pd-variant-group + .pd-variant-group {
+            margin-top: 14px;
+        }
+
+        .pd-opt-label {
+            font-size: .78rem;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 7px;
+        }
+
+        .pd-opt-label .sel {
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .pd-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .pd-chip {
+            border: 1px solid var(--line, #e5e7eb);
+            background: #fff;
+            color: #374151;
+            font-size: .78rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            transition: all .15s;
+        }
+
+        .pd-chip:hover {
+            border-color: #111827;
+        }
+
+        .pd-chip.active {
+            border: 2px solid #111827;
+            padding: 5px 13px;
+        }
+
+        .pd-chip:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+
+        .pd-chip img {
+            width: 26px;
+            height: 26px;
+            border-radius: 4px;
             object-fit: cover;
         }
 
-        .avatar-placeholder {
-            font-weight: 700;
-            color: #999;
-            font-size: 1.1rem;
-            background: #f0f0f0;
+        /* ---- 64x64 image swatches (color section) ---- */
+        .pd-swatch {
+            border: 2px solid var(--line, #e5e7eb);
+            background: #fff;
+            border-radius: 8px;
+            padding: 3px;
+            cursor: pointer;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            transition: all .15s;
         }
 
-        .review-user-details {
+        .pd-swatch img {
+            width: 64px;
+            height: 64px;
+            border-radius: 5px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .pd-swatch-fill {
+            width: 64px;
+            height: 64px;
+            border-radius: 5px;
+            display: block;
+        }
+
+        .pd-swatch:hover {
+            border-color: #111827;
+        }
+
+        .pd-swatch.active {
+            border-color: #f97316;
+            box-shadow: 0 0 0 1px #f97316;
+        }
+
+        .pd-swatch:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        /* ---- Quantity ---- */
+        .pd-qty {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid var(--line, #e5e7eb);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .pd-qty button {
+            width: 38px;
+            height: 40px;
+            border: 0;
+            background: #f9fafb;
+            color: #111827;
+            font-size: .85rem;
+            cursor: pointer;
+        }
+
+        .pd-qty button:disabled {
+            opacity: .35;
+            cursor: not-allowed;
+        }
+
+        .pd-qty input {
+            width: 58px;
+            height: 40px;
+            border: 0;
+            border-left: 1px solid var(--line, #e5e7eb);
+            border-right: 1px solid var(--line, #e5e7eb);
+            text-align: center;
+            font-weight: 700;
+            color: #111827;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .pd-qty input::-webkit-outer-spin-button,
+        .pd-qty input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* ---- Action buttons ---- */
+        .pd-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .pd-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 44px;
+            border: 0;
+            border-radius: 6px;
+            font-size: .86rem;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+            cursor: pointer;
+            transition: opacity .15s;
+        }
+
+        .pd-btn:hover {
+            opacity: .9;
+            color: #fff;
+        }
+
+        .pd-btn:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+        }
+
+        .pd-btn--cart {
+            background: var(--orange, #f97316);
+        }
+
+        .pd-btn--buy {
+            background: var(--navy, #12225B);
+        }
+
+        .pd-btn--wa {
+            background: #25D366;
+        }
+
+        .pd-btn--call {
+            background: var(--navy, #12225B);
+        }
+
+        .pd-warning {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+            font-size: .78rem;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 9px 12px;
+            margin-top: 12px;
+        }
+
+        .pd-warning .warning-close {
+            border: 0;
+            background: transparent;
+            color: #b91c1c;
+            cursor: pointer;
+            font-size: .8rem;
+        }
+
+        /* ---- Right meta column ---- */
+        .pd-aside {
             display: flex;
             flex-direction: column;
-            gap: 0.25rem;
+            gap: 12px;
         }
 
-        .review-user-name {
-            font-weight: 700;
-            color: #333;
-            margin: 0;
-            font-size: 0.95rem;
-        }
-
-        .review-user-date {
-            font-size: 0.8rem;
-            color: #999;
-            margin: 0;
-        }
-
-        .review-rating {
+        .pd-meta-row {
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.75rem;
+            gap: 10px;
+            font-size: .78rem;
+            line-height: 1.5;
         }
 
-        .review-rating i {
-            color: #ffa500;
-            font-size: 0.85rem;
+        .pd-meta-ic {
+            flex: 0 0 18px;
+            color: #6b7280;
+            text-align: center;
+            margin-top: 2px;
         }
 
-        .rating-value {
-            font-size: 0.85rem;
-            color: #999;
+        .pd-meta-label {
+            color: #6b7280;
+            display: block;
+            font-size: .72rem;
+        }
+
+        .pd-meta-value {
+            color: #111827;
             font-weight: 600;
         }
 
-        .review-content {
-            color: #555;
-            line-height: 1.6;
-            font-size: 0.95rem;
-        }
-
-        .review-content p {
-            margin: 0;
-        }
-
-        .no-reviews {
-            text-align: center;
-            padding: 0.5rem 0;
-        }
-
-        .reviews-pagination {
+        .pd-seller {
             display: flex;
-            justify-content: center;
-            margin-top: 2rem;
-        }
-
-        /* Products Grid */
-        .products-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 0.8rem;
-        }
-
-        /* Sticky Bar */
-        .pv-sticky-bar {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            border-top: 1px solid #ddd;
-            z-index: 9999;
-            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .pv-sticky-inner {
-            display: flex;
+            align-items: center;
             gap: 8px;
-            align-items: center;
-            padding: 8px;
-            max-height: 70px;
-            overflow: hidden;
         }
 
-        .favorite-heart {
-            width: 48px;
-            min-width: 48px;
-            height: 48px;
-            padding: 0;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            color: #d32f2f;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
+        .pd-seller-av {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px solid var(--line, #e5e7eb);
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
+            color: var(--navy, #12225B);
+            background: #fff;
         }
 
-        .favorite-heart:active {
-            background: #f5f5f5;
-            transform: scale(0.95);
-        }
-
-        .pv-sticky-cart {
-            flex: 1;
-            height: 48px;
-            padding: 0 12px;
-            background: orangered;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            cursor: pointer;
+        .pd-seller-badges {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            transition: all 0.18s ease;
+            flex-direction: column;
+            gap: 1px;
+            font-size: .68rem;
+            color: #059669;
+            font-weight: 600;
         }
 
-        .pv-sticky-cart:active:not(:disabled) {
-            background: #b71c1c;
-        }
-
-        .pv-sticky-cart:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .pv-sticky-buynow {
-            flex: 1;
-            height: 48px;
-            padding: 0 12px;
-            background: orange;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            transition: all 0.18s ease;
-        }
-
-        .pv-sticky-buynow:active:not(:disabled) {
-            background: #f57c00;
-        }
-
-        .pv-sticky-buynow:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .pv-sticky-spacer {
-            display: none;
-            height: 60px;
-        }
-
-        .variant-select-warning {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 1rem;
-            background: #fff3cd;
-            border: 1px solid #ffc107;
+        .pd-brand-chip {
+            width: 32px;
+            height: 32px;
             border-radius: 6px;
-            color: #856404;
-            font-weight: 500;
-            margin-top: 1rem;
+            background: var(--navy, #12225B);
+            color: #fff;
+            font-size: .68rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: .5px;
         }
 
-        .variant-select-warning i {
-            color: #ffc107;
-            font-size: 1.1rem;
+        /* ---- Sections ---- */
+        .pd-sec-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--line, #e5e7eb);
         }
 
-        .warning-close {
-            background: none;
-            border: none;
-            color: #856404;
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 0;
-            margin-left: auto;
+        .pd-desc-body {
+            color: #374151;
+            font-size: .86rem;
+            line-height: 1.75;
+        }
+
+        .pd-desc-body img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* ---- Reviews ---- */
+        .pd-rev-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 22px;
+        }
+
+        @media (min-width: 768px) {
+            .pd-rev-grid {
+                grid-template-columns: 220px 1fr;
+            }
+        }
+
+        .pd-rev-avg {
+            text-align: center;
+        }
+
+        .pd-rev-avg .num {
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: #111827;
             line-height: 1;
-            opacity: 0.7;
-            transition: opacity 0.2s ease;
         }
 
-        .warning-close:hover {
-            opacity: 1;
+        .pd-rev-avg .lbl {
+            font-size: .74rem;
+            color: #6b7280;
+            margin-top: 6px;
         }
 
-        /* ===== RESPONSIVE DESIGN ===== */
-        @media (max-width: 1200px) {
-            .products-grid {
+        .pd-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: .74rem;
+            color: #6b7280;
+        }
+
+        .pd-bar-row .lbl {
+            flex: 0 0 34px;
+        }
+
+        .pd-bar {
+            flex: 1;
+            height: 9px;
+            background: #e5e7eb;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .pd-bar span {
+            display: block;
+            height: 100%;
+            background: #f5a623;
+            border-radius: 20px;
+        }
+
+        .pd-bar-row .cnt {
+            flex: 0 0 24px;
+            text-align: right;
+        }
+
+        .pd-no-reviews {
+            color: #9ca3af;
+            font-size: .84rem;
+            padding: 14px 0 4px;
+        }
+
+        .pd-review-item {
+            display: flex;
+            gap: 12px;
+            padding: 14px 0;
+            border-top: 1px solid var(--line, #e5e7eb);
+        }
+
+        .pd-review-av {
+            flex: 0 0 36px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--navy, #12225B);
+            color: #fff;
+            font-weight: 700;
+            font-size: .8rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pd-review-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .pd-review-name {
+            font-size: .82rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .pd-review-date {
+            font-size: .7rem;
+            color: #9ca3af;
+        }
+
+        .pd-review-comment {
+            font-size: .82rem;
+            color: #4b5563;
+            margin: 4px 0 0;
+            line-height: 1.6;
+        }
+
+        /* ---- Review form ---- */
+        .pd-rev-form {
+            border-top: 1px solid var(--line, #e5e7eb);
+            margin-top: 6px;
+            padding-top: 16px;
+        }
+
+        .pd-star-pick {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .pd-star-pick button {
+            border: 0;
+            background: transparent;
+            padding: 0 1px;
+            color: #d1d5db;
+            font-size: 1.1rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .pd-star-pick button.on {
+            color: #f5a623;
+        }
+
+        .pd-input {
+            width: 100%;
+            border: 1px solid var(--line, #e5e7eb);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: .84rem;
+            color: #111827;
+            resize: vertical;
+        }
+
+        .pd-input:focus {
+            outline: none;
+            border-color: var(--navy, #12225B);
+        }
+
+        .pd-submit {
+            background: var(--navy, #12225B);
+            color: #fff;
+            border: 0;
+            border-radius: 6px;
+            height: 40px;
+            padding: 0 22px;
+            font-size: .84rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* ---- Related products grid ---- */
+        .pd-rel-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        @media (min-width: 576px) {
+            .pd-rel-grid {
                 grid-template-columns: repeat(3, 1fr);
             }
         }
 
-        @media (max-width: 900px) {
-            .products-grid {
-                grid-template-columns: repeat(2, 1fr);
+        @media (min-width: 992px) {
+            .pd-rel-grid {
+                grid-template-columns: repeat(6, 1fr);
             }
+        }
+
+        .pd-rel-card {
+            border: 1px solid var(--line, #e5e7eb);
+            border-radius: 10px;
+            background: #fff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pd-rel-img {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            background: #fafafa;
+            display: block;
+        }
+
+        .pd-rel-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 8px;
+        }
+
+        .pd-sale-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: var(--navy, #12225B);
+            color: #fff;
+            font-size: .6rem;
+            font-weight: 800;
+            letter-spacing: .4px;
+            padding: 3px 7px;
+            border-radius: 4px;
+            z-index: 2;
+        }
+
+        .pd-sale-badge--flash {
+            background: #dc2626;
+        }
+
+        .pd-rel-body {
+            padding: 10px 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .pd-rel-title {
+            font-size: .8rem;
+            font-weight: 600;
+            color: #111827;
+            text-decoration: none;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 2.24em;
+        }
+
+        .pd-rel-title:hover {
+            color: var(--navy, #12225B);
+        }
+
+        .pd-rel-price {
+            font-size: .88rem;
+            font-weight: 800;
+            color: var(--navy, #12225B);
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .pd-rel-price .old {
+            font-size: .72rem;
+            color: #9ca3af;
+            text-decoration: line-through;
+            font-weight: 500;
+        }
+
+        .pd-rel-price .pct {
+            font-size: .72rem;
+            color: #dc2626;
+            font-weight: 700;
+        }
+
+        .pd-rel-cart {
+            margin-top: auto;
+            width: 100%;
+            height: 34px;
+            border: 1px solid var(--navy, #12225B);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--navy, #12225B);
+            font-size: .74rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .pd-rel-cart:hover {
+            background: var(--navy, #12225B);
+            color: #fff;
+        }
+
+        /* ---- Sticky mobile bar ---- */
+        .pd-sticky-bar {
+            display: none;
+        }
+
+        .pd-sticky-spacer {
+            display: none;
         }
 
         @media (max-width: 768px) {
-            .pv-flex {
-                flex-direction: column;
-            }
-
-            .pv-title {
-                font-size: 1.3rem;
-            }
-
-            .pv-price {
-                font-size: 1.5rem;
-            }
-
-            .pv-actions {
-                min-width: unset;
-            }
-
-            .pv-tab-body {
-                padding: 1.5rem 0;
-            }
-
-            .review-summary-box {
-                flex-direction: column;
-                gap: 1.5rem;
-                padding: 0.7rem;
-            }
-
-            .review-summary-left {
-                width: 100%;
-                flex-direction: row;
-                min-width: unset;
-                text-align: left;
-                gap: 1rem;
-            }
-
-            .review-summary-right {
-                width: 100%;
-            }
-
-            .products-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 0.6rem;
-            }
-
-            .pv-inline-actions {
-                display: none !important;
-            }
-
-            .pv-sticky-bar {
-                display: block;
-            }
-
-            .pv-sticky-spacer {
-                display: block;
-            }
-
-            .meta-content {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .pv-title {
-                font-size: 1.1rem;
-            }
-
-            .pv-description {
-                font-size: 0.85rem;
-            }
-
-            .pv-price {
-                font-size: 1.5rem;
-            }
-
-            .variant-current-price {
-                font-size: 1.3rem;
-            }
-
-            .variant-image-box {
-                width: 95px;
-                height: 95px;
-                padding: 6px;
-            }
-
-            .variant-checkmark {
-                width: 20px;
-                height: 20px;
-                top: -6px;
-                right: -6px;
-            }
-
-            .variant-label {
-                font-size: 0.65rem;
-            }
-
-            .pv-tab-head {
-                gap: 0.5rem;
+            .pd-sticky-bar {
                 display: flex;
-                align-items: flex-end;
-                justify-content: space-around;
+                gap: 8px;
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 58px;
+                z-index: 999;
+                background: #fff;
+                border-top: 1px solid var(--line, #e5e7eb);
+                padding: 8px 12px;
             }
 
-            .pv-tab-btn {
-                padding: 0.75rem 0.5rem;
-                font-size: 0.85rem;
-            }
-
-            .pv-tab-body {
-                padding: 0.3rem 0;
-            }
-
-            .review-avg-score {
-                font-size: 1.8rem;
-            }
-
-            .products-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 0.5rem;
-            }
-
-            .pv-sticky-inner {
-                gap: 6px;
-                padding: 35px 6px;
-                max-height: 56px;
-            }
-
-            .favorite-heart {
-                width: 44px;
-                min-width: 44px;
+            .pd-sticky-bar .pd-fav {
+                flex: 0 0 46px;
                 height: 44px;
-                font-size: 0.9rem;
+                border: 1px solid var(--line, #e5e7eb);
+                border-radius: 6px;
+                background: #fff;
+                color: #111827;
+                font-size: 1rem;
+                cursor: pointer;
             }
 
-            .pv-sticky-cart,
-            .pv-sticky-buynow {
-                height: 44px;
-                font-size: 0.85rem;
-                padding: 0 10px;
+            .pd-sticky-bar .pd-btn {
+                flex: 1;
             }
 
-            .pv-sticky-spacer {
-                height: 54px;
-            }
-        }
-
-        @media (max-width: 380px) {
-            .pv-sticky-inner {
-                gap: 5px;
-                padding: 30px 5px;
-            }
-
-            .favorite-heart {
-                width: 40px;
-                min-width: 40px;
-                height: 40px;
-                font-size: 0.85rem;
-            }
-
-            .pv-sticky-cart,
-            .pv-sticky-buynow {
-                height: 40px;
-                font-size: 0.8rem;
-                padding: 0 8px;
-                border-radius: 16px;
-            }
-
-            .pv-sticky-spacer {
-                height: 50px;
+            .pd-sticky-spacer {
+                display: block;
+                height: 66px;
             }
         }
 
-        .pv-stock-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            width: fit-content;
-            padding: 0.35rem 0.9rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-
-        .pv-stock-status--in {
-            background: #e6f4ea;
-            color: #1e7e34;
-        }
-
-        .pv-stock-status--in i {
-            color: #28a745;
-        }
-
-        .pv-stock-status--out {
-            background: #fdecea;
-            color: #c0392b;
-        }
-
-        .pv-stock-status--out i {
-            color: #d32f2f;
-        }
-
-        .pv-desc-clamp {
-            position: relative;
-            overflow: hidden;
-            transition: max-height 0.35s ease;
-        }
-
-        /* fade effect niche */
-        .pv-desc-clamp.is-collapsed::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 50px;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #fff);
-            pointer-events: none;
-        }
-
-        .pv-desc-toggle {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            margin: 0.75rem auto 0;
-            padding: 0.4rem 1.2rem;
-            background: transparent;
-            border: 1px solid orangered;
-            color: orangered;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .pv-desc-toggle:hover {
-            background: orangered;
-            color: #fff;
+        [x-cloak] {
+            display: none !important;
         }
     </style>
 
-    @script
+    {{-- ===== Breadcrumb ===== --}}
+    <div class="pd-crumb-bar">
+        <div class="hp-container">
+            <nav class="pd-crumb" aria-label="breadcrumb">
+                <a href="{{ route('home') }}">Home</a>
+                @foreach ($categoryChain as $chainCat)
+                    <i class="fas fa-chevron-right sep"></i>
+                    <a href="{{ route('frontend.category.view', $chainCat->slug) }}">{{ $chainCat->name }}</a>
+                @endforeach
+                <i class="fas fa-chevron-right sep"></i>
+                <span class="cur">{{ $product->name }}</span>
+            </nav>
+        </div>
+    </div>
+
+    <div class="hp-container pd-wrap">
+
+        {{-- ===== Top Box: Gallery + Info + Meta ===== --}}
+        <div class="pd-box">
+            <div class="pd-product">
+
+                {{-- Gallery --}}
+                <div class="pd-gallery" x-data="{
+                    images: @js($galleryItems),
+                    activeIndex: 0,
+                    zoom: false,
+                    ox: 50,
+                    oy: 50,
+                    addOrJumpTo(src) {
+                        if (!src) return;
+                        let idx = this.images.findIndex(i => i.src === src);
+                        if (idx === -1) {
+                            this.images.unshift({src: src, value: null});
+                            idx = 0;
+                        }
+                        this.activeIndex = idx;
+                    },
+                    thumbClick(index) {
+                        this.activeIndex = index;
+                        let it = this.images[index];
+                        if (it && it.option_id) $wire.selectOption(it.option_id);
+                        else if (it && it.value) $wire.selectColor(it.value);
+                    },
+                    onMove(e) {
+                        const r = e.currentTarget.getBoundingClientRect();
+                        this.ox = ((e.clientX - r.left) / r.width) * 100;
+                        this.oy = ((e.clientY - r.top) / r.height) * 100;
+                    }
+                }"
+                    @set-main-image.window="if ($event.detail.src) addOrJumpTo($event.detail.src)">
+
+                    <div class="pd-main-image" :class="{ 'pd-zoomed': zoom }"
+                        :style="'--ox:' + ox + '%; --oy:' + oy + '%;'"
+                        @mouseenter="zoom = window.innerWidth >= 992" @mouseleave="zoom = false"
+                        @mousemove="onMove($event)">
+                        <img src="{{ $galleryFirst }}" :src="images[activeIndex].src" alt="{{ $product->name }}">
+                        <span class="pd-zoom-hint" x-show="!zoom" x-cloak>
+                            <i class="fas fa-search-plus"></i> Hover to zoom
+                        </span>
+                    </div>
+
+                    <div class="pd-thumbs" x-show="images.length > 1" x-cloak>
+                        <template x-for="(img, index) in images" :key="index">
+                            <button type="button" class="pd-thumb" :class="{ 'active': activeIndex === index }"
+                                @click="thumbClick(index)" :aria-label="'View image ' + (index + 1)">
+                                <img :src="img.src" :alt="'{{ $product->name }} thumbnail ' + (index + 1)">
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                {{-- Info --}}
+                <div class="pd-info">
+                    <h1 class="pd-title">{{ $product->name }}</h1>
+
+                    <x-rating-stars :rating="$product->reviews_avg_rating ?? 0" :count="$reviewCount" />
+
+                    <div class="pd-price-row">
+                        <span class="pd-price">{{ $cur }}{{ $fmt($displayPrice) }}</span>
+
+                        @if ($showDiscount)
+                            <span class="pd-price-old">{{ $cur }}{{ $fmt($strikePrice) }}</span>
+                            <span class="pd-off">-{{ $discountPercent }}%</span>
+                        @endif
+
+                        @if ($flashSaleItem)
+                            <span class="pd-flash">Flash Sale -{{ $flashSaleItem->discount_percent }}%</span>
+                        @endif
+                    </div>
+
+                    <div>
+                        <span class="pd-stock {{ $isInStock ? 'pd-stock--in' : 'pd-stock--out' }}">
+                            <i class="fas {{ $isInStock ? 'fa-check-circle' : 'fa-times-circle' }}"></i>
+                            {{ $isInStock ? 'In Stock' : 'Out of Stock' }}
+                        </span>
+                    </div>
+
+                    @if ($product->short_description)
+                        <p class="text-muted mt-2 mb-0" style="font-size:.82rem;">
+                            {{ $product->short_description }}</p>
+                    @endif
+
+                    {{-- ===== Variants ===== --}}
+                    @if (setting('attribute_system', true) && $product->has_attributes && $enableVariant && $product->variants->count())
+                        @php
+                            $allAttributeNames = collect();
+                            foreach ($product->variants as $variant) {
+                                foreach ($variant->variantAttributeValues as $vav) {
+                                    $attrName = $vav->attribute?->name ?? 'Variant';
+                                    if (!$allAttributeNames->contains($attrName)) {
+                                        $allAttributeNames->push($attrName);
+                                    }
+                                }
+                            }
+                            $allAttributeNames = $allAttributeNames
+                                ->sortBy(function ($name) {
+                                    $lower = strtolower($name);
+                                    if (str_contains($lower, 'color') || str_contains($lower, 'colour')) {
+                                        return 0;
+                                    }
+                                    if (str_contains($lower, 'size')) {
+                                        return 1;
+                                    }
+                                    return 2;
+                                })
+                                ->values();
+                        @endphp
+
+                        <div class="mt-3">
+                            @php $reqAttrs = $this->requiredAttributeNames(); @endphp
+                            @foreach ($allAttributeNames as $attributeName)
+                                @php
+                                    $attributeValues = collect();
+                                    foreach ($product->variants as $variant) {
+                                        foreach ($variant->variantAttributeValues as $vav) {
+                                            if ($vav->attribute?->name === $attributeName) {
+                                                $value = $vav->attributeValue?->value ?? 'Variant';
+                                                if (!$attributeValues->contains('value', $value)) {
+                                                    // Gallery-linked image for this value? (drives thumbnail
+                                                    // selection + auto-hide of the color row)
+                                                    $hasGallery = false;
+                                                    if ($vav->attributeValue && $product->relationLoaded('images')) {
+                                                        $hasGallery = $product->images->contains(
+                                                            fn ($im) => (int) $im->attribute_value_id === (int) $vav->attributeValue->id
+                                                        );
+                                                    }
+                                                    $attributeValues->push([
+                                                        'value' => $value,
+                                                        'value_id' => $vav->attributeValue?->id,
+                                                        'variant_id' => $variant->id,
+                                                        'image' => $variant->image,
+                                                        'color_hex' => $vav->attributeValue?->color_hex,
+                                                        'swatch_image' => $vav->attributeValue?->swatch_image,
+                                                        'has_gallery' => $hasGallery,
+                                                    ]);
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    $attrNameLower = strtolower($attributeName);
+                                    $isColorAttribute =
+                                        str_contains($attrNameLower, 'color') || str_contains($attrNameLower, 'colour');
+                                    $isSizeAttribute = str_contains($attrNameLower, 'size');
+                                    // Hide the color row when EVERY value has a linked gallery image:
+                                    // thumbnails then act as the selector (clicking one auto-selects).
+                                    $hideColorRow = $isColorAttribute
+                                        && $attributeValues->isNotEmpty()
+                                        && $attributeValues->every(fn ($o) => !empty($o['has_gallery']));
+                                @endphp
+
+                                @if (!$hideColorRow)
+                                <div class="pd-variant-group">
+                                    <div class="pd-opt-label">
+                                        {{ $attributeName }}
+                                        @if (in_array($attributeName, $reqAttrs))<span class="text-danger" title="বাছতেই হবে">*</span>
+                                        @else<span class="sel">(optional)</span>@endif
+                                        @if ($isColorAttribute && !empty($selectedColor))
+                                            <span class="sel">(Selected: {{ $selectedColor }})</span>
+                                        @elseif ($isSizeAttribute && !empty($selectedSize))
+                                            <span class="sel">(Selected: {{ $selectedSize }})</span>
+                                        @endif
+                                    </div>
+
+                                    <div class="pd-chips">
+                                        @foreach ($attributeValues as $attrOption)
+                                            @php
+                                                $matchingVariant = null;
+                                                foreach ($product->variants as $v) {
+                                                    foreach ($v->variantAttributeValues as $vav) {
+                                                        if (
+                                                            $vav->attribute?->name === $attributeName &&
+                                                            $vav->attributeValue?->value === $attrOption['value']
+                                                        ) {
+                                                            $matchingVariant = $v;
+                                                            break 2;
+                                                        }
+                                                    }
+                                                }
+                                                $variantStock =
+                                                    $matchingVariant?->inventories->sortByDesc('id')->first()
+                                                        ?->current_stock ?? 0;
+                                                $variantLabel = $attrOption['value'];
+                                                $hasImage = !empty($attrOption['image']);
+                                                // Image swatch source: variant image → value swatch image
+                                                // → swatch-gallery image linked to this value → null
+                                                $linkedGallery = null;
+                                                if (!empty($attrOption['value_id']) && $product->relationLoaded('images')) {
+                                                    $linkedGallery = $product->images->first(
+                                                        fn ($im) => (int) $im->attribute_value_id === (int) $attrOption['value_id']
+                                                    );
+                                                }
+                                                $swatchSrc = $hasImage
+                                                    ? asset('storage/' . $attrOption['image'])
+                                                    : (!empty($attrOption['swatch_image'])
+                                                        ? asset('storage/' . $attrOption['swatch_image'])
+                                                        : ($linkedGallery
+                                                            ? asset('storage/' . $linkedGallery->path)
+                                                            : null));
+                                                $isOut = $variantStock <= 0;
+
+                                                if ($isColorAttribute) {
+                                                    $isSelected = $selectedColor == $variantLabel;
+                                                } elseif ($isSizeAttribute) {
+                                                    $isSelected = $selectedSize == $variantLabel;
+                                                } else {
+                                                    $isSelected = $selectedVariant == $attrOption['variant_id'];
+                                                }
+                                            @endphp
+
+                                            @if ($isColorAttribute)
+                                            {{-- Uniform 64x64 swatches: picture if available, else color fill.
+                                                No text on/under swatches; name in tooltip + Selected header. --}}
+                                            @php $fillHex = $attrOption['color_hex'] ?? '#e5e7eb'; @endphp
+                                            <button type="button" class="pd-swatch {{ $isSelected ? 'active' : '' }}"
+                                                @if (!$isOut) wire:click="selectColor('{{ $variantLabel }}')"
+                                                    @if ($swatchSrc) @click="$dispatch('set-main-image', { src: '{{ $swatchSrc }}' })" @endif
+                                                @endif
+                                                @disabled($isOut) aria-pressed="{{ $isSelected ? 'true' : 'false' }}"
+                                                title="{{ $variantLabel }}" aria-label="Select color {{ $variantLabel }}">
+                                                @if ($swatchSrc)
+                                                <img src="{{ $swatchSrc }}" alt="{{ $variantLabel }}"
+                                                    width="64" height="64" loading="lazy">
+                                                @else
+                                                <span class="pd-swatch-fill" style="background:{{ $fillHex }};"></span>
+                                                @endif
+                                            </button>
+                                            @else
+                                            <button type="button" class="pd-chip {{ $isSelected ? 'active' : '' }}"
+                                                @if (!$isOut && $isSizeAttribute)
+                                                    wire:click="selectSize('{{ $variantLabel }}')"
+                                                @elseif (!$isOut)
+                                                    wire:click="selectVariant({{ $attrOption['variant_id'] }})"
+                                                @endif
+                                                @disabled($isOut) aria-pressed="{{ $isSelected ? 'true' : 'false' }}">
+                                                {{ $variantLabel }}
+                                            </button>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+                                @endif
+                            @endforeach
+
+                            {{-- ===== Image options (independent layer) ===== --}}
+                            @if ($hasOptions)
+                            <div class="pd-variant-group mt-3">
+                                <div class="pd-opt-label">
+                                    Design / View
+                                    @if ($product->require_image_option)<span class="text-danger" title="বাছতেই হবে">*</span>
+                                    @else<span class="sel">(optional)</span>@endif
+                                    @if (!empty($selectedOption))
+                                        @php $selOptLabel = $product->imageOptions->firstWhere('id', $selectedOption)?->label; @endphp
+                                        @if ($selOptLabel)<span class="sel">(Selected: {{ $selOptLabel }})</span>@endif
+                                    @endif
+                                </div>
+                                <div class="pd-chips">
+                                    @foreach ($product->imageOptions->where('is_active', true)->sortBy('sort_order')->values() as $io)
+                                    @php
+                                        $oa = $optionAvailability[$io->id] ?? ['out' => false, 'reason' => null];
+                                        $ioSel = (int) $selectedOption === (int) $io->id;
+                                    @endphp
+                                    <button type="button" class="pd-swatch {{ $ioSel ? 'active' : '' }}"
+                                        @if (!$oa['out']) wire:click="selectOption({{ $io->id }})"
+                                            @click="$dispatch('set-main-image', { src: '{{ asset('storage/' . $io->image) }}' })"
+                                        @endif
+                                        @disabled($oa['out']) aria-pressed="{{ $ioSel ? 'true' : 'false' }}"
+                                        title="{{ $io->label }}{{ $oa['out'] && $oa['reason'] ? ' — ' . $oa['reason'] : '' }}"
+                                        aria-label="Select {{ $io->label }}">
+                                        <img src="{{ asset('storage/' . $io->image) }}" alt="{{ $io->label }}"
+                                            width="64" height="64" loading="lazy">
+                                    </button>
+                                    @endforeach
+                                </div>
+                                @if ($comboReason)
+                                <div class="alert alert-warning py-1 px-2 mt-2 mb-0"><small>{{ $comboReason }}</small></div>
+                                @endif
+                            </div>
+                            @endif
+                        </div>
+                    @endif
+
+                    @if ($comboReason && !$hasOptions)
+                    <div class="alert alert-warning py-1 px-2 mt-2 mb-0"><small>{{ $comboReason }}</small></div>
+                    @endif
+
+                    {{-- ===== Quantity ===== --}}
+                    <div class="pd-variant-group mt-3">
+                        <div class="pd-opt-label">Quantity</div>
+                        <div class="pd-qty">
+                            <button type="button" wire:click="decreaseQty" @disabled($quantity <= 1)
+                                aria-label="Decrease quantity">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" min="1" max="{{ max((int) $currentStock, 1) }}"
+                                wire:model="quantity" aria-label="Quantity">
+                            <button type="button" wire:click="increaseQty"
+                                @disabled($quantity >= max((int) $currentStock, 1)) aria-label="Increase quantity">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- ===== Action buttons ===== --}}
+                    <div class="pd-actions">
+                        <button type="button" class="pd-btn pd-btn--cart" wire:click="addToCart({{ $product->id }})"
+                            @disabled(!$isInStock)>
+                            <i class="fas fa-shopping-cart"></i>
+                            <span wire:loading.remove wire:target="addToCart">Add to Cart</span>
+                            <span wire:loading wire:target="addToCart">Adding...</span>
+                        </button>
+
+                        <button type="button" class="pd-btn pd-btn--buy" wire:click="buyNow({{ $product->id }})"
+                            @disabled(!$isInStock)>
+                            <i class="fas fa-bolt"></i>
+                            <span wire:loading.remove wire:target="buyNow">Buy Now</span>
+                            <span wire:loading wire:target="buyNow">Please wait...</span>
+                        </button>
+
+                        @if ($waNumber)
+                            <a class="pd-btn pd-btn--wa"
+                                href="https://wa.me/{{ $waNumber }}?text={{ $waText }}" target="_blank"
+                                rel="noopener">
+                                <i class="fab fa-whatsapp"></i> WhatsApp
+                            </a>
+                        @endif
+
+                        @if ($phoneRaw)
+                            <a class="pd-btn pd-btn--call" href="tel:{{ $phoneRaw }}">
+                                <i class="fas fa-phone-alt"></i> Call to Order
+                            </a>
+                        @endif
+                    </div>
+
+                    <div class="pd-warning" id="variant-select-warning">
+                        <span><i class="fas fa-exclamation-circle me-1"></i> Please select all variant options first.</span>
+                        <button type="button" class="warning-close"
+                            onclick="this.closest('.pd-warning').style.display='none'" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Meta aside --}}
+                <div class="pd-aside">
+                    <div class="pd-meta-row">
+                        <span class="pd-meta-ic"><i class="fas fa-barcode"></i></span>
+                        <span>
+                            <span class="pd-meta-label">SKU</span>
+                            <span class="pd-meta-value">{{ $product->sku ?: 'N/A' }}</span>
+                        </span>
+                    </div>
+
+                    <div class="pd-meta-row">
+                        <span class="pd-meta-ic"><i class="fas fa-truck"></i></span>
+                        <span>
+                            <span class="pd-meta-label">Delivery</span>
+                            <span class="pd-meta-value">{{ setting('delivery_time') ?: '2 to 4 Days' }}</span>
+                        </span>
+                    </div>
+
+                    <div class="pd-meta-row">
+                        <span class="pd-meta-ic"><i class="fas fa-undo"></i></span>
+                        <span>
+                            <span class="pd-meta-label">Return Policy</span>
+                            <span class="pd-meta-value">{{ setting('return_policy') ?: 'Return the product before the delivery boy from your door.' }}</span>
+                        </span>
+                    </div>
+
+                    <div class="pd-meta-row">
+                        <span class="pd-meta-ic"><i class="fas fa-store"></i></span>
+                        <span style="flex:1;">
+                            <span class="pd-meta-label">Sold By</span>
+                            <span class="pd-seller">
+                                <span class="pd-seller-av"><i class="fas fa-store"></i></span>
+                                <span>
+                                    <span class="pd-meta-value d-block">{{ $soldBy }}</span>
+                                    <span class="pd-seller-badges">
+                                        <span><i class="fas fa-check-circle"></i> 100% Positive</span>
+                                        <span><i class="fas fa-check-circle"></i> 100% Shipping</span>
+                                    </span>
+                                </span>
+                            </span>
+                        </span>
+                    </div>
+
+                    @if ($brandName)
+                        <div class="pd-meta-row">
+                            <span class="pd-meta-ic"><i class="fas fa-tag"></i></span>
+                            <span style="flex:1;">
+                                <span class="pd-meta-label">Brand</span>
+                                <span class="pd-seller">
+                                    <span class="pd-brand-chip">{{ strtoupper(substr($brandName, 0, 2)) }}</span>
+                                    <span class="pd-meta-value">{{ $brandName }}</span>
+                                </span>
+                            </span>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- ===== Description ===== --}}
+        <div class="pd-box">
+            <h2 class="pd-sec-title">Description</h2>
+            <div class="pd-desc-body">
+                @if ($product->long_description)
+                    {!! $product->long_description !!}
+                @else
+                    {!! nl2br(e($product->short_description ?? 'No description available.')) !!}
+                @endif
+            </div>
+        </div>
+
+        {{-- ===== Ratings & Reviews ===== --}}
+        <div class="pd-box">
+            <h2 class="pd-sec-title">Ratings & Reviews</h2>
+
+            <div class="pd-rev-grid">
+                <div class="pd-rev-avg">
+                    <div class="num">{{ number_format((float) ($product->reviews_avg_rating ?? 0), 1) }}</div>
+                    <div class="mt-1">
+                        @for ($s = 1; $s <= 5; $s++)
+                            <i class="fas fa-star"
+                                style="font-size:.7rem;color:{{ $s <= round((float) ($product->reviews_avg_rating ?? 0)) ? '#111827' : '#d1d5db' }};"></i>
+                        @endfor
+                    </div>
+                    <div class="lbl">{{ $reviewCount }} {{ Str::plural('review', $reviewCount) }}</div>
+                </div>
+
+                <div>
+                    @for ($star = 5; $star >= 1; $star--)
+                        @php
+                            $starCount = (int) ($ratingDistribution[$star] ?? 0);
+                            $starPct = $reviewCount > 0 ? round(($starCount / $reviewCount) * 100) : 0;
+                        @endphp
+                        <div class="pd-bar-row">
+                            <span class="lbl">{{ $star }} Star</span>
+                            <div class="pd-bar"><span style="width: {{ $starPct }}%;"></span></div>
+                            <span class="cnt">{{ $starCount }}</span>
+                        </div>
+                    @endfor
+
+                    @if ($reviewCount === 0)
+                        <div class="pd-no-reviews">No reviews yet.</div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Review list --}}
+            @foreach ($reviews as $review)
+                <div class="pd-review-item" wire:key="rev-{{ $review->id }}">
+                    <div class="pd-review-av">{{ strtoupper(substr($review->user->name ?? 'U', 0, 1)) }}</div>
+                    <div style="flex:1;">
+                        <div class="pd-review-top">
+                            <span class="pd-review-name">{{ $review->user->name ?? 'User' }}</span>
+                            <span class="pd-review-date">{{ $review->created_at?->format('d M, Y') }}</span>
+                        </div>
+                        <div class="mt-1">
+                            @for ($s = 1; $s <= 5; $s++)
+                                <i class="fas fa-star"
+                                    style="font-size:.62rem;color:{{ $s <= $review->rating ? '#f5a623' : '#d1d5db' }};"></i>
+                            @endfor
+                        </div>
+                        @if ($review->comment)
+                            <p class="pd-review-comment">{{ $review->comment }}</p>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+
+            @if ($reviews->hasPages())
+                <div class="mt-3">{{ $reviews->links('pagination::bootstrap-5') }}</div>
+            @endif
+
+            {{-- Review form --}}
+            <div class="pd-rev-form">
+                @auth
+                    <div class="pd-opt-label mb-2">Write a Review</div>
+
+                    <div class="pd-star-pick mb-2" role="radiogroup" aria-label="Your rating">
+                        @for ($i = 1; $i <= 5; $i++)
+                            <button type="button" class="{{ $rating >= $i ? 'on' : '' }}"
+                                wire:click="$set('rating', {{ $i }})"
+                                aria-label="{{ $i }} star{{ $i > 1 ? 's' : '' }}">
+                                <i class="fas fa-star"></i>
+                            </button>
+                        @endfor
+                    </div>
+                    @error('rating')
+                        <div class="text-danger" style="font-size:.76rem;">{{ $message }}</div>
+                    @enderror
+
+                    <textarea class="pd-input" rows="3" placeholder="Share your experience with this product..."
+                        wire:model="comment"></textarea>
+                    @error('comment')
+                        <div class="text-danger mt-1" style="font-size:.76rem;">{{ $message }}</div>
+                    @enderror
+
+                    <button type="button" class="pd-submit mt-2" wire:click="submitReview">
+                        <span wire:loading.remove wire:target="submitReview">Submit Review</span>
+                        <span wire:loading wire:target="submitReview">Submitting...</span>
+                    </button>
+                @else
+                    <p class="pd-no-reviews mb-0">
+                        Please <a href="{{ route('login') }}" class="fw-semibold">login</a> to write a review.
+                    </p>
+                @endauth
+            </div>
+        </div>
+
+        {{-- ===== You may also like ===== --}}
+        @if ($relatedProducts->count())
+            <div class="pd-box">
+                <h2 class="pd-sec-title">You may also like</h2>
+                <div class="pd-rel-grid">
+                    @foreach ($relatedProducts as $rel)
+                        @php
+                            $ri = $rel->price_info;
+                            $relRoute = route('frontend.product.single.view', $rel->slug);
+                        @endphp
+                        <div class="pd-rel-card" wire:key="rel-{{ $rel->id }}">
+                            <a href="{{ $relRoute }}" class="pd-rel-img">
+                                @if (!empty($ri['has_discount']))
+                                    <span
+                                        class="pd-sale-badge {{ !empty($ri['is_flash']) ? 'pd-sale-badge--flash' : '' }}">
+                                        {{ !empty($ri['is_flash']) ? 'FLASH' : 'SALE' }}
+                                    </span>
+                                @endif
+                                <img src="{{ $rel->thumbnail ? asset('storage/' . $rel->thumbnail) : 'https://placehold.co/300x300' }}"
+                                    alt="{{ $rel->name }}" loading="lazy">
+                            </a>
+                            <div class="pd-rel-body">
+                                <a href="{{ $relRoute }}" class="pd-rel-title">{{ $rel->name }}</a>
+
+                                <div class="pd-rel-price">
+                                    {{ $cur }}{{ $fmt($ri['final'] ?? 0) }}
+                                    @if (!empty($ri['has_discount']))
+                                        <span class="old">{{ $cur }}{{ $fmt($ri['original'] ?? 0) }}</span>
+                                        <span class="pct">-{{ (int) ($ri['percent'] ?? 0) }}%</span>
+                                    @endif
+                                </div>
+
+                                <x-rating-stars :rating="$rel->reviews_avg_rating ?? 0" :count="$rel->reviews_count ?? 0" />
+
+                                <button type="button" class="pd-rel-cart" wire:click="addToCart({{ $rel->id }})">
+                                    <i class="fas fa-shopping-cart"></i> Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+    </div>
+
+    {{-- ===== Mobile sticky bar ===== --}}
+    <div class="pd-sticky-bar">
+        <button type="button" class="pd-fav" wire:click="addToWishlist({{ $product->id }})"
+            aria-label="Add to wishlist">
+            <i class="far fa-heart"></i>
+        </button>
+        <button type="button" class="pd-btn pd-btn--cart" wire:click="addToCart({{ $product->id }})"
+            @disabled(!$isInStock)>
+            <i class="fas fa-shopping-cart"></i> Add to Cart
+        </button>
+        <button type="button" class="pd-btn pd-btn--buy" wire:click="buyNow({{ $product->id }})" @disabled(!$isInStock)>
+            <i class="fas fa-bolt"></i> Buy Now
+        </button>
+    </div>
+    <div class="pd-sticky-spacer"></div>
+</div>
+
+@script
     <script>
         $wire.on('show-variant-warning', () => {
             const w = document.getElementById('variant-select-warning');
-            if (w) w.style.display = 'flex';
+            if (w) {
+                w.style.display = 'flex';
+                w.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         });
 
-        document.addEventListener('livewire:initialized', () => {
-            Livewire.on('variant-resolved', (data) => {
-                if (data.variantId) {
-                    const w = document.getElementById('variant-select-warning');
-                    if (w) w.style.display = 'none';
-                }
-            });
+        $wire.on('variant-resolved', () => {
+            const w = document.getElementById('variant-select-warning');
+            if (w) w.style.display = 'none';
         });
     </script>
-    @endscript
+@endscript

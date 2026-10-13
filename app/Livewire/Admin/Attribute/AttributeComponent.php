@@ -7,9 +7,12 @@ use App\Models\AttributeValue;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class AttributeComponent extends Component
 {
+    use WithFileUploads;
+
     public $attributeList;
 
     public $attribute_id;
@@ -17,6 +20,14 @@ class AttributeComponent extends Component
     public $name;
 
     public $slug;
+
+    public $type = 'button';
+
+    public $is_filterable = false;
+
+    public $is_active = true;
+
+    public $sort_order = 0;
 
     public $value = '';
 
@@ -29,6 +40,14 @@ class AttributeComponent extends Component
     public $attribute_value_id;
 
     public $attribute_value_name;
+
+    public $value_color_hex = '';
+
+    public $value_swatch_image;
+
+    public $existing_swatch_image = null;
+
+    public $value_sort_order = 0;
 
     public $value_attribute_id;
 
@@ -49,6 +68,7 @@ class AttributeComponent extends Component
             ->when($this->search, function ($query) {
                 return $query->where('name', 'like', '%'.$this->search.'%');
             })
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
     }
@@ -78,6 +98,10 @@ class AttributeComponent extends Component
         $this->attribute_id = $attribute->id;
         $this->name = $attribute->name;
         $this->slug = $attribute->slug;
+        $this->type = $attribute->type ?? 'button';
+        $this->is_filterable = (bool) $attribute->is_filterable;
+        $this->is_active = (bool) $attribute->is_active;
+        $this->sort_order = $attribute->sort_order ?? 0;
         $this->showForm = true;
         $this->isEdit = true;
     }
@@ -89,7 +113,13 @@ class AttributeComponent extends Component
             'name',
             'slug',
             'value',
+            'type',
+            'is_filterable',
+            'is_active',
+            'sort_order',
         ]);
+        $this->type = 'button';
+        $this->is_active = true;
         $this->resetValidation();
     }
 
@@ -98,6 +128,10 @@ class AttributeComponent extends Component
         $validated = $this->validate([
             'name' => 'required|min:3|max:255',
             'slug' => 'required|unique:attributes,slug,'.$this->attribute_id,
+            'type' => 'required|in:color_swatch,image_swatch,button,dropdown',
+            'is_filterable' => 'boolean',
+            'is_active' => 'boolean',
+            'sort_order' => 'nullable|integer|min:0',
         ]);
 
         if ($this->isEdit) {
@@ -126,10 +160,26 @@ class AttributeComponent extends Component
     {
         // abort_unless(Auth::user()->can('attribute.delete'), 403);
         $attribute = Attribute::findOrFail($this->attribute_id);
+
+        // Guard: variants use this attribute → refuse, suggest deactivate
+        $used = $attribute->usageCount();
+        if ($used > 0) {
+            $this->dispatch('error', message: "এই attribute {$used}টি variant-এ ব্যবহার হয়েছে। Delete না করে Deactivate করুন।");
+
+            return;
+        }
+
         $attribute->values()->delete(); // delete values first
         $attribute->delete();
 
         $this->dispatch('success', ['message' => 'Attribute delete success!']);
+        $this->loadAttributes();
+    }
+
+    public function toggleAttributeActive($id)
+    {
+        $attribute = Attribute::findOrFail($id);
+        $attribute->update(['is_active' => ! $attribute->is_active]);
         $this->loadAttributes();
     }
 
@@ -138,9 +188,14 @@ class AttributeComponent extends Component
         $this->reset([
             'attribute_value_id',
             'attribute_value_name',
+            'value_color_hex',
+            'value_swatch_image',
+            'existing_swatch_image',
+            'value_sort_order',
             'value_attribute_id',
             'isValueEdit',
         ]);
+        $this->resetValidation();
     }
 
     public function toggleValueForm($attributeId)
@@ -159,18 +214,29 @@ class AttributeComponent extends Component
     {
         $this->validate([
             'attribute_value_name' => 'required|min:1|max:255',
+            'value_color_hex' => 'nullable|regex:/^#[0-9A-Fa-f]{6}$/',
+            'value_swatch_image' => 'nullable|image|max:2048',
+            'value_sort_order' => 'nullable|integer|min:0',
         ]);
 
+        $swatchPath = $this->existing_swatch_image;
+        if ($this->value_swatch_image) {
+            $swatchPath = $this->value_swatch_image->store('attributes/swatches', 'public');
+        }
+
+        $data = [
+            'value' => $this->attribute_value_name,
+            'color_hex' => $this->value_color_hex ?: null,
+            'swatch_image' => $swatchPath,
+            'sort_order' => $this->value_sort_order ?? 0,
+        ];
+
         if ($this->isValueEdit) {
-            AttributeValue::findOrFail($this->attribute_value_id)->update([
-                'value' => $this->attribute_value_name,
-            ]);
+            AttributeValue::findOrFail($this->attribute_value_id)->update($data);
             $msg = 'Value updated';
         } else {
-            AttributeValue::create([
-                'attribute_id' => $attributeId,
-                'value' => $this->attribute_value_name,
-            ]);
+            $data['attribute_id'] = $attributeId;
+            AttributeValue::create($data);
             $msg = 'Value added';
         }
 
@@ -185,6 +251,9 @@ class AttributeComponent extends Component
         $value = AttributeValue::findOrFail($valueId);
         $this->attribute_value_id = $value->id;
         $this->attribute_value_name = $value->value;
+        $this->value_color_hex = $value->color_hex;
+        $this->existing_swatch_image = $value->swatch_image;
+        $this->value_sort_order = $value->sort_order ?? 0;
         $this->value_attribute_id = $value->attribute_id;
         $this->isValueEdit = true;
     }
@@ -203,7 +272,17 @@ class AttributeComponent extends Component
     public function deleteValue($valueId)
     {
         // abort_unless(Auth::user()->can('attribute.delete'), 403);
-        AttributeValue::findOrFail($valueId)->delete();
+        $value = AttributeValue::findOrFail($valueId);
+
+        // Guard: variants use this value → refuse
+        $used = $value->usageCount();
+        if ($used > 0) {
+            $this->dispatch('error', message: "এই value {$used}টি variant-এ ব্যবহার হয়েছে। আগে variant থেকে সরান।");
+
+            return;
+        }
+
+        $value->delete();
         $this->dispatch('success', message: 'Data deleted!');
         $this->loadAttributes();
     }

@@ -83,11 +83,12 @@ trait HandlesCartActions
 
         $variantImage = null;
         $variantId = null;
+        $variant = null;
         $color = null;
         $size = null;
         $variantLabel = '';
 
-        if (setting('attribute_system', true) && $product->variants->count() > 0) {
+        if (setting('attribute_system', true) && $product->has_attributes && $product->variants->count() > 0) {
 
             $attributeTypes = $this->getProductAttributeTypes($product);
             $hasColor = $attributeTypes->contains(fn($a) => in_array($a, ['color', 'colour']));
@@ -141,10 +142,24 @@ trait HandlesCartActions
                     'variantAttributeValues.attribute',
                     'variantAttributeValues.attributeValue',
                     'inventories',
+                    'priceSlabs',
                 ])->find($variantId);
 
                 if (! $variant) {
                     $this->dispatch('error', message: 'Selected variant not found.');
+
+                    return false;
+                }
+
+                // Tamper guard: variant must belong to this product and be active
+                if ((int) $variant->product_id !== (int) $product->id) {
+                    $this->dispatch('error', message: 'Selected variant is not available for this product.');
+
+                    return false;
+                }
+
+                if (! $variant->is_active) {
+                    $this->dispatch('error', message: 'Sorry, this variant is no longer available.');
 
                     return false;
                 }
@@ -166,16 +181,8 @@ trait HandlesCartActions
                     return false;
                 }
 
-                // CHANGED (3): variant price + flash sale discount
-                $variantBase = $variant->variant_price ?? null;
-
-                if ($variantBase !== null) {
-                    $flash = $product->activeFlashSaleItem;
-
-                    $price = ($flash && $flash->discount_percent > 0)
-                        ? round($variantBase - ($variantBase * $flash->discount_percent / 100), 2)
-                        : $variantBase;
-                }
+                // Authoritative price (same resolver used at order time — browser can't tamper)
+                $price = \App\Services\PriceResolver::resolve($product, $variant, $qty);
 
                 $variantImage = ! empty($variant->image) ? asset('storage/' . $variant->image) : null;
 
@@ -232,6 +239,33 @@ trait HandlesCartActions
 
         $finalKey = $variantId ? ($productId . '-v' . $variantId) : $productId;
 
+        // ── Image-option layer: authoritative re-resolution (price/stock/ownership) ──
+        // (property_exists: not every component using this trait has the selector)
+        $optionId = property_exists($this, 'selectedOption') ? $this->selectedOption : null;
+        $optionLabel = null;
+        $optionImage = null;
+
+        try {
+            $combo = \App\Services\CombinationResolver::resolve($product, $variantId, $optionId, $qty);
+            $price = $combo->unitPrice;
+            $optionLabel = $combo->optionLabel;
+            $optionImage = $combo->option?->image;
+        } catch (\App\Services\CombinationException $e) {
+            $this->dispatch('error', message: $e->getMessage());
+
+            return false;
+        }
+
+        if ($optionId && ($combo->option?->id !== (int) $optionId)) {
+            $this->dispatch('error', message: 'ভুল image option সিলেক্ট হয়েছে।');
+
+            return false;
+        }
+
+        if ($optionId) {
+            $finalKey .= '-o' . $optionId;
+        }
+
         if (isset($cart[$finalKey])) {
             $cart[$finalKey]['qty'] += $qty;
         } else {
@@ -240,15 +274,19 @@ trait HandlesCartActions
                 'product_id' => $product->id,
                 'category_id' => $product->category_id,
                 'variant_id' => $variantId,
+                'image_option_id' => $optionId,
+                'option_label' => $optionLabel,
                 'variant_label' => $variantLabel ?: null,
                 'color' => $color,
                 'size' => $size,
                 'title' => $product->name,
                 'price' => $price,
-                'img' => $variantImage
-                    ?? ($product->thumbnail
-                        ? asset('storage/' . $product->thumbnail)
-                        : 'https://placehold.co/500x500'),
+                'img' => $optionImage
+                    ? asset('storage/' . $optionImage)
+                    : ($variantImage
+                        ?? ($product->thumbnail
+                            ? asset('storage/' . $product->thumbnail)
+                            : 'https://placehold.co/500x500')),
                 'qty' => $qty,
             ];
         }
@@ -262,10 +300,10 @@ trait HandlesCartActions
         $this->dispatch('success', message: 'Product added to cart!');
 
         $this->dispatch('track-event', eventName: 'AddToCart', data: [
-            'content_id'   => $product->id,
+            'content_id'   => $combo->contentId,
             'content_name' => $product->name,
             'content_type' => 'product',
-            'variant'      => $variantLabel ?: null,
+            'variant'      => trim(($variantLabel ?: '').($optionLabel ? ' | '.$optionLabel : '')) ?: null,
             'value'        => $price * $qty,
             'currency'     => 'BDT',
         ]);

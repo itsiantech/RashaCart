@@ -13,6 +13,7 @@ class Category extends Model
         'image',
         'status',
         'parent_id',
+        'sort_order',
         'is_featured',
     ];
 
@@ -23,7 +24,9 @@ class Category extends Model
 
     public function children()
     {
-        return $this->hasMany(Category::class, 'parent_id');
+        return $this->hasMany(Category::class, 'parent_id')
+            ->orderBy('sort_order')
+            ->orderBy('name');
     }
 
     public function allChildren()
@@ -41,16 +44,15 @@ class Category extends Model
         return $this->hasMany(Product::class);
     }
 
+    public static function flushCache()
+    {
+        Cache::forget('categories');
+        Cache::forget('global_cache_ready');
+    }
+
     protected static function booted()
     {
-        static::saved(function () {
-            Cache::forget('categories');
-            Cache::forget('global_cache_ready');
-        });
-
-        static::deleted(function () {
-            Cache::forget('categories');
-            Cache::forget('global_cache_ready');
-        });
+        static::saved(fn () => static::flushCache());
+        static::deleted(fn () => static::flushCache());
     }
 }

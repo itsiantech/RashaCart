@@ -8,6 +8,7 @@ use App\Models\Review;
 use App\Traits\HandlesCartActions;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -39,9 +40,20 @@ class SingleView extends Component
 
     public $selectedVariant = null;
 
+    #[Url(as: 'color')]
     public $selectedColor = null;
 
+    #[Url(as: 'size')]
     public $selectedSize = null;
+
+    #[Url(as: 'opt')]
+    public $selectedOption = null;
+
+    /** Per-option availability for the strip: [id => ['stock'=>int|PHP_INT_MAX,'out'=>bool,'reason'=>?]] */
+    public $optionAvailability = [];
+
+    /** Selection blocker reason (Bangla) shown under the selectors. */
+    public $comboReason = null;
 
     public $colorAttrName = 'Color';
 
@@ -75,6 +87,9 @@ class SingleView extends Component
             'category',
             'user',
             'coupons',
+            'images.attributeValue',
+            'imageOptions',
+            'productAttributes',
             'variants' => function ($q) {
                 $q->with([
                     'variantAttributeValues' => function ($q2) {
@@ -99,8 +114,23 @@ class SingleView extends Component
         $this->relatedProducts = Product::where('category_id', $this->product->category_id)
             ->where('id', '!=', $this->product->id)
             ->where('status', true)
-            ->take(5)
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating')
+            ->take(12)
             ->get();
+
+        // Fill up with products from other categories if there are not enough related ones
+        if ($this->relatedProducts->count() < 6) {
+            $more = Product::where('id', '!=', $this->product->id)
+                ->whereNotIn('id', $this->relatedProducts->pluck('id'))
+                ->where('status', true)
+                ->withCount('reviews')
+                ->withAvg('reviews', 'rating')
+                ->take(12 - $this->relatedProducts->count())
+                ->get();
+
+            $this->relatedProducts = $this->relatedProducts->concat($more);
+        }
 
         // Attach total_sold
         $totalSold = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
@@ -117,6 +147,11 @@ class SingleView extends Component
 
         // Check if variants exist
         $this->enableVariant = $this->product->variants->count() > 0;
+
+        // Preselect from shareable URL (?color=Red&size=M)
+        if ($this->enableVariant && ($this->selectedColor || $this->selectedSize)) {
+            $this->tryResolveVariant();
+        }
 
         $this->flashSaleItem = \App\Models\FlashSaleItem::whereHas('flashSale', function ($q) {
             $q->where('is_active', true)
@@ -138,6 +173,8 @@ class SingleView extends Component
         }
 
         $this->updateStockStatus();
+        $this->refreshEffective();
+        $this->clampStockToEffective();
 
         $this->dispatch('track-event', eventName: 'ViewContent', data: [
             'content_id'   => $this->product->id,
@@ -148,9 +185,34 @@ class SingleView extends Component
         ]);
     }
 
-    public function getCurrentStock()
+    /**
+     * Livewire re-queries the product on every roundtrip WITHOUT eager loads,
+     * which would drop images/variants data mid-session (e.g. swatch gallery
+     * vanishing after selecting a color). Reload what's missing.
+     */
+    public function hydrate()
     {
-        if ($this->enableVariant && $this->selectedVariant) {
+        if ($this->product && $this->product->exists) {
+            $this->product->loadMissing([
+                'category',
+                'user',
+                'coupons',
+                'images.attributeValue',
+                'imageOptions',
+                'productAttributes',
+                'variants.variantAttributeValues.attribute',
+                'variants.variantAttributeValues.attributeValue',
+                'variants.inventories',
+                'variants.priceSlabs',
+                'inventories',
+            ]);
+        }
+
+        $this->refreshEffective();
+    }
+
+    public function getCurrentStock()
+    {        if ($this->enableVariant && $this->selectedVariant) {
             // Get stock from selected variant
             $variant = \App\Models\ProductVariant::find($this->selectedVariant);
 
@@ -284,41 +346,147 @@ class SingleView extends Component
         $this->selectedVariant = $variantId;
         $this->quantity = 1;
         $this->updateStockStatus();
+        $this->refreshEffective();
+        $this->clampStockToEffective();
     }
 
     public function selectColor($color)
     {
-        if ($this->selectedColor === $color) {
-            $this->selectedColor = null;
-            $this->selectedSize = null;
-        } else {
-            $this->selectedColor = $color;
-            $this->quantity = 1;
-        }
+        // Sticky selection: clicking the selected value keeps it (toggle-off
+        // caused accidental deselects → "please select" at order time).
+        $this->selectedColor = $color;
+        $this->quantity = 1;
 
         $this->selectedVariant = null;
 
         $this->tryResolveVariant();
         $this->updateStockStatus();
+        $this->refreshEffective();
+        $this->clampStockToEffective();
 
         $this->dispatch('color-selected', color: $this->selectedColor);
     }
 
     public function selectSize($sizeValue)
     {
-        if ($this->selectedSize === $sizeValue) {
-            $this->selectedSize = null;
-        } else {
-            $this->selectedSize = $sizeValue;
-            $this->quantity = 1;
-        }
+        // Sticky selection (same reason as selectColor).
+        $this->selectedSize = $sizeValue;
+        $this->quantity = 1;
 
         $this->selectedVariant = null;
 
         $this->tryResolveVariant();
         $this->updateStockStatus();
+        $this->refreshEffective();
+        $this->clampStockToEffective();
 
         $this->dispatch('size-selected', size: $this->selectedSize);
+    }
+
+    public function selectOption($optionId)
+    {
+        // Sticky selection (same reason as color/size).
+        $this->selectedOption = $optionId ? (int) $optionId : null;
+        $this->quantity = 1;
+
+        $this->refreshEffective();
+        $this->updateStockStatus();
+        $this->clampStockToEffective();
+    }
+
+    protected function clampStockToEffective(): void
+    {
+        if ($this->comboReason === null && $this->effectiveAvailable() !== null) {
+            $this->currentStock = min($this->currentStock, $this->effectiveAvailable());
+            $this->isInStock = $this->currentStock > 0;
+        }
+    }
+
+    protected function effectiveAvailable(): ?int
+    {
+        return $this->_effectiveAvailable ?? null;
+    }
+
+    protected $_effectiveAvailable = null;
+
+    /**
+     * Recompute effective price/stock/availability from the authoritative
+     * CombinationResolver. Never throws: incomplete selection stores the
+     * Bangla reason instead.
+     */
+    public function refreshEffective(): void
+    {
+        $this->buildOptionAvailability();
+
+        if (! $this->product || ! $this->product->exists) {
+            return;
+        }
+
+        try {
+            $combo = \App\Services\CombinationResolver::resolve(
+                $this->product,
+                $this->selectedVariant,
+                $this->selectedOption,
+                max(1, (int) $this->quantity)
+            );
+        } catch (\App\Services\CombinationException $e) {
+            $this->comboReason = $e->getMessage();
+            $this->_effectiveAvailable = null;
+
+            return;
+        }
+
+        $this->comboReason = null;
+        $this->_effectiveAvailable = $combo->available;
+        $this->displayPrice = $combo->unitPrice;
+
+        $origin = $combo->option?->effective_price
+            ?? $combo->variant?->variant_price
+            ?? $this->product->price;
+        $this->strikePrice = max((float) $origin, (float) $combo->unitPrice);
+    }
+
+    /** Availability map for the image-option strip. */
+    public function buildOptionAvailability(): void
+    {
+        $map = [];
+        $options = $this->product && $this->product->exists
+            ? ($this->product->relationLoaded('imageOptions')
+                ? $this->product->imageOptions
+                : $this->product->imageOptions()->ordered()->get())
+            : collect();
+
+        foreach ($options as $option) {
+            if (! $option->is_active) {
+                $map[$option->id] = ['stock' => 0, 'out' => true, 'reason' => '"'.$option->label.'" এখন নেই।'];
+                continue;
+            }
+            if (! \App\Services\ImageOptionStock::hasOwnStock($option->id)) {
+                $map[$option->id] = ['stock' => PHP_INT_MAX, 'out' => false, 'reason' => null];
+                continue;
+            }
+            $stock = \App\Services\ImageOptionStock::currentStock($option->id);
+            $map[$option->id] = [
+                'stock' => $stock,
+                'out' => $stock <= 0,
+                'reason' => $stock <= 0 ? '"'.$option->label.'" sold out।' : null,
+            ];
+        }
+
+        $this->optionAvailability = $map;
+    }
+
+    /** Names of required attribute groups (for * markers + messages). */
+    public function requiredAttributeNames(): array
+    {
+        if (! $this->product || ! $this->product->exists) {
+            return [];
+        }
+        $attrs = $this->product->relationLoaded('productAttributes')
+            ? $this->product->productAttributes
+            : $this->product->productAttributes()->get();
+
+        return $attrs->where('pivot.is_required', true)->pluck('name')->all();
     }
 
     private function matchSelectedVariant()
@@ -516,6 +684,16 @@ class SingleView extends Component
         }
     }
 
+    public function updatedQuantity($value)
+    {
+        $max = (int) $this->currentStock;
+        if ($max < 1) {
+            $max = 1;
+        }
+
+        $this->quantity = max(1, min((int) $value, $max));
+    }
+
     // ── Reviews ──
     public function submitReview()
     {
@@ -702,7 +880,11 @@ class SingleView extends Component
             'flashSaleItem' => $this->flashSaleItem,
             'currentStock' => $this->currentStock,
             'isInStock' => $this->isInStock,
-        ])->layout('livewire.frontend.layouts.app')
+            'ratingDistribution' => $this->product->reviews()
+                ->selectRaw('rating, COUNT(*) as total')
+                ->groupBy('rating')
+                ->pluck('total', 'rating'),
+        ])->layout('livewire.frontend.layouts.frontend')
             ->layoutData([
                 'meta' => [
                     'title' => $this->meta_title ?? '',

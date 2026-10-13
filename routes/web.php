@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\AccountsController;
+use App\Http\Controllers\Frontend\CartController;
+use App\Http\Controllers\ProductFeedController;
 use App\Http\Controllers\ProfileController;
 use App\Livewire\Frontend\BestOffer\BestOffer;
 use App\Livewire\Frontend\Brand\BrandProduct;
@@ -17,10 +20,73 @@ use App\Livewire\Frontend\Product\SingleView;
 use App\Livewire\Frontend\Product\UserProductsView;
 use App\Livewire\Frontend\TrendyProduct\TrendyProduct;
 use App\Livewire\Frontend\Welcome;
+use App\Livewire\Frontend\LandingPage\PublicLandingPage;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', Welcome::class)->name('home');
+Route::get('/', function (\Illuminate\Http\Request $request) {
+    $show = (int) $request->query('show', 12);
+    $show = max(12, min($show, 60));
+
+    $liveFlashSale = \App\Models\FlashSale::active()->live()->latest()->first();
+
+    // Flash sale products: live flash sale items first, then discounted, then latest — fill up to 5
+    $flashSaleProducts = collect([]);
+    if ($liveFlashSale) {
+        $flashSaleProducts = \App\Models\Product::whereHas('activeFlashSaleItem', fn ($q) => $q->where('flash_sale_id', $liveFlashSale->id))
+            ->withCount('reviews')->with('activeFlashSaleItem')->limit(5)->get();
+    }
+    if ($flashSaleProducts->count() < 5) {
+        $flashSaleProducts = $flashSaleProducts->merge(
+            \App\Models\Product::whereNotNull('discount_price')
+                ->withCount('reviews')->with('activeFlashSaleItem')
+                ->latest()->limit(5)->get()
+        )->unique('id')->take(5);
+    }
+    if ($flashSaleProducts->count() < 5) {
+        $flashSaleProducts = $flashSaleProducts->merge(
+            \App\Models\Product::withCount('reviews')->with('activeFlashSaleItem')
+                ->latest()->limit(5)->get()
+        )->unique('id')->take(5);
+    }
+
+    $offerPercent = 0;
+    if ($liveFlashSale) {
+        $offerPercent = (int) round($liveFlashSale->activeItems()->max('discount_percent') ?? 0);
+    }
+    if (! $offerPercent) {
+        $offerPercent = (int) $flashSaleProducts->max(fn ($p) => $p->price_info['percent'] ?? 0);
+    }
+
+    // Homepage categories with products
+    $homeCategories = \App\Models\HomepageCategory::with(['category.products' => function($query) {
+        $query->where('status', 1)->latest();
+    }])
+    ->where('is_active', true)
+    ->orderBy('sort_order', 'asc')
+    ->get();
+
+    // Recommended For You settings
+    $recommendedTitle = setting('recommended_title') ?? 'Recommended For You';
+    $recommendedLimit = setting('recommended_product_limit') ?? 12;
+
+    return view('homepage', [
+        'categories'          => \App\Models\Category::select('id', 'name', 'slug')->where('status', 1)->limit(15)->get(),
+        'heroBanners'         => \App\Models\Banner::where('status', 1)->latest()->limit(5)->get(),
+        'topShops'            => \App\Models\User::where('role', 'vendor')->with('vendorDetails')->withCount('products')->latest()->limit(6)->get(),
+        'topBrands'           => \App\Models\Brand::limit(6)->get(),
+        'flashSaleProducts'   => $flashSaleProducts,
+        'offerPercent'        => $offerPercent,
+        'countdownTarget'     => $liveFlashSale?->end_at ?? now()->endOfDay(),
+        'homeCategories'      => $homeCategories,
+        'recommendedTitle'    => $recommendedTitle,
+        'recommendedLimit'    => $recommendedLimit,
+        'recommendedProducts' => \App\Models\Product::with('activeFlashSaleItem')->withCount('reviews')->latest()->limit($recommendedLimit)->get(),
+        'totalProducts'       => \App\Models\Product::count(),
+        'show'                => $show,
+        'cartCount'           => array_sum(array_column(session()->get('cart', []), 'qty')),
+    ]);
+})->name('home');
 
 Route::get('/seed-database-secret', function () {
     try {
@@ -37,6 +103,10 @@ Route::get('/linkstorage', function () {
 
     return 'Symlink process successfully completed';
 });
+
+// Catalog feeds: one row per variant (item_group_id = product id)
+Route::get('/feed/google.xml', [ProductFeedController::class, 'google'])->name('feed.google');
+Route::get('/feed/meta.csv', [ProductFeedController::class, 'meta'])->name('feed.meta');
 
 Route::prefix('frontend')->name('frontend.')->group(function () {
 
@@ -57,6 +127,7 @@ Route::prefix('frontend')->name('frontend.')->group(function () {
     Route::get('/preorder', PreOrderSection::class)->name('preorder.view');
 
     Route::get('/brands/products/{brand}', BrandProduct::class)->name('brands.products.view');
+    Route::post('/cart/add/{product}', [CartController::class, 'add'])->name('cart.add');
     Route::get('/cart-view', CartView::class)->name('cart.view');
     Route::get('/checkout', Checkout::class)->name('checkout');
     Route::get('/order/success/{order}', OrderSuccess::class)->name('order.success');
@@ -78,6 +149,9 @@ Route::prefix('frontend')->name('frontend.')->group(function () {
         return view('livewire.frontend.pages.about-us');
     })->name('about.us');
 });
+
+// Public Landing Page Route (outside frontend prefix for direct access)
+Route::get('/landing/{slug}', PublicLandingPage::class)->name('public.landing');
 
 require __DIR__.'/auth.php';
 
@@ -101,4 +175,21 @@ Route::middleware('auth')->group(function () {
     require __DIR__.'/web/admin.php';
     require __DIR__.'/web/user.php';
     require __DIR__.'/web/rider.php';
+});
+
+
+Route::prefix('admin/accounts')->name('admin.accounts.')->middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [AccountsController::class, 'dashboard'])->name('dashboard');
+    Route::get('/sales-category', [AccountsController::class, 'salesCategory'])->name('sales-category');
+    Route::get('/supplier-ledger', [AccountsController::class, 'supplierLedger'])->name('supplier-ledger');
+    Route::post('/suppliers/store', [AccountsController::class, 'storeSupplier'])->name('suppliers.store');
+    Route::post('/purchases/store', [AccountsController::class, 'storePurchase'])->name('purchases.store');
+    Route::post('/purchases/{id}/void', [AccountsController::class, 'voidPurchase'])->name('purchases.void');
+    Route::get('/purchases/{id}/details', [AccountsController::class, 'purchaseDetails'])->name('purchases.details');
+    Route::get('/office-expenses', [AccountsController::class, 'officeExpenses'])->name('office-expenses');
+    Route::get('/tech-cost', [AccountsController::class, 'techCost'])->name('tech-cost');
+    Route::get('/marketing-ads', [AccountsController::class, 'marketingAds'])->name('marketing-ads');
+    Route::get('/payroll-investment', [AccountsController::class, 'payrollInvestment'])->name('payroll-investment');
+    Route::get('/void-logs', [AccountsController::class, 'voidLogs'])->name('void-logs');
+    Route::get('/export-reports', [AccountsController::class, 'exportReports'])->name('export-reports');
 });

@@ -2,10 +2,15 @@
 
 namespace App\Livewire\Admin\Products;
 
+use App\Livewire\Admin\Products\Concerns\ManagesImageOptions;
+use App\Livewire\Admin\Products\Concerns\ManagesProductImages;
+use App\Livewire\Admin\Products\Concerns\ManagesProductVariants;
 use App\Models\Attribute;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\ImageOption;
 use App\Models\Inventory;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\VariantAttributeValue;
@@ -17,7 +22,15 @@ use Storage;
 
 class ProductEdit extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, ManagesProductVariants, ManagesProductImages, ManagesImageOptions;
+
+    public $has_attributes = true;
+
+    public $has_image_options = false;
+
+    public $require_image_option = true;
+
+    public $attrRequired = [];
 
     public $meta_title;
 
@@ -33,6 +46,8 @@ class ProductEdit extends Component
     public $name;
 
     public $slug;
+
+    public $sku;
 
     public $short_description;
 
@@ -106,7 +121,7 @@ class ProductEdit extends Component
 
     public function mount($id)
     {
-        $this->variantSystemEnabled = setting('attribute_system');
+        $this->variantSystemEnabled = (bool) setting('attribute_system', true);
         $product = Product::with(['variants.values', 'variants.inventories'])->findOrFail($id);
 
         $this->productId = $product->id;
@@ -114,6 +129,12 @@ class ProductEdit extends Component
         // Basic fields
         $this->name = $product->name;
         $this->slug = $product->slug;
+        $this->sku = $product->sku;
+        $this->has_attributes = (bool) ($product->has_attributes ?? true);
+        $this->has_image_options = (bool) ($product->has_image_options ?? false);
+        $this->require_image_option = (bool) ($product->require_image_option ?? true);
+        $this->attrRequired = $product->productAttributes()
+            ->get()->mapWithKeys(fn ($a) => [$a->id => (bool) $a->pivot->is_required])->all();
         $this->meta_title = $product->meta_title;
         $this->meta_description = $product->meta_description;
         $this->meta_keywords = $product->meta_keywords;
@@ -146,7 +167,11 @@ class ProductEdit extends Component
                     'id' => $variant->id,
                     'sku' => $variant->sku,
                     'variant_price' => $variant->variant_price,
+                    'sale_price' => $variant->sale_price,
                     'stock' => $currentStock,
+                    'low_stock_threshold' => $variant->low_stock_threshold ?? 5,
+                    'is_active' => (bool) ($variant->is_active ?? true),
+                    'is_default' => (bool) ($variant->is_default ?? false),
                     'values' => $variant->values
                         ->map(function ($v) {
                             return [
@@ -163,6 +188,12 @@ class ProductEdit extends Component
 
         $this->generateSku();
         $this->calculateSalePrice();
+
+        // Swatch-linked gallery
+        $this->loadImageLinks($product->id);
+
+        // Image options layer
+        $this->loadImageOptions($product->id);
     }
 
     public function updatedPrice()
@@ -343,6 +374,13 @@ class ProductEdit extends Component
     {
         if (isset($this->variants[$index])) {
             if (is_numeric($this->variants[$index]['id'])) {
+                // Ordered variants cannot be deleted — deactivate instead
+                $orders = $this->variantOrderedCount((int) $this->variants[$index]['id']);
+                if ($orders > 0) {
+                    $this->dispatch('error', message: "এই variant-এ {$orders}টি order আছে। Delete না করে Deactivate করুন।");
+
+                    return;
+                }
                 $this->variants[$index]['_delete'] = true;
             } else {
                 unset($this->variants[$index]);
@@ -387,6 +425,7 @@ class ProductEdit extends Component
             'brand_id' => 'nullable|exists:brands,id',
             'thumbnail' => 'nullable|image|max:2048',
             'images.*' => 'nullable|image|max:2048',
+            'imageUploads.*' => 'nullable|image|max:7048',
             'is_preorder' => 'boolean',
             'preorder_start_date' => 'nullable|date|required_if:is_preorder,true',
             'preorder_end_date' => 'nullable|date|after_or_equal:preorder_start_date',
@@ -396,6 +435,31 @@ class ProductEdit extends Component
         DB::beginTransaction();
 
         try {
+            $useAttributes = $this->variantSystemEnabled && $this->has_attributes;
+            $useOptions = $this->has_image_options;
+
+            // Server-side validation for variant rows (Bangla messages)
+            if ($useAttributes && ! empty($this->variants)) {
+                $rowErrors = $this->validateVariantRows($this->productId);
+                if (! empty($rowErrors)) {
+                    DB::rollBack();
+                    $this->dispatch('error', message: collect($rowErrors)->flatten()->implode(' '));
+
+                    return;
+                }
+            }
+
+            // Server-side validation for image options (Bangla messages)
+            if ($useOptions && ! empty($this->imageOptions)) {
+                $optErrors = $this->validateImageOptions();
+                if (! empty($optErrors)) {
+                    DB::rollBack();
+                    $this->dispatch('error', message: implode(' ', $optErrors));
+
+                    return;
+                }
+            }
+
             $product = Product::findOrFail($this->productId);
 
             $product->update([
@@ -417,7 +481,10 @@ class ProductEdit extends Component
                 'video' => $this->video,
                 'status' => $this->status,
                 'is_featured' => $this->is_featured,
-                'has_variant' => $this->variantSystemEnabled && ! empty($this->variants),
+                'has_variant' => $useAttributes && ! empty($this->variants),
+                'has_attributes' => $useAttributes,
+                'has_image_options' => $useOptions && ! empty($this->imageOptions),
+                'require_image_option' => (bool) $this->require_image_option,
                 'is_preorder' => $this->is_preorder,
                 'preorder_start_date' => $this->is_preorder ? $this->preorder_start_date : null,
                 'preorder_end_date' => $this->is_preorder ? $this->preorder_end_date : null,
@@ -451,10 +518,11 @@ class ProductEdit extends Component
             $product->gallery_image = $galleryPaths;
             $product->save();
 
-            // Handle variants - Update existing and create new ones
+            // Handle variants - Update existing and create new ones.
+            // When the attributes layer is OFF, existing variants stay in DB untouched.
             $existingVariantIds = [];
 
-            foreach ($this->variants as $variantData) {
+            foreach ($useAttributes ? $this->variants : [] as $i => $variantData) {
                 // Skip variants marked for deletion
                 if (isset($variantData['_delete']) && $variantData['_delete']) {
                     if (is_numeric($variantData['id'])) {
@@ -473,8 +541,29 @@ class ProductEdit extends Component
                     if ($variant) {
                         $variant->update([
                             'sku' => $variantData['sku'],
-                            'variant_price' => $variantData['variant_price'],
+                            'variant_price' => $this->nullIfEmpty($variantData['variant_price'] ?? null),
+                            'sale_price' => $this->nullIfEmpty($variantData['sale_price'] ?? null),
+                            'low_stock_threshold' => $variantData['low_stock_threshold'] ?? 5,
+                            'is_active' => $variantData['is_active'] ?? true,
+                            'is_default' => $variantData['is_default'] ?? false,
                         ]);
+
+                        // Sync edited stock into inventory ledger (adjustment)
+                        if (isset($variantData['stock'])) {
+                            $current = \App\Services\InventoryService::computeStock($variant->inventories());
+                            $diff = (int) $variantData['stock'] - $current;
+                            if ($diff !== 0) {
+                                Inventory::create([
+                                    'product_id' => $product->id,
+                                    'variant_id' => $variant->id,
+                                    'type' => 'adjustment',
+                                    'quantity' => $diff,
+                                    'current_stock' => (int) $variantData['stock'],
+                                    'notes' => 'Manual stock edit from product page',
+                                    'user_id' => auth()->id(),
+                                ]);
+                            }
+                        }
                     }
                 } else {
                     // Create new variant
@@ -482,7 +571,11 @@ class ProductEdit extends Component
                         'product_id' => $product->id,
                         'stock' => $variantData['stock'] ?? 0,
                         'sku' => $variantData['sku'],
-                        'variant_price' => $variantData['variant_price'],
+                        'variant_price' => $this->nullIfEmpty($variantData['variant_price'] ?? null),
+                        'sale_price' => $this->nullIfEmpty($variantData['sale_price'] ?? null),
+                        'low_stock_threshold' => $variantData['low_stock_threshold'] ?? 5,
+                        'is_active' => $variantData['is_active'] ?? true,
+                        'is_default' => $variantData['is_default'] ?? false,
                     ]);
 
                     // Create inventory record for new variant
@@ -518,11 +611,49 @@ class ProductEdit extends Component
                     ]);
                 }
 
+                // Wholesale slabs for this row
+                $this->syncVariantSlabs($variant, $this->variantSlabs[$this->rowKey($variantData, $i)] ?? []);
+
                 $existingVariantIds[] = $variant->id;
             }
 
-            // Delete variants that were removed
-            ProductVariant::where('product_id', $product->id)->whereNotIn('id', $existingVariantIds)->delete();
+            // Delete variants that were removed (only when layer is ON)
+            if ($useAttributes) {
+                ProductVariant::where('product_id', $product->id)->whereNotIn('id', $existingVariantIds)->delete();
+            }
+
+            // Link product ↔ attributes used by its variants
+            $attrIds = collect($this->variants)
+                ->reject(fn ($v) => ! empty($v['_delete']))
+                ->flatMap(fn ($v) => array_column($v['values'] ?? [], 'attribute_id'))
+                ->unique()->values()->all();
+            if ($useAttributes && ! empty($attrIds)) {
+                $sync = [];
+                foreach ($attrIds as $attrId) {
+                    $sync[$attrId] = ['is_required' => (bool) ($this->attrRequired[$attrId] ?? true)];
+                }
+                $product->productAttributes()->sync($sync);
+            }
+
+            // Persist swatch-linked gallery
+            $this->persistImageLinks($product->id);
+
+            // Persist image options layer
+            if ($useOptions && ! empty($this->imageOptions)) {
+                foreach ($this->persistImageOptions($product->id) as $warning) {
+                    $this->dispatch('warning', message: $warning);
+                }
+            } elseif (! $useOptions) {
+                // Layer OFF: drop staged options but keep it simple — delete only
+                // options never ordered; ordered ones are deactivated instead.
+                foreach (ImageOption::where('product_id', $product->id)->get() as $opt) {
+                    if (OrderItem::where('image_option_id', $opt->id)->exists()) {
+                        $opt->update(['is_active' => false]);
+                    } else {
+                        $opt->delete();
+                    }
+                }
+            }
 
             DB::commit();
             $this->dispatch('success', message: 'Product Updated Successfully!');

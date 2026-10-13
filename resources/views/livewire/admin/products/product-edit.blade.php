@@ -344,6 +344,8 @@
                     @endif
                 </div>
 
+                @include('livewire.admin.products.partials.variant-generator')
+
                 @if (count($variants) > 0)
                 <div class="table-responsive mb-4">
                     <table class="table table-bordered table-sm">
@@ -360,7 +362,16 @@
                         <tbody>
                             @foreach ($variants as $index => $variant)
                             <tr>
-                                <td><strong>{{ $variant['sku'] }}</strong></td>
+                                <td>
+                                    <input type="text" wire:model="variants.{{ $index }}.sku"
+                                        class="form-control form-control-sm" style="min-width:110px;">
+                                    <div class="form-check mt-1">
+                                        <input type="checkbox" class="form-check-input"
+                                            wire:model="variants.{{ $index }}.is_active"
+                                            id="veact{{ $index }}">
+                                        <label class="form-check-label small" for="veact{{ $index }}">Active</label>
+                                    </div>
+                                </td>
                                 <td>
                                     @foreach ($variant['values'] as $value)
                                     @php
@@ -374,15 +385,19 @@
                                     @endif
                                     @endforeach
                                 </td>
-                                <td>{{ $variant['stock'] ?? 0 }}</td>
                                 <td>
-                                    @if($variant['variant_price'] > 0)
-                                    <span class="text-success">+৳{{ number_format($variant['variant_price'], 2) }}</span>
-                                    @elseif($variant['variant_price'] < 0)
-                                        <span class="text-danger">-৳{{ number_format(abs($variant['variant_price']), 2) }}</span>
-                                        @else
-                                        <span class="text-muted">৳0.00</span>
-                                        @endif
+                                    <input type="number" step="1" min="0"
+                                        wire:model="variants.{{ $index }}.stock"
+                                        class="form-control form-control-sm" style="min-width:70px;">
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" min="0"
+                                        wire:model="variants.{{ $index }}.variant_price"
+                                        class="form-control form-control-sm" style="min-width:90px;"
+                                        placeholder="auto">
+                                    @if (($variant['variant_price'] ?? null) === null || ($variant['variant_price'] ?? null) === '')
+                                    <small class="text-muted">auto: ৳{{ number_format($sale_price ?? $price ?? 0, 2) }}</small>
+                                    @endif
                                 </td>
                                 <td>
                                     @if (!empty($variant['image']) || !empty($variant['new_image_file']))
@@ -408,10 +423,34 @@
                                         <button type="button" wire:click="removeVariant({{ $index }})" class="btn btn-danger btn-sm" title="Remove">
                                             <i class="fas fa-trash"></i>Remove
                                         </button>
+                                        <button type="button" wire:click="toggleSlabs({{ $index }})" class="btn btn-outline-secondary btn-sm" title="Wholesale slabs">
+                                            Slabs ({{ count($variantSlabs[$variant['id'] ?? 'idx_'.$index] ?? []) }})
+                                        </button>
                                         @endif
                                     </div>
                                 </td>
                             </tr>
+                            @if ($slabOpen === (string) ($variant['id'] ?? 'idx_'.$index))
+                            <tr>
+                                <td colspan="6" class="bg-light">
+                                    <small class="fw-bold">Wholesale slabs — {{ $variant['sku'] }}</small>
+                                    @foreach ($variantSlabs[$variant['id'] ?? 'idx_'.$index] ?? [] as $si => $slab)
+                                    <div class="d-flex gap-2 align-items-center mt-1">
+                                        <span class="small">min qty</span>
+                                        <input type="number" min="2" wire:model="variantSlabs.{{ $variant['id'] ?? 'idx_'.$index }}.{{ $si }}.min_qty"
+                                            class="form-control form-control-sm" style="max-width:90px;">
+                                        <span class="small">৳</span>
+                                        <input type="number" step="0.01" min="0" wire:model="variantSlabs.{{ $variant['id'] ?? 'idx_'.$index }}.{{ $si }}.price"
+                                            class="form-control form-control-sm" style="max-width:110px;">
+                                        <button type="button" wire:click="removeSlabRow({{ $index }}, {{ $si }})"
+                                            class="btn btn-sm btn-link text-danger"><i class="fas fa-times"></i></button>
+                                    </div>
+                                    @endforeach
+                                    <button type="button" wire:click="addSlabRow({{ $index }})"
+                                        class="btn btn-sm btn-outline-primary mt-1">+ Slab</button>
+                                </td>
+                            </tr>
+                            @endif
                             @endforeach
                         </tbody>
                     </table>
@@ -536,6 +575,10 @@
             </div>
         </div>
         @endif
+
+        @include('livewire.admin.products.partials.swatch-image-manager')
+
+        @include('livewire.admin.products.partials.image-options-manager')
 
         <!-- Status & Featured Section -->
         <div class="card mb-4">

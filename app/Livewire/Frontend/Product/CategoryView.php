@@ -32,6 +32,7 @@ class CategoryView extends Component
 
         // Load all categories for sidebar filters (not paginated)
         $this->allCategories = Category::where('status', 1)
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
     }
@@ -44,6 +45,7 @@ class CategoryView extends Component
     public function getCategoriesProperty()
     {
         return Category::with('allChildren')->where('status', 1)
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->paginate(16);
     }

@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
 use Cache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $guarded = [];
 
@@ -32,6 +34,9 @@ class Product extends Model
         'sale_price',
         'stock',
         'has_variant',
+        'has_attributes',
+        'has_image_options',
+        'require_image_option',
         'thumbnail',
         'gallery_image',
         'video',
@@ -49,6 +54,9 @@ class Product extends Model
         'preorder_start_date' => 'datetime',
         'preorder_end_date' => 'datetime',
         'expected_release_date' => 'datetime',
+        'has_attributes' => 'boolean',
+        'has_image_options' => 'boolean',
+        'require_image_option' => 'boolean',
     ];
 
     public function user()
@@ -82,12 +90,29 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class);
     }
 
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class)->ordered();
+    }
+
+    public function imageOptions()
+    {
+        return $this->hasMany(ImageOption::class)->ordered();
+    }
+
+    public function activeImageOptions()
+    {
+        return $this->hasMany(ImageOption::class)->active()->ordered();
+    }
+
+    public function productAttributes()
+    {
+        return $this->belongsToMany(Attribute::class, 'product_attributes')->withPivot('is_required');
+    }
+
     public function getStockAttribute()
     {
-        $in = $this->inventories()->where('type', 'in')->sum('quantity');
-        $out = $this->inventories()->where('type', 'out')->sum('quantity');
-
-        return $in - $out;
+        return InventoryService::computeStock($this->inventories());
     }
 
     public function getCreatorNameAttribute()

@@ -64,3 +64,150 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Server-Side Tracking (Meta CAPI / TikTok / GA4)
+
+Dynamic, DB-driven tracking. Full guide: `TRACKING_SETUP.md`. Bangla admin guide:
+Settings -> Server Side Tracking -> Setup Guide tab.
+
+### Change pixel/account (no deploy, no .env)
+1. Admin -> Server Side Tracking -> platform tab
+2. New Pixel ID + Access Token (masked, token never shown/logged) -> Save
+3. Settings are cached; save clears cache, so the very next event uses the new pixel.
+4. Verify: Test Connection, Send Test Event, then Tracking Logs page.
+
+### Queue worker (required) + Supervisor + cron
+```bash
+php artisan queue:work --queue=tracking --tries=5 --timeout=15
+php artisan schedule:run   # every minute via cron (prunes logs older than 90 days daily)
+```
+Supervisor example (`/etc/supervisor/conf.d/bandrose-tracking.conf`):
+```ini
+[program:bandrose-tracking]
+command=php /path/to/app/artisan queue:work --queue=tracking --sleep=3 --tries=5 --timeout=15
+autostart=true
+autorestart=true
+numprocs=1
+```
+Cron: `* * * * * php /path/to/app/artisan schedule:run >> /dev/null 2>&1`
+
+### Useful commands
+```bash
+php artisan tracking:resend 123                 # resend Purchase for one order
+php artisan tracking:resend --from=2026-10-01 --status=confirmed
+php artisan tracking:prune-logs --days=90
+php artisan test --filter=Tracking               # tracking test suite (12 tests)
+```
+
+### Add a new platform = one class
+1. Create `app/Services/Tracking/Adapters/XyzAdapter.php` implementing
+   `TrackingAdapterInterface` (`send/testConnection/sendTestEvent/...`).
+2. Register it in `TrackingManager::$adapters` (`''xyz'' => XyzAdapter::class`).
+3. Add a `tracking_platforms` row (platform=`xyz`) + tab in the admin page. Nothing else changes.
+
+### Troubleshooting
+| Symptom | Cause / fix |
+|---|---|
+| Login works but no server events | No active platform or no event rules: save settings once (defaults are seeded) |
+| Purchase sent twice | Check `orders.purchase_sent_at`; event_id `purchase_{id}` dedups per platform |
+| Failed logs pile up, queue warning | Start queue worker; check token validity via Test Connection |
+| 400 invalid token/pixel | Permanent error, not retried; platform circuit-breaks, fix token in admin |
+| Old pixel still fires in browser | Full-page/CDN cache: purge CDN after pixel switch |
+
+### Acceptance checklist
+- [ ] Pixel+token change in admin -> next event hits new pixel (route:list + log)
+- [ ] Purchase exactly once per order (value BDT, contents, hashed PII, fbp/fbc, IP/UA)
+- [ ] Browser+server share event_id; Meta shows deduplicated
+- [ ] Checkout fast; failures never block orders (queued, try/catch)
+- [ ] Every event in Tracking Logs with payload/response; failed ones retryable
+- [ ] Meta Test Events + TikTok Events Manager + GA4 DebugView verified
+
+## Attribute / Variant / Swatch System
+
+### Admin guide (Bangla)
+- **Attribute ON/OFF:** Settings -> Business Settings -> "Attribute System" toggle.
+  ON ????? Add/Edit Product-? "Product Variations" section ???? (auto-save, cache clear
+  ??? ???? ????)? OFF ???? ??????? ????, product simple ?????? ?????
+- **Attribute ????:** Catalog -> Attributes -> Add New (??? + type: Color Swatch /
+  Image Swatch / Button / Dropdown) -> value ??? ???? (???? hex code, swatch ???,
+  sort order)? ??????? attribute/value delete ??? ???? ?? — ??? Deactivate ?????
+- **Product-? variant:** Add Product -> attribute ??? ??? -> value ??????? ???? ->
+  "Generate Variants" (?? combination ??????, ????????? ??? ??, SKU auto: BASE-RED-M)?
+  Bulk price/stock, per-row ???/????/Active edit, order-???? variant delete-? ?????
+- **Stock:** Edit-? stock ?????? inventory ledger-? adjustment ????? Order ??? variant
+  ???? stock ???, cancel/return-? ???? ??? (???? ????)?
+
+### Developer notes
+- Tables: `attributes` (+type/filterable/active/sort), `attribute_values` (+slug/hex/
+  swatch/sort), `product_attributes` (pivot), `product_variants` (+sale/cost/low-stock/
+  weight/barcode/active/default; ????? `variant_price/stock/image` column ??????????),
+  `product_images` (gallery + `attribute_value_id` swatch link), `order_items`
+  (+`variant_sku/name/image` snapshot)?
+- `App\Services\VariantGenerator` — combination/SKU/dedup? `ManagesProductVariants`
+  trait — Add/Edit Product-? shared (generate/validate/bulk/order-guard, ??????? error)?
+- `App\Services\PriceResolver` — ????? ??????? ???? Cart + Order ????? ??? ??????? ???,
+  ??? browser-? ??? ???? ????? ????? ??? DB-?? ???? Order total-? server-side recompute ????
+- Order item-? variant snapshot ????; variant ???? ????? order view-? ??? ???????
+- Tracking: AddToCart-?? `content_id` = variant SKU (feed-?? ???? consistent)?
+- Storefront: `?color=Red&size=M` URL share ??? ????, swatch-? color dot/image ??????,
+  out-of-stock combination disabled ?????
+- Seeder: `php artisan db:seed --class=AttributeSeeder` (setting ON + Color/Size/Unit)?
+- Tests: `php artisan test --filter="VariantGeneratorTest|VariantSystemTest"` (7 tests)?
+
+### (Cont.) Variant system — part 2
+- **Quick-add value:** generator-? ??????? attribute-?? ???? + ???? — modal ???? value
+  (??? + color) ??? ???, list refresh + auto-select ???, reload ???? ???
+- **Swatch gallery:** Add/Edit Product-?? ???? "Swatch Gallery" — ??? ????? ??? ???
+  color/value-?? ???? ????? ???? (???? = common)? Product ???? ?? swatch ??????? ????
+  ?????? ??? ??? ???; thumbnail-? ????? ???? matching swatch auto-select ????
+- **Listing filter:** Category ???? Price-?? ???? ??????? filterable attribute
+  (???? Color/Size)-?? ????; multi-select, URL-? query string ?????
+- **Product card:** color dots — ?????? card-?? ??? ?????? (variant image ?????)?
+- **Wholesale slabs:** variant row-? "Slabs" — min qty + ??? (???? 10+: ?480)?
+  Cart + Order ??????? `PriceResolver::resolve($product, $variant, $qty)` ????
+- **Feeds:** `/feed/google.xml` (Merchant Center), `/feed/meta.csv` (Meta/TikTok) —
+  ????? active variant ?? row, `item_group_id` = product id, id = variant SKU
+  (tracking `content_id`-?? ???? same)?
+- **GA4:** purchase items-? `item_id` (variant SKU) + `item_variant` ("Color: Red") ?????
+- Tests: `php artisan test --filter="Variant"` — 11 tests pass?
+
+### (Cont.) Image Options layer (two independent layers)
+- Product flags: `has_attributes` (global setting OFF ????? panel hidden — master switch
+  ???? ????), `has_image_options`, `require_image_option`. Attribute group-wise required:
+  generator-? ??????? attribute-?? ???? Required checkbox (`product_attributes.is_required`)?
+- `image_options` table (label/image/own price/sale/stock/active/sort) + ?????? ledger
+  `image_option_stock_movements` (main `inventories` untouched)? Admin-? Image Options panel +
+  live Effective preview table (??????? combination-?? ???/????)?
+- ???: option ?? variant ?? product; variant slab + flash ????? ????: min(variant/product, option)?
+  Order-? variant (?? product) + option ??????? deduct, cancel/return-? ??????? restore
+  (idempotent, double-deduct/restore ??????)? Checkout-? `SELECT ... FOR UPDATE` lock
+  (product ? variant ? option order) — oversell/concurrency safe?
+- Cart key: `product-variant-option`; snapshot: variant + option label/image/price?
+  Tampered variant/option reject (????? error)? Tracking/feed content_id ???? option
+  combination-? ???? format (`productSKU-variantSKU-optionId`), ???? ?? ???? format?
+- Storefront: attribute selectors ?? image strip ?????; `?opt=ID&size=M` deep-link;
+  sold-out-? reason ?? disabled; option ????? gallery option-???; required-? `*`?
+- Feeds: ????? combination ?? row (`/feed/google.xml`, `/feed/meta.csv`)?
+- Tests: `php artisan test --filter=VariantSystemTest` — 18 tests (precedence, min-stock,
+  double-deduct/restore, oversell, tampering, required, single/none-layer)?
+
+### (Cont.) Auto price/stock — "???? ????? auto"
+- Variant ??? ???? ? product ??? (row-?? "auto: ?X" hint); Generate ?? pre-fill ??? ???
+  Explicit 0 = ?????????? ?0 (???? data-? ???? ?????? ??)?
+- Option stock ???? ? variant/product stock (???? ledger ???? ??? ??); 0 = sold out?
+- Bulk: variant Auto-price + Product-stock-copy ????; options-? Bulk ???/?????
+- Stock clear ???? ledger ???? follow-variant ???; ??? pending order ????? ledger ???? +
+  warning toast (oversell-safe)?
+- Preview table ?????? resolved final value ?????? — Save-?? ??? verify ?????
+
+## Sidebar theme engine (per-admin)
+- Menu text: Inter font, UPPERCASE (menu + submenu), default 14px.
+- Bottom-left palette button: 5 themes (Light / Dark / Periwinkle #D9DEF2 / Mint #E7F0EB /
+  Lavender #E3E0E7) — click applies instantly, no reload. Font size A-/A+ (12–18px),
+  submenu auto 1px smaller, reset button included.
+- Prefs stored per admin (`users.sidebar_theme` JSON) — login ????? ????? theme ??? ????
+  Invalid values fall back to Light/14px. New admins see Light/14px (nothing changes suddenly).
+- Files: `App\Services\SidebarTheme` (palettes), `Admin\Settings\SidebarThemePicker`
+  (Livewire), `public/assets/admin/css/sidebar-theme.css` (CSS vars), theme vars rendered
+  server-side in admin layout head + live-applied via `sidebar-theme-applied` event.
+- Tests: `php artisan test --filter=SidebarThemeTest` (4 tests).

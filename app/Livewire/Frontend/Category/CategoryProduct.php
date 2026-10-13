@@ -16,6 +16,8 @@ class CategoryProduct extends Component
 
     public $selectedPrice = null;
 
+    public $selectedAttrs = [];
+
     public $meta_title;
 
     public $meta_description;
@@ -31,6 +33,7 @@ class CategoryProduct extends Component
 
     protected $queryString = [
         'selectedPrice' => ['except' => null],
+        'selectedAttrs' => ['except' => []],
     ];
 
     public function mount($category = null)
@@ -69,6 +72,27 @@ class CategoryProduct extends Component
         $this->selectedPrice = ($this->selectedPrice === $price) ? null : $price;
     }
 
+    public function toggleAttrValue($attrId, $valueId)
+    {
+        $attrId = (string) $attrId;
+        $valueId = (int) $valueId;
+        $current = $this->selectedAttrs[$attrId] ?? [];
+
+        if (in_array($valueId, $current)) {
+            $current = array_values(array_diff($current, [$valueId]));
+        } else {
+            $current[] = $valueId;
+        }
+
+        if (empty($current)) {
+            unset($this->selectedAttrs[$attrId]);
+        } else {
+            $this->selectedAttrs[$attrId] = $current;
+        }
+
+        $this->resetPage();
+    }
+
     public function getMetaData()
     {
         if ($this->category) {
@@ -93,12 +117,42 @@ class CategoryProduct extends Component
             $query->whereBetween('price', [(int) $min, (int) $max]);
         }
 
-        return $query->paginate(20);
+        // Attribute filters: variant must match one selected value per attribute (AND across attributes)
+        foreach ($this->selectedAttrs as $attrId => $valueIds) {
+            $valueIds = array_map('intval', (array) $valueIds);
+            if (empty($valueIds)) {
+                continue;
+            }
+            $query->whereHas('variants.variantAttributeValues', function ($q) use ($attrId, $valueIds) {
+                $q->where('variant_attribute_values.attribute_id', (int) $attrId)
+                    ->whereIn('variant_attribute_values.attribute_value_id', $valueIds);
+            });
+        }
+
+        return $query->with([
+            'variants.variantAttributeValues.attribute',
+            'variants.variantAttributeValues.attributeValue',
+        ])->paginate(20);
     }
 
     public function getCategoriesProperty()
     {
-        return Category::with('allChildren')->where('status', 1)->get();
+        return Category::with('allChildren')->where('status', 1)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function getFilterAttributesProperty()
+    {
+        if (! setting('attribute_system', true)) {
+            return collect();
+        }
+
+        return \App\Models\Attribute::active()
+            ->where('is_filterable', true)
+            ->with(['values' => fn ($q) => $q->orderBy('sort_order')->orderBy('id')])
+            ->get();
     }
 
     public function render()

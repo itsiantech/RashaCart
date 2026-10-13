@@ -17,7 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'admin.access' => \App\Http\Middleware\AdminAccess::class,
             'vendor.approved' => \App\Http\Middleware\EnsureVendorApproved::class,
+            'tracking.attribution' => \App\Http\Middleware\TrackingAttributionMiddleware::class,
         ]);
+        $middleware->appendToGroup('web', \App\Http\Middleware\TrackingAttributionMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

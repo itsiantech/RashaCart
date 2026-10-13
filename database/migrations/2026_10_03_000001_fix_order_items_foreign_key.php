@@ -12,6 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // MySQL-only introspection; skip on sqlite/pgsql (e.g. test runs)
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         // Check if order_items_order_id_foreign points to users
         $fk = DB::select("
             SELECT REFERENCED_TABLE_NAME
