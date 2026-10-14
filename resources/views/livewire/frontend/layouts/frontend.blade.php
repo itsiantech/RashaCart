@@ -19,6 +19,8 @@
 
     {!! \App\Services\PixelManager::head() !!}
     @include('partials.tracking-pixel')
+    {{-- Google SEO (verification, GTM, schema) --}}
+    @include('partials.seo-tags')
 
     <style>
         :root {
@@ -91,6 +93,8 @@
     @livewireStyles
 </head>
 <body>
+{{-- GTM noscript --}}
+@include('partials.seo-body')}
 
 {{-- ══════════════ NAVBAR ══════════════ --}}
 <nav class="navbar-main sticky-top">

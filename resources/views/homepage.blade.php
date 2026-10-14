@@ -181,8 +181,12 @@
         .mobile-bottom-nav a.active { color: var(--primary); }
         @media(max-width:768px) { body { padding-bottom: 60px; } }
     </style>
+    {{-- Google SEO (verification, GTM, schema) --}}
+    @include('partials.seo-tags')
 </head>
 <body>
+    {{-- GTM noscript --}}
+    @include('partials.seo-body')}
 
 {{-- ══════════════ NAVBAR ══════════════ --}}
 <nav class="navbar-main sticky-top">
@@ -239,18 +243,9 @@
 <section class="hp-container">
     <div class="hp-hero">
 
-        {{-- Categories menu --}}
+        {{-- Categories menu (3-level flyout) --}}
         <aside class="hp-cat">
-            <div class="hp-cat-card">
-                @forelse($categories as $cat)
-                <a href="{{ route('frontend.category.view', $cat->slug) }}" class="hp-cat-item">
-                    <span>{{ $cat->name }}</span>
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-                @empty
-                <div class="p-3 text-muted text-center" style="font-size:.85rem">No categories</div>
-                @endforelse
-            </div>
+            @include('livewire.frontend.layouts.partial.category.category-flyout', ['categories' => $categories])
         </aside>
 
         {{-- Banner slider --}}

@@ -57,6 +57,12 @@ class AppSetting extends Component
 
     public $attribute_system;
 
+    public $automation_menu;
+
+    public $seller_menu;
+
+    public $seo_menu;
+
     public $dc_inside;
 
     public $dc_outside;
@@ -142,6 +148,9 @@ class AppSetting extends Component
         $this->tiktok = setting('tiktok');
 
         $this->attribute_system = (bool) setting('attribute_system');
+        $this->automation_menu = (bool) setting('automation_menu', true);
+        $this->seller_menu = (bool) setting('seller_menu', true);
+        $this->seo_menu = (bool) setting('seo_menu', true);
         $this->sms_notification = (bool) setting('sms_notification');
         $this->sms_api_key = setting('sms_api_key');
         $this->sms_api_url = setting('sms_api_url');
@@ -198,6 +207,36 @@ class AppSetting extends Component
         );
         Settings::clearCache();
         $this->dispatch('success', message: $value ? 'Attribute system turned ON.' : 'Attribute system turned OFF.');
+    }
+
+    public function updatedAutomationMenu($value): void
+    {
+        Settings::updateOrCreate(
+            ['key' => 'automation_menu'],
+            ['value' => $value ? 1 : 0]
+        );
+        Settings::clearCache();
+        $this->dispatch('success', message: $value ? 'Automation menu চালু হয়েছে।' : 'Automation menu বন্ধ হয়েছে।');
+    }
+
+    public function updatedSellerMenu($value): void
+    {
+        Settings::updateOrCreate(
+            ['key' => 'seller_menu'],
+            ['value' => $value ? 1 : 0]
+        );
+        Settings::clearCache();
+        $this->dispatch('success', message: $value ? 'Seller Manage menu চালু হয়েছে।' : 'Seller Manage menu বন্ধ হয়েছে।');
+    }
+
+    public function updatedSeoMenu($value): void
+    {
+        Settings::updateOrCreate(
+            ['key' => 'seo_menu'],
+            ['value' => $value ? 1 : 0]
+        );
+        Settings::clearCache();
+        $this->dispatch('success', message: $value ? 'Google SEO menu চালু হয়েছে।' : 'Google SEO menu বন্ধ হয়েছে।');
     }
 
     public function update(): void

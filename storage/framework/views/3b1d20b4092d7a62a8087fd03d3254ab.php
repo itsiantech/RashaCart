@@ -1,0 +1,96 @@
+
+<footer class="hp-footer">
+    <div class="hp-container">
+        <div class="f-grid">
+
+            <div class="f-contact">
+                <h6>Contact Us</h6>
+                <p>
+                    <i class="fas fa-map-marker-alt me-2"></i>Dhaka, Bangladesh<br>
+                    <i class="fas fa-phone me-2"></i>+880 1234 567890<br>
+                    <i class="fas fa-envelope me-2"></i>support@padmazon.com
+                </p>
+            </div>
+
+            <div>
+                <h6>Company</h6>
+                <ul>
+                    <li><a href="<?php echo e(route('frontend.about.us')); ?>">About Us</a></li>
+                    <li><a href="#">Careers</a></li>
+                    <li><a href="#">Blog</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h6>Seller Center</h6>
+                <ul>
+                    <li><a href="<?php echo e(route('register')); ?>">Sell on Padmazon</a></li>
+                    <li><a href="<?php echo e(route('login')); ?>">Seller Dashboard</a></li>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="<?php echo e(route('frontend.refund.and.returns')); ?>">Returns Policy</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h6>Account</h6>
+                <ul>
+                    <li><a href="<?php echo e(route('login')); ?>">Login</a></li>
+                    <li><a href="<?php echo e(route('register')); ?>">Register</a></li>
+                    <li><a href="<?php echo e(route('frontend.cart.view')); ?>">My Cart</a></li>
+                    <li><a href="<?php echo e(route('frontend.order.tracking')); ?>">Track Order</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h6>Social</h6>
+                <div class="f-social">
+                    <a href="#"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+
+            <div>
+                <h6>Mobile App</h6>
+                <a href="#" class="f-app-btn">
+                    <i class="fab fa-google-play"></i>
+                    <span><small>GET IT ON</small><strong>Google Play</strong></span>
+                </a>
+                <a href="#" class="f-app-btn">
+                    <i class="fab fa-apple"></i>
+                    <span><small>Download on the</small><strong>App Store</strong></span>
+                </a>
+            </div>
+
+        </div>
+
+        <div class="f-bottom">
+            <span>© <?php echo e(date('Y')); ?> <?php echo e(setting('app_name') ?: 'Padmazon'); ?>. All rights reserved.</span>
+            <div class="d-flex gap-3">
+                <a href="<?php echo e(route('frontend.privacy.policy')); ?>">Privacy Policy</a>
+                <a href="<?php echo e(route('frontend.terms.and.conditions')); ?>">Terms &amp; Conditions</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+<div class="mobile-bottom-nav d-md-none">
+    <a href="<?php echo e(route('home')); ?>">
+        <i class="fas fa-home"></i>Home
+    </a>
+    <a href="<?php echo e(route('frontend.category.view')); ?>">
+        <i class="fas fa-th-large"></i>Categories
+    </a>
+    <a href="<?php echo e(route('frontend.cart.view')); ?>">
+        <i class="fas fa-shopping-cart"></i>Cart
+    </a>
+    <a href="#">
+        <i class="fas fa-heart"></i>Wishlist
+    </a>
+    <a href="<?php echo e(route('profile.index')); ?>">
+        <i class="fas fa-user"></i>Account
+    </a>
+</div>
+<?php /**PATH C:\Users\user\bandrose\resources\views/partials/main-footer.blade.php ENDPATH**/ ?>

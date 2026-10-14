@@ -30,8 +30,10 @@ class CategoryView extends Component
             $this->category = Category::where('slug', $slug)->firstOrFail();
         }
 
-        // Load all categories for sidebar filters (not paginated)
-        $this->allCategories = Category::where('status', 1)
+        // Load all categories for sidebar filters (not paginated).
+        // Eager-load the tree so submenu/sub-submenu render without N+1.
+        $this->allCategories = Category::with('allChildren')
+            ->where('status', 1)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
@@ -73,6 +75,6 @@ class CategoryView extends Component
             'categories' => $this->categories,
             'allCategories' => $this->allCategories,
             'products' => $this->products,
-        ])->layout('livewire.frontend.layouts.app');
+        ])->layout('livewire.frontend.layouts.store');
     }
 }

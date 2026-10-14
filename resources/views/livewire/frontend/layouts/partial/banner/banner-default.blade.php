@@ -2,18 +2,6 @@
     <div class="row">
         <div class="col-3" id="filter-sidebar">
 
-            <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    document.querySelectorAll('.cat-submenu > a').forEach(item => {
-                        item.addEventListener('click', e => {
-                            e.preventDefault();
-                            const parent = item.parentElement;
-                            parent.classList.toggle('open');
-                        });
-                    });
-                });
-            </script>
-
         </div>
         <div class="col-12" id="hero-slider">
 

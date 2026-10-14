@@ -1,124 +1,83 @@
 <section class="hero-section">
     <div class="container">
-        <div class="hero-container">
+        <h2 class="brand-index-title">All Brands</h2>
 
-            <!-- Categories Sidebar -->
-            <aside class="categories-category-sidebar">
-                <div class="categories-header">
-                    <h3><i class="fas fa-sliders-h "></i> Filters</h3>
-                </div>
+        <div class="brand-search-card">
+            <i class="fas fa-search"></i>
+            <input type="search" placeholder="Search your brands" wire:model.live.debounce.400ms="search"
+                aria-label="Search brands">
+        </div>
 
-                <div class="filter-card py-3">
-                    <ul class="check-list">
-                        @include('livewire.frontend.layouts.partial.category.category-list', [
-                        'categories' => $categories->where('parent_id', null),
-                        ])
-                    </ul>
-                </div>
-
-                <div class="filter-card  pb-3">
-                    <h3 class="filter-title"><i class="fas fa-mobile-alt"></i> Price</h3>
-                    <div class="size-options">
-                        @foreach (['500-1000', '1000-2000', '2000-3000', '3000-4000'] as $price)
-                        <button
-                            wire:click.prevent="togglePrice('{{ $price }}')"
-                            class="size-option {{ $selectedPrice === $price ? 'active' : '' }}">
-                            {{ $price }}
-                        </button>
-                        @endforeach
-                    </div>
-                </div>
-            </aside>
-
-            <!-- Products Grid -->
-            <div class="products-grid-container">
-                <div class="section-header">
-                    <h2>
-                        {{ $brand ? 'Brand - ' . $brand->name : 'All Brands' }}
-                    </h2>
-                </div>
-
-                <div class="products-grid">
-                    @forelse($brands as $brand)
-                     <a wire:navigate href="{{ route('frontend.brands.products.view', $brand->slug) }}"
-                        class="brand-card">
-                        <div class="brand-image">
-                            <img src="{{ $brand->logo ? asset('storage/' . $brand->logo) : 'https://placehold.co/500x500' }}"
-                                alt="{{ $brand->name }}" loading="lazy">
-                        </div>
-                        <h3 class="d-none category-name">{{ $brand->name }}</h3>
-                    </a>
-                    @empty
-                    <div class="empty-products">
-                        <div class="cart-empty">
-                            <i class="fas fa-shopping-basket"></i>
-                            <p>No brands found.</p>
-                            <p>We couldn’t find any brands matching your criteria. Please adjust your filters or try a different search.</p>
-                            <a wire:navigate href="{{ route('home')}}" class="btn-continue-shopping">Continue Shopping</a>
-                        </div>
-                    </div>
-                    @endforelse
-                </div>
-                <style>
-                    .products-grid {
-                        grid-template-columns: repeat(5, 1fr) !important;
-                        gap: 1.25rem;
-                    }
-
-                    @media (max-width: 1400px) {
-                        .products-grid {
-                            grid-template-columns: repeat(3, 1fr) !important;
-                        }
-                    }
-
-                    @media (max-width: 1200px) {
-                        .products-grid {
-                            grid-template-columns: repeat(2, 1fr) !important;
-                        }
-                    }
-
-                    @media (max-width: 900px) {
-                        .products-grid {
-                            grid-template-columns: repeat(2, 1fr) !important;
-                        }
-                    }
-
-                    .empty-products {
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        width: 90%;
-                        max-width: 300px;
-                    }
-
-                    .empty-icon i {
-                        font-size: 64px;
-                        color: #ccc;
-                    }
-
-                    .categories-category-sidebar {
-                        width: 100%;
-                        background: white;
-                        border-radius: 8px;
-                        box-shadow: var(--box-shadow);
-                        overflow: hidden;
-                        margin-top: 20px;
-                        margin-bottom: 20px;
-                    }
-
-                    @media screen and (max-width: 768px) {
-                        .categories-category-sidebar {
-                            overflow: hidden;
-                            display: none;
-                        }
-                    }
-                </style>
-
-                <div class="pagination-container">
-                    {{ $brands->links() }}
+        <div class="brand-index-grid">
+            @forelse($brands as $brand)
+            <a wire:navigate href="{{ route('frontend.brands.products.view', $brand->slug) }}"
+                class="brand-index-card">
+                <span class="brand-index-logo">
+                    @if ($brand->logo)
+                    <img src="{{ asset('storage/' . $brand->logo) }}"
+                        alt="{{ $brand->name }}" loading="lazy">
+                    @else
+                    <i class="fas fa-copyright"></i>
+                    @endif
+                </span>
+                <span class="brand-index-name">{{ $brand->name }}</span>
+                <small class="brand-index-count">{{ $brand->products_count }} products</small>
+            </a>
+            @empty
+            <div class="empty-products">
+                <div class="cart-empty">
+                    <i class="fas fa-shopping-basket"></i>
+                    <p>No brands found.</p>
+                    <p>Try a different search.</p>
+                    <a wire:navigate href="{{ route('home')}}" class="btn-continue-shopping">Continue Shopping</a>
                 </div>
             </div>
+            @endforelse
         </div>
-    </div>
+
+        @if ($totalCount > $brands->count())
+        <div class="text-center mt-4 mb-2">
+            <button wire:click="loadMore" class="brand-load-more"
+                wire:loading.attr="disabled" wire:target="loadMore">
+                <span wire:loading.remove wire:target="loadMore">LOAD MORE</span>
+                <span wire:loading wire:target="loadMore">Loading...</span>
+            </button>
+        </div>
+        @endif
+
+        <style>
+            .brand-index-title { font-size: 1.15rem; font-weight: 700; margin: 18px 0 12px; }
+            .brand-search-card {
+                background: #fff; border: 1px solid #eef0f4; border-radius: 10px;
+                display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 16px;
+            }
+            .brand-search-card i { color: #9ca3af; }
+            .brand-search-card input { border: none; outline: none; flex: 1; font-size: .9rem; }
+            .brand-index-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+            @media (max-width: 1100px) { .brand-index-grid { grid-template-columns: repeat(4, 1fr); } }
+            @media (max-width: 768px) { .brand-index-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; } }
+            @media (max-width: 480px) { .brand-index-grid { grid-template-columns: repeat(2, 1fr); } }
+            .brand-index-card {
+                background: #fff; border: 1px solid #eef0f4; border-radius: 12px;
+                padding: 18px 8px 14px; text-decoration: none;
+                display: flex; flex-direction: column; align-items: center; gap: 8px;
+                transition: box-shadow .15s, transform .15s;
+            }
+            .brand-index-card:hover { box-shadow: 0 8px 22px rgba(18, 34, 91, .10); transform: translateY(-2px); }
+            .brand-index-logo {
+                height: 64px; display: inline-flex; align-items: center; justify-content: center;
+                color: #12225B; font-size: 1.6rem;
+            }
+            .brand-index-logo img { max-height: 64px; max-width: 100%; object-fit: contain; }
+            .brand-index-name { font-size: .83rem; font-weight: 500; color: #333a45; text-align: center; line-height: 1.3; }
+            .brand-index-card:hover .brand-index-name { color: #7A0000; }
+            .brand-index-count { color: #9ca3af; font-size: .75rem; }
+            .brand-load-more {
+                border: 1px solid #12225B; background: #fff; color: #12225B;
+                border-radius: 8px; padding: 10px 64px; font-weight: 700; letter-spacing: .04em; cursor: pointer;
+            }
+            .brand-load-more:hover { background: #12225B; color: #fff; }
+        </style>
+
+        </div>
 </section>

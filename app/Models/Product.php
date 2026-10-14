@@ -222,6 +222,7 @@ class Product extends Model
         static::saved(function () {
             Cache::forget('products');
             Cache::forget('global_cache_ready');
+            \App\Services\SeoService::clearSitemapCache();
         });
 
         static::deleted(function () {

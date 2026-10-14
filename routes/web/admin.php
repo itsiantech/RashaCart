@@ -42,11 +42,15 @@ use App\Livewire\Admin\Pos\PosTerminal;
 use App\Livewire\Admin\Products\{ProductIndex, ProductCreate, ProductEdit, ProductView, ProductStockManage};
 use App\Livewire\Admin\Settings\AppSetting;
 use App\Livewire\Admin\Settings\HomePageSettings;
+use App\Livewire\Admin\Settings\SeoSettings;
 use App\Livewire\Admin\Settings\RolePermission\RolePermissionAssign;
 use App\Livewire\Admin\Settings\RolePermission\RolePermissionIndex;
 use App\Livewire\Admin\Settings\User\UserCreate;
 use App\Livewire\Admin\Settings\User\UserEdit;
 use App\Livewire\Admin\Settings\User\UserIndex;
+use App\Livewire\Admin\Automation\AutomationAiSettings;
+use App\Livewire\Admin\Automation\AutomationIndex;
+use App\Livewire\Admin\Automation\AutomationModulePage;
 use App\Livewire\Admin\Tracking\TrackingLogIndex;
 use App\Livewire\Admin\Vendor\ManageCommission;
 use App\Livewire\Admin\Vendor\VendorApplied;
@@ -67,6 +71,8 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
     Route::get('pos', PosTerminal::class)->name('pos.index');
 
     Route::get('/settings', AppSetting::class)->name('settings.index')->middleware('can:setting.view');
+
+    Route::get('/seo/{tab?}', SeoSettings::class)->name('seo.index')->middleware('can:setting.view');
     Route::get('/settings/homepage', HomePageSettings::class)->name('settings.homepage')->middleware('role:admin');
 
     Route::get('server-side-tracking', ServerSideTracking::class)->name('server-side-tracking.index')->middleware('role:admin');
@@ -145,6 +151,13 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
     Route::get('/cupon/create/{coupon_id?}', CuponCreate::class)->name('cupon.create')->middleware('can:cupon.create');
 
     Route::get('/cupon/edit/{id}', CuponEdit::class)->name('cupon.edit')->middleware('can:cupon.update');
+
+    // Automation (registry-driven foundation; features built one by one later)
+    Route::prefix('automation')->name('automation.')->group(function () {
+        Route::get('/', AutomationIndex::class)->name('index');
+        Route::get('/module/{key}', AutomationModulePage::class)->name('module');
+        Route::get('/ai-settings', AutomationAiSettings::class)->name('ai-settings')->middleware('role:admin');
+    });
 
     // Inventory & Stock
     Route::prefix('inventory')->name('inventory.')->group(function () {

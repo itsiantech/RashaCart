@@ -312,14 +312,15 @@ $currentRoute = request()->route()?->getName() ?? '';
         </li>
         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-        <!-- Seller Manage -->
+        <!-- Seller section (visibility: Business Settings → Seller Menu; vendors always keep Payout) -->
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(setting('seller_menu', true) || ($user && $user->hasRole('vendor'))): ?>
         <li class="menu-item <?php echo e(Route::is('admin.vendor.*') ? 'active open' : ''); ?>">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-category-alt"></i>
                 <div>Seller Manage</div>
             </a>
             <ul class="menu-sub">
-                <?php if($isAdmin || Auth::user()->can('vendor.index')): ?>
+                <?php if(setting('seller_menu', true) && ($isAdmin || Auth::user()->can('vendor.index'))): ?>
                 <li class="menu-item <?php echo e(Route::is('admin.vendor.index') ? 'active' : ''); ?>">
                     <a wire:navigate href="<?php echo e(route('admin.vendor.index')); ?>" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-list-ul"></i>
@@ -328,7 +329,7 @@ $currentRoute = request()->route()?->getName() ?? '';
                 </li>
                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-                <?php if($isAdmin || Auth::user()->can('vendor.applied')): ?>
+                <?php if(setting('seller_menu', true) && ($isAdmin || Auth::user()->can('vendor.applied'))): ?>
                 <li class="menu-item <?php echo e(Route::is('admin.vendor.payment-history') ? 'active' : ''); ?>">
                     <a wire:navigate href="<?php echo e(route('admin.vendor.payment-history')); ?>" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-user-plus"></i>
@@ -347,7 +348,7 @@ $currentRoute = request()->route()?->getName() ?? '';
                 </li>
                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-                <?php if($isAdmin || Auth::user()->can('vendor.payout.request')): ?>
+                <?php if(setting('seller_menu', true) && ($isAdmin || Auth::user()->can('vendor.payout.request'))): ?>
                 <li class="menu-item <?php echo e(Route::is('admin.vendor.payout.request') ? 'active' : ''); ?>">
                     <a wire:navigate href="<?php echo e(route('admin.vendor.payout.request')); ?>" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-receipt"></i>
@@ -356,7 +357,7 @@ $currentRoute = request()->route()?->getName() ?? '';
                 </li>
                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-                <?php if($isAdmin || Auth::user()->can('vendor.manage.commission')): ?>
+                <?php if(setting('seller_menu', true) && ($isAdmin || Auth::user()->can('vendor.manage.commission'))): ?>
                 <li class="menu-item <?php echo e(Route::is('admin.vendor.manage.commission') ? 'active' : ''); ?>">
                     <a wire:navigate href="<?php echo e(route('admin.vendor.manage.commission')); ?>" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-money"></i>
@@ -366,9 +367,10 @@ $currentRoute = request()->route()?->getName() ?? '';
                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             </ul>
         </li>
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 		
-		
-		
+
+
 		<!-- Accounts & Finance -->
         <?php if($isAdmin || Auth::user()->can('accounts.view')): ?>
         <li class="menu-item <?php echo e(Route::is('admin.accounts.*') ? 'active open' : ''); ?>">
@@ -511,6 +513,80 @@ $currentRoute = request()->route()?->getName() ?? '';
                         <div>Landing Page List</div>
                     </a>
                 </li>
+            </ul>
+        </li>
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
+        <!-- Automation (registry-driven; toggles are super-admin only) -->
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(setting('automation_menu', true)): ?>
+        <?php
+            $autoModules = \App\Services\AutomationRegistry::all();
+            $autoHideOff = (bool) setting('automation_hide_disabled', false);
+            $autoVisible = collect($autoModules)->filter(fn ($m) => $isAdmin || Auth::user()->can('automation.'.$m->key().'.view'));
+        ?>
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($autoVisible->isNotEmpty()): ?>
+        <li class="menu-header small text-uppercase"><span class="menu-header-text">AUTOMATION</span></li>
+        <li class="menu-item <?php echo e(Route::is('admin.automation.*') ? 'active open' : ''); ?>">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-chip"></i>
+                <div>Automation</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item <?php echo e(Route::is('admin.automation.index') ? 'active' : ''); ?>">
+                    <a wire:navigate href="<?php echo e(route('admin.automation.index')); ?>" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-grid-alt"></i>
+                        <div>Overview</div>
+                    </a>
+                </li>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $autoVisible; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $am): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php
+                    $amMode = \App\Services\AutomationRegistry::mode($am->key());
+                    $amOff = $amMode === 'off';
+                ?>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!($amOff && $autoHideOff)): ?>
+                <li class="menu-item <?php echo e(Route::is('admin.automation.module') && request()->route('key') === $am->key() ? 'active' : ''); ?>">
+                    <a wire:navigate href="<?php echo e(route('admin.automation.module', $am->key())); ?>"
+                        class="menu-link <?php echo e($amOff ? 'text-muted' : ''); ?>">
+                        <i class="menu-icon tf-icons <?php echo e($am->icon()); ?>"></i>
+                        <div><?php echo e($am->name()); ?></div>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($am->status() === 'coming_soon'): ?>
+                        <span class="badge bg-secondary ms-1">Coming soon</span>
+                        <?php elseif($amOff): ?>
+                        <span class="badge bg-secondary ms-1">Off</span>
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </a>
+                </li>
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isAdmin): ?>
+                <li class="menu-item <?php echo e(Route::is('admin.automation.ai-settings') ? 'active' : ''); ?>">
+                    <a wire:navigate href="<?php echo e(route('admin.automation.ai-settings')); ?>" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-cog"></i>
+                        <div>AI Settings</div>
+                    </a>
+                </li>
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+            </ul>
+        </li>
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?> 
+
+        <!-- SEO section (visibility: Business Settings toggle) -->
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(setting('seo_menu', true) && ($isAdmin || Auth::user()->can('setting.view'))): ?>
+        <li class="menu-item <?php echo e(Route::is('admin.seo.*') ? 'active open' : ''); ?>">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-globe"></i>
+                <div>Google SEO</div>
+            </a>
+            <ul class="menu-sub">
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = ['console' => ['Search Console', 'bx-search-alt'], 'ga4' => ['Google Analytics 4', 'bx-line-chart'], 'gtm' => ['Google Tag Manager', 'bx-tag'], 'sitemap' => ['XML Sitemap', 'bx-sitemap'], 'robots' => ['Robots.txt', 'bx-file'], 'schema' => ['Schema Markup', 'bx-code-alt']]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $tab => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <li class="menu-item <?php echo e(Route::is('admin.seo.index') && request()->route('tab') === $tab ? 'active' : ''); ?>">
+                    <a wire:navigate href="<?php echo e(route('admin.seo.index', ['tab' => $tab])); ?>" class="menu-link">
+                        <i class="menu-icon tf-icons bx <?php echo e($item[1]); ?>"></i>
+                        <div><?php echo e($item[0]); ?></div>
+                    </a>
+                </li>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             </ul>
         </li>
         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>

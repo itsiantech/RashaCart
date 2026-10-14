@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEMO — New PLP (homepage header/footer + dynamic filters)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root { --primary:#7A0000; --navy:#12225B; --accent:#f5a623; --line:#e5e7eb; }
+  * { box-sizing:border-box; font-family:'Segoe UI',Arial,sans-serif; }
+  body { margin:0; background:#f4f5f7; color:#222; }
+  /* ===== MAIN header (homepage style) ===== */
+  .topbar { background:var(--navy); padding:12px 0 0; position:sticky; top:0; z-index:100; }
+  .hp-container { max-width:1200px; margin:0 auto; padding:0 14px; }
+  .hp-navbar-row { display:flex; align-items:center; gap:16px; }
+  .hp-logo { color:#fff; font-weight:800; font-size:1.3rem; text-decoration:none; background:#fff; color:var(--navy); padding:2px 10px; border-radius:6px; }
+  .hp-search { flex:1; display:flex; background:#fff; border-radius:8px; overflow:hidden; }
+  .hp-search input { flex:1; border:0; padding:10px 14px; outline:none; }
+  .hp-search button { border:0; background:var(--accent); color:#fff; padding:0 20px; cursor:pointer; font-size:1rem; }
+  .hp-icons { display:flex; gap:16px; color:#fff; font-size:1.15rem; align-items:center; }
+  .hp-nav { display:flex; gap:22px; padding:10px 0 12px; margin-top:8px; border-top:1px solid rgba(255,255,255,.12); }
+  .hp-nav a { color:#fff; text-decoration:none; font-size:.86rem; font-weight:500; white-space:nowrap; }
+  .hp-nav a.pill { background:var(--accent); border-radius:16px; padding:3px 14px; font-weight:700; }
+  /* ===== PLP body ===== */
+  .plp { display:grid; grid-template-columns:240px 1fr; gap:16px; align-items:start; }
+  @media(max-width:900px){ .plp{ grid-template-columns:1fr; } .side{ display:none; } .side.open{display:block;} }
+  .card { background:#fff; border-radius:12px; border:1px solid #eef0f4; }
+  .side .card { margin-bottom:12px; }
+  .f-head { padding:12px 14px; font-weight:700; font-size:.9rem; border-bottom:1px solid #f1f3f6;
+    display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+  .f-body { padding:10px 14px 14px; }
+  .f-body.hide { display:none; }
+  .cat-p { font-weight:600; font-size:.85rem; padding:6px 0; cursor:pointer; display:flex; justify-content:space-between; }
+  .cat-c { padding:4px 0 4px 14px; font-size:.83rem; color:#4b5563; cursor:pointer; }
+  .cat-c.on, .cat-p.on { color:var(--primary); font-weight:700; }
+  .chk { display:flex; align-items:center; gap:8px; font-size:.84rem; padding:5px 0; cursor:pointer; }
+  .chk small { color:#888; margin-left:auto; }
+  .pricerow { display:flex; gap:6px; } .pricerow input { width:100%; border:1px solid #ddd; border-radius:6px; padding:6px; }
+  .size-opt { border:1px solid #e0e0e0; border-radius:6px; padding:5px 12px; font-size:.8rem; font-weight:600; cursor:pointer; background:#fff; }
+  .size-opt.on { border:2px solid #111; padding:4px 11px; }
+  .size-opt.dis { opacity:.35; text-decoration:line-through; cursor:not-allowed; }
+  .cdot { width:22px; height:22px; border-radius:50%; border:2px solid #ddd; cursor:pointer; }
+  .cdot.on { border-color:#111; box-shadow:0 0 0 2px #1113; }
+  .tag { border:1px solid #e0e0e0; border-radius:14px; padding:3px 12px; font-size:.78rem; cursor:pointer; background:#fff; }
+  .tag.on { background:#111; color:#fff; border-color:#111; }
+  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .toolbar h2 { margin:0; font-size:1.15rem; }
+  .toolbar select { margin-left:auto; border:1px solid #ddd; border-radius:8px; padding:7px 10px; }
+  .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  @media(max-width:1100px){ .grid{grid-template-columns:repeat(3,1fr);} }
+  @media(max-width:700px){ .grid{grid-template-columns:repeat(2,1fr);} }
+  .p-card { background:#fff; border-radius:12px; border:1px solid #eef0f4; overflow:hidden; }
+  .p-card img { width:100%; aspect-ratio:1; object-fit:cover; display:block; }
+  .p-info { padding:10px 12px 14px; }
+  .p-info h4 { margin:0 0 4px; font-size:.85rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pr { font-weight:800; } .pr s { color:#999; font-weight:400; font-size:.78rem; margin-left:6px; }
+  .dots { display:flex; gap:6px; margin:7px 0; }
+  .clear { font-size:.78rem; color:#b00; cursor:pointer; }
+  .crumb { font-size:.8rem; color:#666; margin:14px 0 10px; }
+  .crumb b { color:#111; }
+  .mfilter { display:none; margin-bottom:10px; }
+  @media(max-width:900px){ .mfilter{ display:block; } }
+  /* ===== MAIN footer (homepage style) ===== */
+  .hp-footer { background:var(--navy); color:#fff; margin-top:34px; padding:40px 0 18px; }
+  .f-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:24px; }
+  @media(min-width:768px){ .f-grid{ grid-template-columns:1.2fr 1fr 1fr 1fr 1fr 1.3fr;} }
+  .hp-footer h6 { margin:0 0 12px; font-size:.92rem; }
+  .hp-footer a, .hp-footer p { color:rgba(255,255,255,.78); text-decoration:none; font-size:.83rem; display:block; margin:0 0 8px; }
+  .soc { display:flex; gap:10px; } .soc a { width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.14);
+    display:inline-flex; align-items:center; justify-content:center; font-size:.85rem; }
+  .store-btn { border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:7px 12px; margin-bottom:8px; font-size:.75rem; }
+  .f-bottom { border-top:1px solid rgba(255,255,255,.15); margin-top:22px; padding-top:14px; font-size:.8rem;
+    color:rgba(255,255,255,.6); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="hp-container"><div class="hp-navbar-row">
+    <a class="hp-logo" href="#">itsian</a>
+    <div class="hp-search"><input placeholder="Search products…"><button><i class="fas fa-search"></i></button></div>
+    <div class="hp-icons"><i class="far fa-user"></i><i class="far fa-heart"></i><i class="fas fa-shopping-cart"></i></div>
+  </div>
+  <nav class="hp-nav hp-container"><a href="#">Categories</a><a href="#">Products</a><a href="#" class="pill">Sell on Padmazon</a><a href="#">Discounts</a><a href="#">All Shops</a><a href="#">All Brands</a><a href="#">Track Order</a><a href="#">Home</a></nav>
+  </div>
+</header>
+
+<div class="hp-container">
+  <div class="crumb">Home › <span id="cCat">Fashion</span> › <b id="cSub">All</b></div>
+  <button class="mfilter" onclick="document.querySelector('.side').classList.toggle('open')">☰ Filters <span id="fCount"></span></button>
+
+  <div class="plp">
+    <aside class="side" id="side"></aside>
+    <div>
+      <div class="toolbar">
+        <h2 id="tTitle">Fashion <small id="tCount" style="color:#888;font-weight:400"></small></h2>
+        <select id="sort" onchange="render()">
+          <option value="pop">Most Popular</option>
+          <option value="low">Price: Low → High</option>
+          <option value="high">Price: High → Low</option>
+          <option value="new">Newest</option>
+        </select>
+      </div>
+      <div id="active" style="margin-bottom:10px"></div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+</div>
+
+<footer class="hp-footer">
+  <div class="hp-container"><div class="f-grid">
+    <div><h6>Contact Us</h6><p><i class="fas fa-map-marker-alt"></i> Dhaka, Bangladesh</p><p><i class="fas fa-phone"></i> +880 1234 567890</p><p><i class="fas fa-envelope"></i> support@padmazon.com</p></div>
+    <div><h6>Company</h6><a href="#">About Us</a><a href="#">Careers</a><a href="#">Blog</a></div>
+    <div><h6>Seller Center</h6><a href="#">Sell on Padmazon</a><a href="#">Seller Dashboard</a><a href="#">Help Center</a><a href="#">Returns Policy</a></div>
+    <div><h6>Account</h6><a href="#">Login</a><a href="#">Register</a><a href="#">My Cart</a><a href="#">Track Order</a></div>
+    <div><h6>Social</h6><div class="soc"><a href="#"><i class="fab fa-facebook-f"></i></a><a href="#"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-twitter"></i></a><a href="#"><i class="fab fa-youtube"></i></a></div></div>
+    <div><h6>Mobile App</h6><div class="store-btn"><i class="fab fa-google-play"></i> GET IT ON<br><b>Google Play</b></div><div class="store-btn"><i class="fab fa-apple"></i> Download on the<br><b>App Store</b></div></div>
+  </div><div class="f-bottom"><span>© 2026 Padmazon. All rights reserved. (demo)</span><span>Privacy Policy &nbsp; Terms & Conditions</span></div></div>
+</footer>
+
+<script>
+const DB = {
+  Fashion: {
+    subs: ['Gents', 'Ladies', 'Kids'],
+    brands: [['Aarong', 14], ['Yellow', 9], ['Ecstasy', 6]],
+    prices: [[0, 1000], [1000, 3000], [3000, 8000]],
+    attrs: { Size: ['S', 'M', 'L', 'XL'], Unit: ['Piece', 'Box'] },
+    colors: [['Red', '#DC2626'], ['Green', '#16A34A'], ['Blue', '#2563EB'], ['Black', '#111']],
+    tags: ['New Arrival', 'Best Seller', 'Discount', 'Premium'],
+    products: [
+      { n: 'Linen Gown 3piece', p: 1500, o: 2200, c: '#DC2626', s: ['M', 'L'], b: 'Aarong', t: ['New Arrival'], img: 'https://placehold.co/400x400/f3e8e8/7A0000?text=Gown' },
+      { n: 'Men Panjabi Premium', p: 1850, o: null, c: '#111111', s: ['L', 'XL'], b: 'Yellow', t: ['Premium'], img: 'https://placehold.co/400x400/eeeeee/333333?text=Panjabi' },
+      { n: 'Cotton Saree', p: 2400, o: 2900, c: '#2563EB', s: ['S', 'M'], b: 'Aarong', t: ['Best Seller'], img: 'https://placehold.co/400x400/e3ecfa/1e3a8a?text=Saree' },
+      { n: 'Casual T-shirt', p: 550, o: null, c: '#16A34A', s: ['S', 'M', 'L'], b: 'Ecstasy', t: ['Discount'], img: 'https://placehold.co/400x400/e6f4ea/14532d?text=T-shirt' },
+    ]
+  },
+  Electronics: {
+    subs: ['Mobile', 'Laptop', 'Accessories'],
+    brands: [['Samsung', 11], ['Xiaomi', 8]],
+    prices: [[5000, 20000], [20000, 60000]],
+    attrs: {}, colors: [], tags: ['New Arrival', 'Discount'],
+    products: [
+      { n: 'Smartphone X12', p: 24500, o: 27000, c: null, s: [], b: 'Samsung', t: ['New Arrival'], img: 'https://placehold.co/400x400/111111/ffffff?text=Phone' },
+      { n: 'Wireless Earbuds', p: 1850, o: 2400, c: null, s: [], b: 'Xiaomi', t: ['Discount'], img: 'https://placehold.co/400x400/f5f5f5/333333?text=Buds' },
+    ]
+  }
+};
+const F = { cat: 'Fashion', sub: 'All', brands: [], price: null, sizes: {}, colors: [], tags: [] };
+const $ = id => document.getElementById(id);
+
+function renderSide() {
+  const d = DB[F.cat], s = [];
+  s.push(`<div class="card"><div class="f-head" onclick="this.nextElementSibling.classList.toggle('hide')">Category <i class="fas fa-chevron-down"></i></div><div class="f-body">`);
+  s.push(`<div class="cat-p ${F.sub === 'All' ? 'on' : ''}" onclick="setSub('All')">All ${F.cat} <span>›</span></div>`);
+  d.subs.forEach(x => s.push(`<div class="cat-c ${F.sub === x ? 'on' : ''}" onclick="setSub('${x}')">${x}</div>`));
+  s.push(`</div></div>`);
+  s.push(`<div class="card"><div class="f-head" onclick="this.nextElementSibling.classList.toggle('hide')">Brand <i class="fas fa-chevron-down"></i></div><div class="f-body">`);
+  d.brands.forEach(([b, c]) => s.push(`<label class="chk"><input type="checkbox" ${F.brands.includes(b) ? 'checked' : ''} onchange="togBrand('${b}')"> ${b} <small>(${c})</small></label>`));
+  s.push(`</div></div>`);
+  s.push(`<div class="card"><div class="f-head" onclick="this.nextElementSibling.classList.toggle('hide')">Price Range <i class="fas fa-chevron-down"></i></div><div class="f-body">`);
+  d.prices.forEach(([a, b]) => { const k = a + '-' + b; s.push(`<label class="chk"><input type="radio" name="pr" ${F.price === k ? 'checked' : ''} onchange="setPrice('${k}')"> ৳${a.toLocaleString()} – ৳${b.toLocaleString()}</label>`); });
+  s.push(`<div class="pricerow" style="margin-top:6px"><input id="pmin" type="number" placeholder="Min"><input id="pmax" type="number" placeholder="Max"><button onclick="setCustomPrice()">Go</button></div></div></div>`);
+  Object.entries(d.attrs).forEach(([attr, vals]) => {
+    s.push(`<div class="card"><div class="f-head" onclick="this.nextElementSibling.classList.toggle('hide')">${attr} <i class="fas fa-chevron-down"></i></div><div class="f-body">`);
+    vals.forEach(v => { const on = (F.sizes[attr] || []).includes(v); s.push(`<button class="size-opt ${on ? 'on' : ''}" onclick="togSize('${attr}','${v}')">${v}</button> `); });
+    s.push(`</div></div>`);
+  });
+  if (d.colors.length) {
+    s.push(`<div class="card"><div class="f-head" onclick="this.nextElementSibling.classList.toggle('hide')">Color <i class="fas fa-chevron-down"></i></div><div class="f-body" style="display:flex;gap:8px">`);
+    d.colors.forEach(([c, h]) => s.push(`<span class="cdot ${F.colors.includes(c) ? 'on' : ''}" title="${c}" style="background:${h}" onclick="togColor('${c}')"></span>`));
+    s.push(`</div></div>`);
+  }
+  s.push(`<div class="card"><div class="f-head" onclick="this.nextElementSibling.classList.toggle('hide')">Tags <i class="fas fa-chevron-down"></i></div><div class="f-body">`);
+  d.tags.forEach(t => s.push(`<button class="tag ${F.tags.includes(t) ? 'on' : ''}" onclick="togTag('${t}')">${t}</button> `));
+  s.push(`</div></div>`);
+  $('side').innerHTML = s.join('');
+}
+function setSub(x) { F.sub = x; $('cSub').textContent = x; render(); renderSide(); }
+function togBrand(b) { F.brands = F.brands.includes(b) ? F.brands.filter(x => x !== b) : [...F.brands, b]; render(); }
+function setPrice(k) { F.price = F.price === k ? null : k; render(); }
+function setCustomPrice() {
+  const a = +$('pmin').value || 0, b = +$('pmax').value || 99999999;
+  F.price = 'c' + a + '-' + b; F.custom = [a, b]; render();
+}
+function togSize(a, v) {
+  const arr = F.sizes[a] || [];
+  F.sizes[a] = arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
+  render();
+}
+function togColor(c) { F.colors = F.colors.includes(c) ? F.colors.filter(x => x !== c) : [...F.colors, c]; render(); }
+function togTag(t) { F.tags = F.tags.includes(t) ? F.tags.filter(x => x !== t) : [...F.tags, t]; render(); }
+function clearAll() { F.brands = []; F.price = null; F.sizes = {}; F.colors = []; F.tags = []; F.sub = 'All'; render(); renderSide(); }
+function match(p) {
+  const d = DB[F.cat];
+  if (F.brands.length && !F.brands.includes(p.b)) return false;
+  if (F.price) {
+    let a, b;
+    if (F.price[0] === 'c') [a, b] = F.custom; else [a, b] = F.price.split('-').map(Number);
+    if (p.p < a || p.p > b) return false;
+  }
+  for (const [attr, vals] of Object.entries(F.sizes)) { if (vals.length && !vals.some(v => p.s.includes(v))) return false; }
+  if (F.colors.length && !F.colors.includes(p.c)) return false;
+  if (F.tags.length && !F.tags.some(t => p.t.includes(t))) return false;
+  return true;
+}
+function render() {
+  const d = DB[F.cat];
+  $('cCat').textContent = F.cat;
+  $('tTitle').childNodes[0].textContent = (F.sub === 'All' ? F.cat : F.sub) + ' ';
+  let list = d.products.filter(match);
+  const sort = $('sort').value;
+  if (sort === 'low') list.sort((a, b) => a.p - b.p);
+  if (sort === 'high') list.sort((a, b) => b.p - a.p);
+  $('tCount').textContent = `(${list.length} products)`;
+  const nActive = F.brands.length + (F.price ? 1 : 0) + Object.values(F.sizes).flat().length + F.colors.length + F.tags.length;
+  $('fCount').textContent = nActive ? `(${nActive})` : '';
+  $('active').innerHTML = nActive ? `<span class="clear" onclick="clearAll()">✕ Clear all filters (${nActive})</span>` : '';
+  $('grid').innerHTML = list.length ? list.map(p => `
+    <div class="p-card"><img loading="lazy" src="${p.img}" alt="${p.n}">
+      <div class="p-info"><h4>${p.n}</h4>
+        <div class="pr">৳${p.p.toLocaleString()}${p.o ? `<s>৳${p.o.toLocaleString()}</s>` : ''}</div>
+        ${p.c ? `<div class="dots"><span class="cdot" style="background:${p.c};cursor:default"></span></div>` : ''}
+      </div></div>`).join('')
+    : `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#888">No products match — filters adjust করুন</div>`;
+}
+function switchCat(c) { Object.assign(F, { cat: c, sub: 'All', brands: [], price: null, sizes: {}, colors: [], tags: [] }); render(); renderSide(); }
+// demo top-category switcher (simulates clicking another category)
+document.querySelector('.hp-logo').insertAdjacentHTML('afterend',
+  `<select onchange="switchCat(this.value)" style="border-radius:8px;padding:6px"><option>Fashion</option><option>Electronics</option></select>`);
+renderSide(); render();
+</script>
+</body>
+</html>

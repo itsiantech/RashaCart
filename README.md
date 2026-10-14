@@ -211,3 +211,76 @@ php artisan test --filter=Tracking               # tracking test suite (12 tests
   (Livewire), `public/assets/admin/css/sidebar-theme.css` (CSS vars), theme vars rendered
   server-side in admin layout head + live-applied via `sidebar-theme-applied` event.
 - Tests: `php artisan test --filter=SidebarThemeTest` (4 tests).
+
+## Automation foundation (??????? ? — ???? ??????)
+- Sidebar-? **Automation** menu (Settings-?? ???): Overview + ? module + AI Settings?
+  ???? module = grey + Off badge; ??????? = Coming soon badge?
+- ?? module default **OFF**? Mode: Off / Shadow (???? log) / Live? Master switch OFF = ?? ?????
+- OFF ???? ?????? ????: `module.enabled:{key}` middleware route ??????, `SkipsWhenDisabled`
+  trait listener/job-?? ?????? check ???, ???? API/AI call ??? ???
+- Save Cantonment: model observer cache clear ??? — deploy/command ?????? ???? ???? ????????
+- Toggle + AI Settings ???? super-admin (`role:admin`); audit log-? secret ???? ???? ???
+
+### ?? module ??? ??? (???? ? ???)
+1. `app/Automation/Modules/MyModule/MyModule.php` — `AutomationModule` contract implement
+   (key/name/description/icon/status/settingsSchema/guide ????? RiskScoreModule)?
+2. `AutomationRegistry::$modules`-? ?? ????: `MyModule::class,`
+3. `php artisan db:seed --class=AutomationSeeder` (OFF state-? row ??????)?
+Menu, Overview card, settings form, guide, audit — ?? automatic? Custom route/job ?????
+`routes()`, listener-? `SkipsWhenDisabled`, job-?? ?????? `skipUnlessEnabled()`?
+
+### AI layer
+- `AiService::complete($moduleKey, $prompt)` — budget guard + usage log + PII mask?
+  Key encrypted (`automation_api_key`), UI-?? masked? Test Connection rate-limited?
+- ???: `ai_usage_logs`; ????? ??%+-? Overview-? warning, ?????? block?
+- Tests: `php artisan test --filter=AutomationFoundationTest` (9 tests)?
+
+### (Cont.) Automation menu toggle
+- Business Settings-? **Automation Menu** switch: OFF ???? sidebar ???? ???? Automation
+  section (header + ?? submenu) ???? ??; ON ???? ????? Auto-save + cache clear, ???? ???? ????????
+- Default ON (seeder `firstOrCreate` — re-seed-? ????? ????? overwrite ?? ??)?
+
+### (Cont.) Seller Manage menu toggle
+- Business Settings-? **Seller Manage Menu** switch: OFF ???? admin-??? sidebar ???? ????
+  Seller Manage section ???? ??; vendor-?? ??????? **Seller Payout** ???? ????? ????
+  Auto-save + cache clear, ???? ???? ???????? Default ON?
+
+## Google SEO menu (dynamic, no code edits)
+- Sidebar **Google SEO** menu (Business Settings toggle SO/Menu, default ON): Search Console,
+  Analytics 4, Tag Manager, XML Sitemap, Robots.txt, Schema Markup — 1 Livewire page, 6 tabs.
+- **GA4 shared source**: Measurement ID writes the tracking module`s ga4 row — browser pixel
+  + server API both use it, no duplicate tags. Clearing disables GA4.
+- **GTM**: container ID + ON/OFF ? head script + body noscript on all storefront layouts + homepage.
+- **Sitemap**: `/sitemap.xml` (products/categories/static, 1h cache, auto-refresh on save).
+  Submit URL in Search Console. **Robots**: `/robots.txt` from textarea (empty = default + sitemap line).
+- **Schema**: Organization/WebSite/Product(???/????/????? auto)/Breadcrumb toggles ? JSON-LD.
+  Org info comes from All Settings. Test: validator.schema.org.
+- Tests: `php artisan test --filter=SeoTest` (5 tests).
+
+## Category flyout menu (Daraz-style, 3 level)
+- Homepage hero panel ??? 3-level flyout: hover/focus-? L2 panel, ??? ????? hover-? L3?
+  Mobile-? ???? ??? pills ????? Parent row-?? click ???? parent page-? ?????
+- Data: top-level + children.children eager load (N+1 ???), inactive category/child ???????
+  L3 data ?? ????? L3 panel ??? ?? — admin sub-sub-category ??????? ???????
+- ????? recursive lists (welcome/mobile sidebar) markup ???? ??? ?????? CSS ??? ?? —
+  hover/focus/tap-to-open CSS (`@once`) ??? ??????
+- Tests: `php artisan test --filter=CategoryMenuTest` (3 tests)?
+
+## Unified storefront chrome (homepage header/footer everywhere)
+- `partials/main-header`, `main-footer`, `main-chrome-css`: exact copies of the homepage
+  navbar/subnav/footer (homepage.blade.php untouched — zero regression risk).
+- New layout `livewire.frontend.layouts.store` uses them. PLP pages
+  (CategoryProduct, CategoryView) moved to it; other pages stay on old layouts for now.
+- Tests: `php artisan test --filter=StoreLayoutTest` (new chrome present, old header gone, homepage intact).
+
+## PLP layout fix (scoped theme CSS)
+- Category pages previously rendered unstyled on the new store layout (theme CSS lived
+  only in the old layout). `public/assets/frontend/css/plp.css` holds ONLY PLP classes
+  extracted from the theme (scripted extraction, no globals) — header/footer look untouched.
+- "No products found" on empty categories is legitimate (query verified by test).
+
+## All Brands page (mock redesign)
+- `BrandView` rebuilt: search box, 6-col logo cards (logo/name/N active products),
+  LOAD MORE (+18), store layout (homepage header/footer). Sidebar removed (mock).
+- Active brands only, alphabetical; slug param ignored (previously crashed on unknown column).
+- Tests: `php artisan test --filter=BrandIndexPageTest` (2 tests).

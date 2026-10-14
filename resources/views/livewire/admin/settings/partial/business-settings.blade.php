@@ -58,6 +58,24 @@
             <label class="form-check-label" for="attribute_system">Attribute System</label>
         </div>
 
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" wire:model="automation_menu" id="automation_menu"
+                value="1">
+            <label class="form-check-label" for="automation_menu">Automation Menu <small class="text-muted">(sidebar-এ Automation section দেখাবে)</small></label>
+        </div>
+
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" wire:model="seller_menu" id="seller_menu"
+                value="1">
+            <label class="form-check-label" for="seller_menu">Seller Manage Menu <small class="text-muted">(sidebar-এ Seller Manage দেখাবে; vendor-দের Payout থাকে)</small></label>
+        </div>
+
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" wire:model="seo_menu" id="seo_menu"
+                value="1">
+            <label class="form-check-label" for="seo_menu">Google SEO Menu <small class="text-muted">(sidebar-এ Google SEO section দেখাবে)</small></label>
+        </div>
+
        
 
 

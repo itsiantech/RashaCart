@@ -93,6 +93,9 @@
     {{-- Server-Side Tracking Pixel --}}
     @include('partials.tracking-pixel')
 
+    {{-- Google SEO (verification, GTM, schema) --}}
+    @include('partials.seo-tags')
+
     <script>
         document.addEventListener('livewire:init', () => {
             Livewire.on('track-event', ({
@@ -129,6 +132,8 @@
 </head>
 
 <body>
+    {{-- GTM noscript --}}
+    @include('partials.seo-body')
     <!-- Top Bar -->
     {{-- @include('livewire.frontend.layouts.partial.topbar.topbar-default') --}}
 

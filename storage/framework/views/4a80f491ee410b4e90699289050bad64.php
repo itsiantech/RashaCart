@@ -1,121 +1,63 @@
 <section class="hero-section">
     <div class="container">
-        <div class="hero-container">
+        <div class="catview-titlebar">All Categories</div>
 
-            <!-- Categories Sidebar -->
-            <aside class="categories-category-sidebar">
-                <div class="categories-header">
-                    <h3><i class="fas fa-sliders-h "></i> Filters</h3>
-                </div>
-
-                <div class="filter-card py-3">
-                    <ul class="check-list">
-                        <?php echo $__env->make('livewire.frontend.layouts.partial.category.category-list', [
-                        'categories' => collect($allCategories)->where('parent_id', null),
-                        ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-                    </ul>
-                </div>
-
-                <div class="filter-card  pb-3">
-                    <h3 class="filter-title"><i class="fas fa-mobile-alt"></i> Price</h3>
-                    <div class="size-options">
-                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = ['500-1000', '1000-2000', '2000-3000', '3000-4000']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $price): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                        <button
-                            wire:click.prevent="togglePrice('<?php echo e($price); ?>')"
-                            class="size-option <?php echo e($selectedPrice === $price ? 'active' : ''); ?>">
-                            <?php echo e($price); ?>
-
-                        </button>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+        <div class="products-grid-container" style="width:100%">
+            <div class="catview-grid">
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <a wire:navigate href="<?php echo e(route('frontend.category.products.view', $category->slug)); ?>"
+                    class="catview-card">
+                    <span class="catview-ic">
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($category->image): ?>
+                        <img src="<?php echo e(asset('storage/' . $category->image)); ?>"
+                            alt="<?php echo e($category->name); ?>" loading="lazy">
+                        <?php else: ?>
+                        <i class="fas fa-tag"></i>
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </span>
+                    <span class="catview-name"><?php echo e($category->name); ?></span>
+                </a>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                <div class="empty-products">
+                    <div class="cart-empty">
+                        <i class="fas fa-shopping-basket"></i>
+                        <p>No categories found.</p>
+                        <p>We couldn’t find any categories matching your criteria. Please adjust your filters or try a different search.</p>
+                        <a wire:navigate href="<?php echo e(route('home')); ?>" class="btn-continue-shopping">Continue Shopping</a>
                     </div>
                 </div>
-            </aside>
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+            </div>
+            <style>
+                .catview-titlebar {
+                    background: #12225B; color: #fff; text-align: center;
+                    font-size: 1.05rem; font-weight: 700; padding: 12px;
+                    border-radius: 10px; margin: 16px 0;
+                }
+                .catview-grid {
+                    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+                }
+                @media (max-width: 768px) {
+                    .catview-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+                }
+                .catview-card {
+                    background: #fff; border: 1px solid #eef0f4; border-radius: 12px;
+                    padding: 22px 10px 18px; text-decoration: none;
+                    display: flex; flex-direction: column; align-items: center; gap: 10px;
+                    transition: box-shadow .15s, transform .15s;
+                }
+                .catview-card:hover { box-shadow: 0 8px 22px rgba(18, 34, 91, .10); transform: translateY(-2px); }
+                .catview-ic {
+                    width: 58px; height: 58px; border-radius: 50%;
+                    background: #f1f3f9; color: #12225B;
+                    display: inline-flex; align-items: center; justify-content: center;
+                    font-size: 1.3rem; overflow: hidden; flex-shrink: 0;
+                }
+                .catview-ic img { width: 100%; height: 100%; object-fit: cover; }
+                .catview-name { font-size: .83rem; font-weight: 500; color: #333a45; text-align: center; line-height: 1.35; }
+                .catview-card:hover .catview-name { color: #7A0000; }
+            </style>
 
-            <!-- Products Grid -->
-            <div class="products-grid-container">
-                <div class="section-header">
-                    <h2>
-                        <?php echo e($category ? 'Category - ' . $category->name : 'All Categories'); ?>
-
-                    </h2>
-                </div>
-
-                <div class="products-grid">
-                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                    <a wire:navigate href="<?php echo e(route('frontend.category.products.view', $category->slug)); ?>"
-                        class="category-card">
-                        <div class="category-image">
-                            <img src="<?php echo e($category->image ? asset('storage/' . $category->image) : 'https://placehold.co/500x500'); ?>"
-                                alt="<?php echo e($category->name); ?>" loading="lazy">
-                        </div>
-                        <h3 class="category-name"><?php echo e($category->name); ?></h3>
-                    </a>
-                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                    <div class="empty-products">
-                        <div class="cart-empty">
-                            <i class="fas fa-shopping-basket"></i>
-                            <p>No categories found.</p>
-                            <p>We couldn’t find any categories matching your criteria. Please adjust your filters or try a different search.</p>
-                            <a wire:navigate href="<?php echo e(route('home')); ?>" class="btn-continue-shopping">Continue Shopping</a>
-                        </div>
-                    </div>
-                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                </div>
-                <style>
-                    .products-grid {
-                        grid-template-columns: repeat(5, 1fr) !important;
-                        gap: 1.25rem;
-                    }
-
-                    @media (max-width: 1400px) {
-                        .products-grid {
-                            grid-template-columns: repeat(3, 1fr) !important;
-                        }
-                    }
-
-                    @media (max-width: 1200px) {
-                        .products-grid {
-                            grid-template-columns: repeat(2, 1fr) !important;
-                        }
-                    }
-
-                    @media (max-width: 900px) {
-                        .products-grid {
-                            grid-template-columns: repeat(2, 1fr) !important;
-                        }
-                    }
-
-                    .empty-products {
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        width: 90%;
-                        max-width: 300px;
-                    }
-
-                    .empty-icon i {
-                        font-size: 64px;
-                        color: #ccc;
-                    }
-
-                    .categories-category-sidebar {
-                        width: 100%;
-                        background: white;
-                        border-radius: 8px;
-                        box-shadow: var(--box-shadow);
-                        overflow: hidden;
-                        margin-top: 20px;
-                        margin-bottom: 20px;
-                    }
-
-                    @media screen and (max-width: 768px) {
-                        .categories-category-sidebar {
-                            overflow: hidden;
-                            display: none;
-                        }
-                    }
-                </style>
 
                 <div class="pagination-container">
                     <?php echo e($categories->links()); ?>
@@ -125,4 +67,5 @@
             </div>
         </div>
     </div>
-</section><?php /**PATH C:\Users\user\bandrose\resources\views/livewire/frontend/product/category-view.blade.php ENDPATH**/ ?>
+</section>
+<?php /**PATH C:\Users\user\bandrose\resources\views/livewire/frontend/product/category-view.blade.php ENDPATH**/ ?>

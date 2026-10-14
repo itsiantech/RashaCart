@@ -52,7 +52,10 @@ class Category extends Model
 
     protected static function booted()
     {
-        static::saved(fn () => static::flushCache());
+        static::saved(function () {
+            static::flushCache();
+            \App\Services\SeoService::clearSitemapCache();
+        });
         static::deleted(fn () => static::flushCache());
     }
 }

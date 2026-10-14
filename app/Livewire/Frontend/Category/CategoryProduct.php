@@ -18,6 +18,14 @@ class CategoryProduct extends Component
 
     public $selectedAttrs = [];
 
+    public $selectedBrands = [];
+
+    public $minPrice = null;
+
+    public $maxPrice = null;
+
+    public $sort = 'popular';
+
     public $meta_title;
 
     public $meta_description;
@@ -34,6 +42,8 @@ class CategoryProduct extends Component
     protected $queryString = [
         'selectedPrice' => ['except' => null],
         'selectedAttrs' => ['except' => []],
+        'selectedBrands' => ['except' => []],
+        'sort' => ['except' => 'popular'],
     ];
 
     public function mount($category = null)
@@ -70,6 +80,75 @@ class CategoryProduct extends Component
     public function togglePrice($price)
     {
         $this->selectedPrice = ($this->selectedPrice === $price) ? null : $price;
+        if ($this->selectedPrice) {
+            $this->minPrice = null;
+            $this->maxPrice = null;
+        }
+        $this->resetPage();
+    }
+
+    public function updatedMinPrice(): void
+    {
+        $this->selectedPrice = null;
+    }
+
+    public function updatedMaxPrice(): void
+    {
+        $this->selectedPrice = null;
+    }
+
+    public function applyCustomPrice(): void
+    {
+        $min = $this->minPrice !== null && $this->minPrice !== '' ? (float) $this->minPrice : null;
+        $max = $this->maxPrice !== null && $this->maxPrice !== '' ? (float) $this->maxPrice : null;
+
+        if ($min === null && $max === null) {
+            return;
+        }
+        if ($min !== null && $max !== null && $min > $max) {
+            [$min, $max] = [$max, $min];
+            $this->minPrice = $min;
+            $this->maxPrice = $max;
+        }
+
+        $this->selectedPrice = null;
+        $this->resetPage();
+    }
+
+    public function clearPrice(): void
+    {
+        $this->selectedPrice = null;
+        $this->minPrice = null;
+        $this->maxPrice = null;
+        $this->resetPage();
+    }
+
+    public function toggleBrand($brandId)
+    {
+        $brandId = (int) $brandId;
+        $current = $this->selectedBrands ?? [];
+        $this->selectedBrands = in_array($brandId, $current)
+            ? array_values(array_diff($current, [$brandId]))
+            : array_values(array_merge($current, [$brandId]));
+        $this->resetPage();
+    }
+
+    public function setSort(string $sort): void
+    {
+        if (in_array($sort, ['popular', 'price_asc', 'price_desc', 'newest'], true)) {
+            $this->sort = $sort;
+            $this->resetPage();
+        }
+    }
+
+    public function clearAllFilters(): void
+    {
+        $this->selectedPrice = null;
+        $this->minPrice = null;
+        $this->maxPrice = null;
+        $this->selectedAttrs = [];
+        $this->selectedBrands = [];
+        $this->resetPage();
     }
 
     public function toggleAttrValue($attrId, $valueId)
@@ -114,7 +193,17 @@ class CategoryProduct extends Component
 
         if ($this->selectedPrice) {
             [$min, $max] = explode('-', $this->selectedPrice);
-            $query->whereBetween('price', [(int) $min, (int) $max]);
+            $query->whereBetween('sale_price', [(int) $min, (int) $max]);
+        }
+
+        if (($this->minPrice !== null && $this->minPrice !== '') || ($this->maxPrice !== null && $this->maxPrice !== '')) {
+            $min = $this->minPrice !== null && $this->minPrice !== '' ? (float) $this->minPrice : 0;
+            $max = $this->maxPrice !== null && $this->maxPrice !== '' ? (float) $this->maxPrice : 99999999;
+            $query->whereBetween('sale_price', [$min, $max]);
+        }
+
+        if (! empty($this->selectedBrands)) {
+            $query->whereIn('brand_id', array_map('intval', $this->selectedBrands));
         }
 
         // Attribute filters: variant must match one selected value per attribute (AND across attributes)
@@ -129,10 +218,60 @@ class CategoryProduct extends Component
             });
         }
 
+        match ($this->sort) {
+            'price_asc' => $query->orderBy('sale_price')->orderBy('id', 'desc'),
+            'price_desc' => $query->orderByDesc('sale_price')->orderBy('id', 'desc'),
+            'newest' => $query->orderBy('id', 'desc'),
+            default => $query->orderByDesc('is_featured')->orderBy('id', 'desc'),
+        };
+
         return $query->with([
             'variants.variantAttributeValues.attribute',
             'variants.variantAttributeValues.attributeValue',
         ])->paginate(20);
+    }
+
+    /** Brands present in the current category scope, with product counts. */
+    public function getFilterBrandsProperty()
+    {
+        $base = Product::query()->where('status', true);
+        if ($this->category) {
+            $base->where('category_id', $this->category->id);
+        }
+
+        $counts = (clone $base)->selectRaw('brand_id, COUNT(*) as total')
+            ->whereNotNull('brand_id')
+            ->groupBy('brand_id')
+            ->pluck('total', 'brand_id');
+
+        if ($counts->isEmpty()) {
+            return collect();
+        }
+
+        return \App\Models\Brand::whereIn('id', $counts->keys())
+            ->where('is_active', 1)
+            ->orderBy('name')->get()
+            ->map(fn ($b) => ['brand' => $b, 'count' => (int) ($counts[$b->id] ?? 0)]);
+    }
+
+    /** Children of the current category ("More in X" pills). */
+    public function getSubcategoriesProperty()
+    {
+        if (! $this->category) {
+            return collect();
+        }
+
+        return \App\Models\Category::where('parent_id', $this->category->id)
+            ->where('status', 1)
+            ->orderBy('sort_order')->orderBy('name')->get();
+    }
+
+    public function getActiveFilterCountProperty(): int
+    {
+        return ($this->selectedPrice ? 1 : 0)
+            + (($this->minPrice !== null && $this->minPrice !== '') || ($this->maxPrice !== null && $this->maxPrice !== '') ? 1 : 0)
+            + count($this->selectedBrands)
+            + collect($this->selectedAttrs)->map(fn ($v) => count((array) $v))->sum();
     }
 
     public function getCategoriesProperty()
@@ -160,7 +299,7 @@ class CategoryProduct extends Component
         return view('livewire.frontend.category.category-product', [
             'products' => $this->products,
             'categories' => $this->categories,
-        ])->layout('livewire.frontend.layouts.app')
+        ])->layout('livewire.frontend.layouts.store')
             ->layoutData([
                 'meta' => [
                     'title' => $this->meta_title ?? '',

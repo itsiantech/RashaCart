@@ -92,6 +92,8 @@ class CategoryComponent extends Component
                 'status' => (bool) $node->status,
                 'is_featured' => (bool) $node->is_featured,
                 'depth' => $depth,
+                'parent_id' => $node->parent_id,
+                'parent_name' => null,
                 'has_children' => $byParent->has($node->id),
                 'products' => $inclusive[$node->id] ?? (int) ($directCounts[$node->id] ?? 0),
             ];
@@ -100,18 +102,20 @@ class CategoryComponent extends Component
         $this->groups = [];
 
         if ($term === '') {
-            // Tree order: each sibling level becomes its own sortable group
-            $emit = function ($parentId, $depth) use (&$emit, $byParent, $makeRow) {
-                $rows = [];
+            // True tree-walk order: each parent is immediately followed by its
+            // descendants (Fashion, MAN, Tshirt, Woman, ...) so children always
+            // appear directly under their parent. Drag-sort stays per level —
+            // the blade constrains drags to same-parent rows (data-parent).
+            $walk = function ($parentId, $depth, $parentName) use (&$walk, $byParent, $makeRow) {
                 foreach ($byParent->get($parentId ?: 'root', collect()) as $node) {
-                    $rows[] = $makeRow($node, $depth);
-                }
-                $this->groups[] = ['parent_id' => $parentId, 'rows' => $rows];
-                foreach ($byParent->get($parentId ?: 'root', collect()) as $node) {
-                    $emit($node->id, $depth + 1);
+                    $row = $makeRow($node, $depth);
+                    $row['parent_name'] = $parentName;
+                    $this->tree[] = $row;
+                    $walk($node->id, $depth + 1, $node->name);
                 }
             };
-            $emit(null, 0);
+            $this->tree = [];
+            $walk(null, 0, null);
         } else {
             // Searching: flat filtered list, keep matches or ancestors of matches
             $filterFlatten = function ($parentId, $depth) use (&$filterFlatten, $byParent, $makeRow, $matches) {
@@ -127,9 +131,8 @@ class CategoryComponent extends Component
                 return $rows;
             };
             $this->groups[] = ['parent_id' => 'search', 'rows' => $filterFlatten(null, 0)];
+            $this->tree = collect($this->groups)->flatMap(fn ($g) => $g['rows'])->all();
         }
-
-        $this->tree = collect($this->groups)->flatMap(fn ($g) => $g['rows'])->all();
 
         $this->totalCount = $all->count();
         $this->activeCount = $all->where('status', true)->count();

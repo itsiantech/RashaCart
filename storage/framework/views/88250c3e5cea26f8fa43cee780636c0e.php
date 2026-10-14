@@ -181,8 +181,12 @@
         .mobile-bottom-nav a.active { color: var(--primary); }
         @media(max-width:768px) { body { padding-bottom: 60px; } }
     </style>
+    
+    <?php echo $__env->make('partials.seo-tags', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 </head>
 <body>
+    
+    <?php echo $__env->make('partials.seo-body', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>}
 
 
 <nav class="navbar-main sticky-top">
@@ -241,16 +245,7 @@
 
         
         <aside class="hp-cat">
-            <div class="hp-cat-card">
-                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                <a href="<?php echo e(route('frontend.category.view', $cat->slug)); ?>" class="hp-cat-item">
-                    <span><?php echo e($cat->name); ?></span>
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                <div class="p-3 text-muted text-center" style="font-size:.85rem">No categories</div>
-                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-            </div>
+            <?php echo $__env->make('livewire.frontend.layouts.partial.category.category-flyout', ['categories' => $categories], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         </aside>
 
         

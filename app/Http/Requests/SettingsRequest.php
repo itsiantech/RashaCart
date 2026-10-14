@@ -50,6 +50,12 @@ class SettingsRequest extends FormRequest
 
             'attribute_system' => ['nullable', 'boolean'],
 
+            'automation_menu' => ['nullable', 'boolean'],
+
+            'seller_menu' => ['nullable', 'boolean'],
+
+            'seo_menu' => ['nullable', 'boolean'],
+
             // ✅ OTP validation
             'sms_notification' => ['nullable', 'boolean'],
             'sms_api_key' => 'nullable|string|max:255',

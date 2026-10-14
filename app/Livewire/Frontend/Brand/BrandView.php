@@ -3,56 +3,56 @@
 namespace App\Livewire\Frontend\Brand;
 
 use App\Models\Brand;
-use App\Traits\HandlesCartActions;
 use Livewire\Component;
-use Livewire\WithPagination;
 
 class BrandView extends Component
 {
-    use HandlesCartActions;
-    use WithPagination;
+    public $search = '';
 
-    public $brand = null;
-
-    public $selectedPrice = null;
+    public $perPage = 18;
 
     protected $queryString = [
-        'selectedPrice' => ['except' => null],
+        'search' => ['except' => ''],
     ];
 
     public function mount($slug = null)
     {
-        if ($slug) {
-            $this->brand = Brand::where('slug', $slug)->first();
-        }
+        // $slug ignored: this page always lists all active brands.
     }
 
-    public function toggolePrice($price)
+    public function loadMore(): void
     {
-        $this->selectedPrice = ($this->selectedPrice === $price) ? null : $price;
+        $this->perPage += 18;
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->perPage = 18;
     }
 
     public function getBrandsProperty()
     {
-        $query = Brand::query();
+        return Brand::query()
+            ->where('is_active', 1)
+            ->when($this->search, fn ($q) => $q->where('name', 'like', '%'.trim($this->search).'%'))
+            ->withCount(['products' => fn ($q) => $q->where('status', true)])
+            ->orderBy('name')
+            ->take($this->perPage)
+            ->get();
+    }
 
-        if ($this->brand) {
-            $query->where('category_id', $this->brand->id);
-        }
-
-        if ($this->selectedPrice) {
-            [$min, $max] = explode('-', $this->selectedPrice);
-            $query->whereBetween('price', [(int) $min, (int) $max]);
-        }
-
-        return $query->paginate(16);
+    public function getTotalCountProperty(): int
+    {
+        return Brand::where('is_active', 1)
+            ->when($this->search, fn ($q) => $q->where('name', 'like', '%'.trim($this->search).'%'))
+            ->count();
     }
 
     public function render()
     {
-        return view('livewire.frontend.brand.brand-view',
-            [
-                'brands' => $this->brands,
-            ])->layout('livewire.frontend.layouts.app');
+        return view('livewire.frontend.brand.brand-view', [
+            'brands' => $this->brands,
+            'totalCount' => $this->totalCount,
+        ])->layout('livewire.frontend.layouts.store');
     }
 }

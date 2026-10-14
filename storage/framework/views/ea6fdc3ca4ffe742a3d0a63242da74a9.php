@@ -45,7 +45,7 @@ if (isset($__slots)) unset($__slots);
             <div class="mobile-header">
                 <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
             </div>
-            <?php echo $__env->make('livewire.frontend.layouts.partial.category.category-list', ['categories' => \App\Models\Category::where('parent_id', null)->get()], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+            <?php echo $__env->make('livewire.frontend.layouts.partial.category.category-list', ['categories' => \App\Models\Category::with('allChildren')->where('parent_id', null)->where('status', 1)->orderBy('name')->get()], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         </div>
 
         <!-- Overlay for mobile sidebar -->
@@ -74,13 +74,27 @@ if (isset($__slots)) unset($__slots);
                     overlay.classList.remove('active');
                 }
 
-                document.querySelectorAll('.has-submenu > a').forEach(item => {
-                    item.onclick = (e) => {
-                        e.preventDefault();
-                        const parent = item.parentElement;
-                        parent.classList.toggle('open');
-                    };
+                // ── Category submenu tap-to-expand (single delegated handler: survives
+            // Livewire navigations/morphs, no double-binding). Chevron tap toggles,
+            // name tap still navigates (desktop uses hover via CSS).
+            if (!window.__catMenuBound) {
+                window.__catMenuBound = true;
+                document.addEventListener('click', (e) => {
+                    const arrow = e.target.closest('.cat-submenu > a .arrow');
+                    if (!arrow) {
+                        return;
+                    }
+                    e.preventDefault();
+                    const li = arrow.closest('.cat-submenu');
+                    const wasOpen = li.classList.contains('open');
+                    // Close sibling submenus at the same level
+                    Array.from(li.parentElement.children)
+                        .filter((sib) => sib !== li && sib.classList && sib.classList.contains('cat-submenu'))
+                        .forEach((sib) => sib.classList.remove('open'));
+                    li.classList.toggle('open', !wasOpen);
                 });
+            }
+
             }
 
             function initMobileSearchToggle() {

@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AccountsController;
 use App\Http\Controllers\Frontend\CartController;
 use App\Http\Controllers\ProductFeedController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SitemapController;
 use App\Livewire\Frontend\BestOffer\BestOffer;
 use App\Livewire\Frontend\Brand\BrandProduct;
 use App\Livewire\Frontend\Brand\BrandView;
@@ -71,7 +72,17 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
     $recommendedLimit = setting('recommended_product_limit') ?? 12;
 
     return view('homepage', [
-        'categories'          => \App\Models\Category::select('id', 'name', 'slug')->where('status', 1)->limit(15)->get(),
+        'categories'          => \App\Models\Category::select('id', 'name', 'slug', 'parent_id', 'status', 'image', 'sort_order')
+            ->where('status', 1)->whereNull('parent_id')
+            ->with(['children' => function ($q) {
+                $q->select('id', 'name', 'slug', 'parent_id', 'status', 'image', 'sort_order')
+                    ->where('status', 1)->orderBy('name')
+                    ->with(['children' => function ($q2) {
+                        $q2->select('id', 'name', 'slug', 'parent_id', 'status', 'image', 'sort_order')
+                            ->where('status', 1)->orderBy('name');
+                    }]);
+            }])
+            ->orderBy('name')->limit(15)->get(),
         'heroBanners'         => \App\Models\Banner::where('status', 1)->latest()->limit(5)->get(),
         'topShops'            => \App\Models\User::where('role', 'vendor')->with('vendorDetails')->withCount('products')->latest()->limit(6)->get(),
         'topBrands'           => \App\Models\Brand::limit(6)->get(),
@@ -107,6 +118,13 @@ Route::get('/linkstorage', function () {
 // Catalog feeds: one row per variant (item_group_id = product id)
 Route::get('/feed/google.xml', [ProductFeedController::class, 'google'])->name('feed.google');
 Route::get('/feed/meta.csv', [ProductFeedController::class, 'meta'])->name('feed.meta');
+
+// Interactive UI demos (static previews, no DB needed)
+Route::get('/demo-plp', fn () => response()->file(public_path('demo-plp.html'), ['Content-Type' => 'text/html']))->name('demo.plp');
+
+// Dynamic SEO files (managed from admin Google SEO page)
+Route::get('/sitemap.xml', [SitemapController::class, 'xml'])->name('sitemap');
+Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 
 Route::prefix('frontend')->name('frontend.')->group(function () {
 

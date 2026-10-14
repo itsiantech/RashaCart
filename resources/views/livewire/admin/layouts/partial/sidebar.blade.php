@@ -312,14 +312,15 @@ $currentRoute = request()->route()?->getName() ?? '';
         </li>
         @endif
 
-        <!-- Seller Manage -->
+        <!-- Seller section (visibility: Business Settings → Seller Menu; vendors always keep Payout) -->
+        @if (setting('seller_menu', true) || ($user && $user->hasRole('vendor')))
         <li class="menu-item {{ Route::is('admin.vendor.*') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-category-alt"></i>
                 <div>Seller Manage</div>
             </a>
             <ul class="menu-sub">
-                @if ($isAdmin || Auth::user()->can('vendor.index'))
+                @if (setting('seller_menu', true) && ($isAdmin || Auth::user()->can('vendor.index')))
                 <li class="menu-item {{ Route::is('admin.vendor.index') ? 'active' : '' }}">
                     <a wire:navigate href="{{ route('admin.vendor.index') }}" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-list-ul"></i>
@@ -328,7 +329,7 @@ $currentRoute = request()->route()?->getName() ?? '';
                 </li>
                 @endif
 
-                @if ($isAdmin || Auth::user()->can('vendor.applied'))
+                @if (setting('seller_menu', true) && ($isAdmin || Auth::user()->can('vendor.applied')))
                 <li class="menu-item {{ Route::is('admin.vendor.payment-history') ? 'active' : '' }}">
                     <a wire:navigate href="{{ route('admin.vendor.payment-history') }}" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-user-plus"></i>
@@ -347,7 +348,7 @@ $currentRoute = request()->route()?->getName() ?? '';
                 </li>
                 @endif
 
-                @if ($isAdmin || Auth::user()->can('vendor.payout.request'))
+                @if (setting('seller_menu', true) && ($isAdmin || Auth::user()->can('vendor.payout.request')))
                 <li class="menu-item {{ Route::is('admin.vendor.payout.request') ? 'active' : '' }}">
                     <a wire:navigate href="{{ route('admin.vendor.payout.request') }}" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-receipt"></i>
@@ -356,7 +357,7 @@ $currentRoute = request()->route()?->getName() ?? '';
                 </li>
                 @endif
 
-                @if ($isAdmin || Auth::user()->can('vendor.manage.commission'))
+                @if (setting('seller_menu', true) && ($isAdmin || Auth::user()->can('vendor.manage.commission')))
                 <li class="menu-item {{ Route::is('admin.vendor.manage.commission') ? 'active' : '' }}">
                     <a wire:navigate href="{{ route('admin.vendor.manage.commission') }}" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-money"></i>
@@ -366,9 +367,10 @@ $currentRoute = request()->route()?->getName() ?? '';
                 @endif
             </ul>
         </li>
+        @endif
 		
-		
-		
+
+
 		<!-- Accounts & Finance -->
         @if ($isAdmin || Auth::user()->can('accounts.view'))
         <li class="menu-item {{ Route::is('admin.accounts.*') ? 'active open' : '' }}">
@@ -511,6 +513,80 @@ $currentRoute = request()->route()?->getName() ?? '';
                         <div>Landing Page List</div>
                     </a>
                 </li>
+            </ul>
+        </li>
+        @endif
+
+        <!-- Automation (registry-driven; toggles are super-admin only) -->
+        @if (setting('automation_menu', true))
+        @php
+            $autoModules = \App\Services\AutomationRegistry::all();
+            $autoHideOff = (bool) setting('automation_hide_disabled', false);
+            $autoVisible = collect($autoModules)->filter(fn ($m) => $isAdmin || Auth::user()->can('automation.'.$m->key().'.view'));
+        @endphp
+        @if ($autoVisible->isNotEmpty())
+        <li class="menu-header small text-uppercase"><span class="menu-header-text">AUTOMATION</span></li>
+        <li class="menu-item {{ Route::is('admin.automation.*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-chip"></i>
+                <div>Automation</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ Route::is('admin.automation.index') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.automation.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-grid-alt"></i>
+                        <div>Overview</div>
+                    </a>
+                </li>
+                @foreach ($autoVisible as $am)
+                @php
+                    $amMode = \App\Services\AutomationRegistry::mode($am->key());
+                    $amOff = $amMode === 'off';
+                @endphp
+                @if (!($amOff && $autoHideOff))
+                <li class="menu-item {{ Route::is('admin.automation.module') && request()->route('key') === $am->key() ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.automation.module', $am->key()) }}"
+                        class="menu-link {{ $amOff ? 'text-muted' : '' }}">
+                        <i class="menu-icon tf-icons {{ $am->icon() }}"></i>
+                        <div>{{ $am->name() }}</div>
+                        @if ($am->status() === 'coming_soon')
+                        <span class="badge bg-secondary ms-1">Coming soon</span>
+                        @elseif ($amOff)
+                        <span class="badge bg-secondary ms-1">Off</span>
+                        @endif
+                    </a>
+                </li>
+                @endif
+                @endforeach
+                @if ($isAdmin)
+                <li class="menu-item {{ Route::is('admin.automation.ai-settings') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.automation.ai-settings') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-cog"></i>
+                        <div>AI Settings</div>
+                    </a>
+                </li>
+                @endif
+            </ul>
+        </li>
+        @endif
+        @endif {{-- automation_menu master toggle (Business Settings) --}}
+
+        <!-- SEO section (visibility: Business Settings toggle) -->
+        @if (setting('seo_menu', true) && ($isAdmin || Auth::user()->can('setting.view')))
+        <li class="menu-item {{ Route::is('admin.seo.*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-globe"></i>
+                <div>Google SEO</div>
+            </a>
+            <ul class="menu-sub">
+                @foreach (['console' => ['Search Console', 'bx-search-alt'], 'ga4' => ['Google Analytics 4', 'bx-line-chart'], 'gtm' => ['Google Tag Manager', 'bx-tag'], 'sitemap' => ['XML Sitemap', 'bx-sitemap'], 'robots' => ['Robots.txt', 'bx-file'], 'schema' => ['Schema Markup', 'bx-code-alt']] as $tab => $item)
+                <li class="menu-item {{ Route::is('admin.seo.index') && request()->route('tab') === $tab ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.seo.index', ['tab' => $tab]) }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx {{ $item[1] }}"></i>
+                        <div>{{ $item[0] }}</div>
+                    </a>
+                </li>
+                @endforeach
             </ul>
         </li>
         @endif

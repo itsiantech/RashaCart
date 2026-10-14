@@ -20,6 +20,8 @@
     <?php echo \App\Services\PixelManager::head(); ?>
 
     <?php echo $__env->make('partials.tracking-pixel', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+    
+    <?php echo $__env->make('partials.seo-tags', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
     <style>
         :root {
@@ -93,6 +95,8 @@
 
 </head>
 <body>
+
+<?php echo $__env->make('partials.seo-body', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>}
 
 
 <nav class="navbar-main sticky-top">

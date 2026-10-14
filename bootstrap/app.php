@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.access' => \App\Http\Middleware\AdminAccess::class,
             'vendor.approved' => \App\Http\Middleware\EnsureVendorApproved::class,
             'tracking.attribution' => \App\Http\Middleware\TrackingAttributionMiddleware::class,
+            'module.enabled' => \App\Http\Middleware\EnsureModuleEnabled::class,
         ]);
         $middleware->appendToGroup('web', \App\Http\Middleware\TrackingAttributionMiddleware::class);
     })

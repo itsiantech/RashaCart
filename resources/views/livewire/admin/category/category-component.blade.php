@@ -322,17 +322,16 @@
                     </tr>
                 </tbody>
                 @else
-                @foreach($groups as $group)
-                <tbody class="cat-sort-group" wire:key="cat-group-{{ $group['parent_id'] ?? 'root' }}"
-                    data-parent="{{ $group['parent_id'] ?? '' }}"
+                <tbody class="cat-sort-group" wire:key="cat-tree"
                     @if(trim($search) === '') data-sortable="1" @endif>
-                    @foreach($group['rows'] as $row)
+                    @foreach($tree as $row)
                     <tr wire:key="cat-{{ $row['id'] }}" data-id="{{ $row['id'] }}"
+                        data-parent="{{ $row['parent_id'] ?? '' }}"
                         class="cat-row cat-depth-{{ $row['depth'] }}">
                         <td>
                             <div class="d-flex align-items-center gap-2" style="padding-left: {{ $row['depth'] * 26 }}px;">
                                 @if(trim($search) === '')
-                                <span class="cat-drag" title="Drag to reorder"><i class='bx bx-menu'></i></span>
+                                <span class="cat-drag" title="Drag to reorder (same level only)"><i class='bx bx-menu'></i></span>
                                 @endif
                                 <span class="cat-sign">{{ $row['depth'] ? str_repeat('- ', $row['depth']) : '' }}</span>
                                 @if($row['image'])
@@ -342,6 +341,9 @@
                                 <span class="cat-thumb-placeholder"><i class='bx bx-image'></i></span>
                                 @endif
                                 <span class="cat-name">{{ $row['name'] }}</span>
+                                @if(!empty($row['parent_name']))
+                                <small class="text-muted">({{ $row['parent_name'] }})</small>
+                                @endif
                                 @if($row['is_featured'])
                                 <i class='bx bxs-star cat-featured' title="Featured on homepage"></i>
                                 @endif
@@ -369,7 +371,6 @@
                     </tr>
                     @endforeach
                 </tbody>
-                @endforeach
                 @endif
             </table>
         </div>
@@ -395,11 +396,15 @@
                     animation: 150,
                     ghostClass: 'cat-ghost',
                     chosenClass: 'cat-chosen',
+                    // Tree list: only allow reordering among same-parent rows
+                    onMove: (evt) => (evt.dragged.dataset.parent || '') === (evt.related.dataset.parent || ''),
                     onEnd: (evt) => {
                         if (evt.oldIndex === evt.newIndex) return;
+                        const parent = evt.item.dataset.parent || '';
                         const ids = Array.from(tbody.querySelectorAll(':scope > tr'))
+                            .filter((tr) => (tr.dataset.parent || '') === parent)
                             .map((tr) => tr.dataset.id);
-                        $wire.reorder(tbody.dataset.parent || '', ids);
+                        $wire.reorder(parent, ids);
                     }
                 });
             });
