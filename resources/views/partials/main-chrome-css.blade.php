@@ -40,12 +40,18 @@
     .nav-icon .badge { font-size: .6rem; position: absolute; top: -6px; right: -8px; }
     .nav-icon .badge.bg-warning { background-color: var(--hd-badge, #ffc107) !important; }
 
+    /* Desktop logo size; mobile keeps the compact default above. */
+    @media (min-width: 768px) {
+        .hp-navbar-row { height: 120px; }
+        .hp-logo img { height: 120px; width: 230px; }
+    }
+
     /* ── Add to Cart buttons (dynamic; unset = each context keeps its look) ── */
     .product-card .cart-button {
         background: var(--cart-btn-bg, rgb(241, 69, 6));
         color: var(--cart-btn-text, white);
     }
-    .product-card .cart-button i { color: var(--cart-btn-icon); }
+    .product-card .cart-button i { color: var(--cart-btn-icon, var(--icon-color)); }
 
     /* ── Sub Nav ── */
     .subnav { background: var(--hd-bg, #12225B); border-top: 1px solid rgba(255,255,255,.12); }
@@ -57,7 +63,7 @@
     .hp-footer { background: var(--ft-bg, #12225B); color: var(--ft-text, #fff); margin-top: 32px; padding: 40px 0 18px; }
     .f-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
     @media(min-width: 768px) { .f-grid { grid-template-columns: repeat(3, 1fr); } }
-    @media(min-width: 992px) { .f-grid { grid-template-columns: 1.35fr 1fr 1fr 1fr .95fr 1.4fr; } }
+    @media(min-width: 992px) { .f-grid { grid-template-columns: 1.35fr 1fr 1fr 1fr .95fr; } }
     .hp-footer h6 { color: var(--ft-text, #fff); font-weight: 600; font-size: .92rem; margin-bottom: .8rem; }
     .hp-footer a { color: var(--ft-nav, rgba(255,255,255,.75)); text-decoration: none; font-size: .85rem; }
     .hp-footer a:hover { color: var(--ft-nav, #fff); }

@@ -256,8 +256,8 @@
 
         /* ── Load More ───────────────────────────────────── */
         .load-more-btn {
-            background: #FF5500;
-            color: #fff;
+            background: var(--cart-btn-bg, #FF5500);
+            color: var(--cart-btn-text, #fff);
             border: none;
             padding: 12px 40px;
             border-radius: 30px;
@@ -268,7 +268,7 @@
         }
 
         .load-more-btn:hover {
-            background: #e64d00;
+            filter: brightness(.92);
             transform: translateY(-1px);
         }
 

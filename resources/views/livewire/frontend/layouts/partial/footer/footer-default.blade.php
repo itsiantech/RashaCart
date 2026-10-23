@@ -1,7 +1,7 @@
 <!-- Footer -->
 <footer class="main-footer">
     <!-- Footer Part 1 -->
-    <div class="footer-top d-none d-lg-block">
+    <div class="footer-top">
         <div class="container">
             <div class="row">
                 <!-- About Column -->
@@ -89,7 +89,7 @@
     <!-- Bottom Nav end -->
 
     <!-- Footer Part 2 -->
-    <div class="footer-bottom  d-none d-lg-block">
+    <div class="footer-bottom">
         <div class="container">
             <div class="footer-bottom-content">
                 <div class="footer-bottom-links">
@@ -102,8 +102,7 @@
                     <a wire:navigate href="{{route('frontend.privacy.policy')}}">Privacy Policy</a>
                 </div>
                 <div class="copyright">
-                    Copyright &copy; 2025 <a href="https://www.ITsian.com" target="_blank">ITsian</a>
-                    <span class="brand">ITsian</span>
+                    {{ setting('footer_copyright') ?: '© ' . date('Y') . ' ' . (setting('app_name') ?: 'Padmazon') . '. All rights reserved.' }}
                 </div>
             </div>
         </div>

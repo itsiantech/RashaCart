@@ -353,9 +353,9 @@
     </section>
 
     {{-- Footer --}}
-    <footer class="py-3 bg-dark text-white text-center">
+    <footer class="py-3 text-center" style="background-color: var(--ft-bg, #212529); color: var(--ft-text, #fff);">
         <small>
-            Copyright © {{ date('Y') }} আপনার ব্যবসার নাম | এই ওয়েবসাইটটি তৈরি করা হয়েছে ❤️ দিয়ে
+            {{ setting('footer_copyright') ?: '© ' . date('Y') . ' ' . (setting('app_name') ?: 'Padmazon') . '. All rights reserved.' }}
         </small>
     </footer>
 

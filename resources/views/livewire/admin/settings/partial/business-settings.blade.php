@@ -31,6 +31,20 @@
             </div>
         </div>
 
+        {{-- Footer copyright --}}
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <label for="footer_copyright" class="form-label">Footer Copyright Text</label>
+                <input type="text" class="form-control @error('footer_copyright') is-invalid @enderror"
+                    id="footer_copyright" wire:model.defer="footer_copyright"
+                    placeholder="© {{ date('Y') }} {{ setting('app_name') ?: 'Padmazon' }}. All rights reserved.">
+                @error('footer_copyright')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+                <small class="text-muted">সব পেজের footer-এর বাম পাশে এই টেক্সট দেখাবে। খালি রাখলে ডিফল্ট copyright দেখাবে।</small>
+            </div>
+        </div>
+
         {{-- Delivery Charge Section --}}
         <div class="row mb-3">
             <div class="col-md-6">

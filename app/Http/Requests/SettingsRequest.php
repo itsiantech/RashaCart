@@ -24,6 +24,7 @@ class SettingsRequest extends FormRequest
         return [
             'app_name' => ['nullable', 'string', 'max:255'],
             'app_description' => ['nullable', 'string'],
+            'footer_copyright' => ['nullable', 'string', 'max:255'],
             'items_per_page' => ['nullable', 'numeric', 'min:1', 'max:100'],
             'app_logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
             'theme' => ['nullable', 'string', 'max:255'],

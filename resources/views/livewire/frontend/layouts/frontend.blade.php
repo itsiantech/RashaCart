@@ -36,45 +36,52 @@
             --line: #e5e7eb;
         }
 
-        body { font-family: 'Segoe UI', sans-serif; background: #F3F4F6; }
+        body { font-family: var(--body-font, 'Segoe UI', sans-serif); background: #F3F4F6; }
 
         /* ── Container (max-w-7xl mx-auto px-4) ── */
         .hp-container { max-width: 1280px; margin: 0 auto; padding: 0 16px; width: 100%; }
 
         /* ── Navbar ── */
-        .navbar-main { background: var(--navy); }
+        .navbar-main { background: var(--hd-bg, #12225B); }
         .hp-navbar-row { display: flex; align-items: center; gap: 18px; height: 62px; }
         .hp-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; flex-shrink: 0; }
         .hp-logo img { height: 40px; width: auto; object-fit: contain; }
         .hp-logo i { color: #fff; font-size: 1.4rem; }
         .hp-logo span { color: #fff; font-weight: 700; font-size: 1.3rem; }
         .hp-search { flex: 1; display: flex; }
-        .hp-search input.form-control { border: none; border-radius: 4px 0 0 4px; font-size: .9rem; }
-        .hp-search .btn { background: var(--accent); border: none; color: #fff; border-radius: 0 4px 4px 0; padding: 0 18px; }
+        .hp-search input.form-control { border: none; border-radius: 4px 0 0 4px; font-size: .9rem; background: var(--hd-search-bg, #fff); }
+        .hp-search .btn { background: var(--hd-search-btn, #f5a623); border: none; color: var(--hd-search-icon, #fff); border-radius: 0 4px 4px 0; padding: 0 18px; }
         .hp-nav-icons { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
-        .nav-icon { color: rgba(255,255,255,.85); font-size: 1.1rem; position: relative; text-decoration: none; }
-        .nav-icon:hover { color: #fff; }
+        .nav-icon { color: var(--hd-icon, rgba(255,255,255,.85)); font-size: 1.1rem; position: relative; text-decoration: none; }
+        .nav-icon:hover { color: var(--hd-icon, #fff); }
         .nav-icon .badge { font-size: .6rem; position: absolute; top: -6px; right: -8px; }
+        .nav-icon .badge.bg-warning { background-color: var(--hd-badge, #ffc107) !important; }
+
+        /* Desktop logo size; mobile keeps the compact default above. */
+        @media (min-width: 768px) {
+            .hp-navbar-row { height: 120px; }
+            .hp-logo img { height: 120px; width: 230px; }
+        }
 
         /* ── Sub Nav ── */
-        .subnav { background: var(--navy); border-top: 1px solid rgba(255,255,255,.12); }
-        .subnav .nav-link { color: rgba(255,255,255,.85) !important; font-size: .85rem; padding: .4rem .75rem; }
-        .subnav .nav-link:hover { color: #fff !important; }
-        .subnav .btn-sell { background: var(--accent); color: #fff; font-size: .8rem; border-radius: 20px; padding: .25rem .85rem; }
+        .subnav { background: var(--hd-bg, #12225B); border-top: 1px solid rgba(255,255,255,.12); }
+        .subnav .nav-link { color: var(--hd-nav, rgba(255,255,255,.85)) !important; font-size: .85rem; padding: .4rem .75rem; }
+        .subnav .nav-link:hover { color: #fff !important; background: var(--hd-nav-hover, transparent); }
+        .subnav .btn-sell { background: var(--hd-search-btn, #f5a623); color: #fff; font-size: .8rem; border-radius: 20px; padding: .25rem .85rem; }
 
         /* ── Footer ── */
-        .hp-footer { background: var(--navy); color: #fff; margin-top: 32px; padding: 40px 0 18px; }
+        .hp-footer { background: var(--ft-bg, #12225B); color: var(--ft-text, #fff); margin-top: 32px; padding: 40px 0 18px; }
         .f-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
         @media(min-width: 768px) { .f-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 992px) { .f-grid { grid-template-columns: 1.35fr 1fr 1fr 1fr .95fr 1.4fr; } }
-        .hp-footer h6 { color: #fff; font-weight: 600; font-size: .92rem; margin-bottom: .8rem; }
-        .hp-footer a { color: rgba(255,255,255,.75); text-decoration: none; font-size: .85rem; }
-        .hp-footer a:hover { color: #fff; }
+        @media(min-width: 992px) { .f-grid { grid-template-columns: 1.35fr 1fr 1fr 1fr .95fr; } }
+        .hp-footer h6 { color: var(--ft-text, #fff); font-weight: 600; font-size: .92rem; margin-bottom: .8rem; }
+        .hp-footer a { color: var(--ft-nav, rgba(255,255,255,.75)); text-decoration: none; font-size: .85rem; }
+        .hp-footer a:hover { color: var(--ft-nav, #fff); }
         .hp-footer ul { list-style: none; padding: 0; margin: 0; }
         .hp-footer ul li { margin-bottom: .4rem; }
-        .f-contact p { font-size: .82rem; color: rgba(255,255,255,.75); margin: 0; line-height: 1.9; }
+        .f-contact p { font-size: .82rem; color: var(--ft-text, rgba(255,255,255,.75)); margin: 0; line-height: 1.9; }
         .f-social { display: flex; gap: 10px; }
-        .f-social a { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.12); display: inline-flex; align-items: center; justify-content: center; }
+        .f-social a { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.12); display: inline-flex; align-items: center; justify-content: center; color: var(--ft-social, #fff); }
         .f-social a:hover { background: var(--accent); }
         .f-app-btn { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25); border-radius: 8px; padding: 7px 12px; margin-bottom: 8px; max-width: 190px; }
         .f-app-btn i { font-size: 1.3rem; color: #fff; }
@@ -97,7 +104,7 @@
 </head>
 <body>
 {{-- GTM noscript --}}
-@include('partials.seo-body')}
+@include('partials.seo-body')
 
 {{-- ══════════════ NAVBAR ══════════════ --}}
 <nav class="navbar-main sticky-top">
@@ -144,9 +151,7 @@
         <nav class="d-flex align-items-center flex-wrap gap-1 py-1">
             <a href="{{ route('frontend.category.view') }}" class="nav-link">Categories</a>
             <a href="{{ route('home') }}" class="nav-link">Products</a>
-            <a href="{{ route('register') }}" class="btn btn-sell ms-1">Sell on {{ setting('app_name') ?: 'Padmazon' }}</a>
             <a href="{{ route('frontend.flash.sale.products') }}" class="nav-link">Discounts</a>
-            <a href="#" class="nav-link">All Shops</a>
             <a href="{{ route('frontend.brand.view') }}" class="nav-link">All Brands</a>
             <a href="{{ route('frontend.order.tracking') }}" class="nav-link">Track Order</a>
             <a href="{{ route('home') }}" class="nav-link">Home</a>
@@ -189,12 +194,10 @@
             </div>
 
             <div>
-                <h6>Seller Center</h6>
+                <h6>About Us</h6>
                 <ul>
-                    <li><a href="{{ route('register') }}">Sell on {{ setting('app_name') ?: 'Padmazon' }}</a></li>
-                    <li><a href="{{ route('login') }}">Seller Dashboard</a></li>
-                    <li><a href="#">Help Center</a></li>
-                    <li><a href="{{ route('frontend.refund.and.returns') }}">Returns Policy</a></li>
+                    <li><a href="{{ route('frontend.terms.and.conditions') }}">Terms and Conditions</a></li>
+                    <li><a href="{{ route('frontend.privacy.policy') }}">Privacy Policy</a></li>
                 </ul>
             </div>
 
@@ -218,22 +221,10 @@
                 </div>
             </div>
 
-            <div>
-                <h6>Mobile App</h6>
-                <a href="#" class="f-app-btn">
-                    <i class="fab fa-google-play"></i>
-                    <span><small>GET IT ON</small><strong>Google Play</strong></span>
-                </a>
-                <a href="#" class="f-app-btn">
-                    <i class="fab fa-apple"></i>
-                    <span><small>Download on the</small><strong>App Store</strong></span>
-                </a>
-            </div>
-
         </div>
 
         <div class="f-bottom">
-            <span>© {{ date('Y') }} {{ setting('app_name') ?: 'Padmazon' }}. All rights reserved.</span>
+            <span>{{ setting('footer_copyright') ?: '© ' . date('Y') . ' ' . (setting('app_name') ?: 'Padmazon') . '. All rights reserved.' }}</span>
             <div class="d-flex gap-3">
                 <a href="{{ route('frontend.privacy.policy') }}">Privacy Policy</a>
                 <a href="{{ route('frontend.terms.and.conditions') }}">Terms &amp; Conditions</a>

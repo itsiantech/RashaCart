@@ -1048,8 +1048,8 @@
             padding: 13px 16px;
             font-size: 16px;
             font-weight: 600;
-            color: #fff;
-            background: var(--ck-orange);
+            color: var(--cart-btn-text, #fff);
+            background: var(--cart-btn-bg, var(--ck-orange));
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -1060,7 +1060,7 @@
         }
 
         .ck-submit:hover {
-            background: #d9420f;
+            filter: brightness(.92);
         }
 
         .ck-submit:disabled {

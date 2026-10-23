@@ -6,9 +6,17 @@
             <div class="f-contact">
                 <h6>Contact Us</h6>
                 <p>
+                    @if(setting('contact_address'))
+                    <i class="fas fa-map-marker-alt me-2"></i>{{ setting('contact_address') }}<br>
+                    @else
                     <i class="fas fa-map-marker-alt me-2"></i>Dhaka, Bangladesh<br>
-                    <i class="fas fa-phone me-2"></i>+880 1234 567890<br>
-                    <i class="fas fa-envelope me-2"></i>support@padmazon.com
+                    @endif
+                    @if(setting('contact_phone'))
+                    <i class="fas fa-phone me-2"></i>{{ setting('contact_phone') }}<br>
+                    @endif
+                    @if(setting('contact_email'))
+                    <i class="fas fa-envelope me-2"></i>{{ setting('contact_email') }}
+                    @endif
                 </p>
             </div>
 
@@ -22,12 +30,10 @@
             </div>
 
             <div>
-                <h6>Seller Center</h6>
+                <h6>About Us</h6>
                 <ul>
-                    <li><a href="{{ route('register') }}">Sell on Padmazon</a></li>
-                    <li><a href="{{ route('login') }}">Seller Dashboard</a></li>
-                    <li><a href="#">Help Center</a></li>
-                    <li><a href="{{ route('frontend.refund.and.returns') }}">Returns Policy</a></li>
+                    <li><a href="{{ route('frontend.terms.and.conditions') }}">Terms and Conditions</a></li>
+                    <li><a href="{{ route('frontend.privacy.policy') }}">Privacy Policy</a></li>
                 </ul>
             </div>
 
@@ -51,22 +57,10 @@
                 </div>
             </div>
 
-            <div>
-                <h6>Mobile App</h6>
-                <a href="#" class="f-app-btn">
-                    <i class="fab fa-google-play"></i>
-                    <span><small>GET IT ON</small><strong>Google Play</strong></span>
-                </a>
-                <a href="#" class="f-app-btn">
-                    <i class="fab fa-apple"></i>
-                    <span><small>Download on the</small><strong>App Store</strong></span>
-                </a>
-            </div>
-
         </div>
 
         <div class="f-bottom">
-            <span>© {{ date('Y') }} {{ setting('app_name') ?: 'Padmazon' }}. All rights reserved.</span>
+            <span>{{ setting('footer_copyright') ?: '© ' . date('Y') . ' ' . (setting('app_name') ?: 'Padmazon') . '. All rights reserved.' }}</span>
             <div class="d-flex gap-3">
                 <a href="{{ route('frontend.privacy.policy') }}">Privacy Policy</a>
                 <a href="{{ route('frontend.terms.and.conditions') }}">Terms &amp; Conditions</a>

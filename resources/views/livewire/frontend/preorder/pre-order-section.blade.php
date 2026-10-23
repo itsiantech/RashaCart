@@ -255,8 +255,8 @@
 
         .product-card .btn-buy {
             flex: 1;
-            background: #ff5722;
-            color: #fff;
+            background: var(--btn-all-bg, #ff5722);
+            color: var(--btn-all-text, #fff);
             border: none;
             border-radius: 8px;
             padding: 0.52rem 0.5rem;
@@ -268,13 +268,12 @@
         }
 
         .product-card .btn-buy:hover {
-            background: #e64a19;
-            color: #fff;
+            filter: brightness(.92);
         }
 
         .product-card .btn-cart {
-            background: #ff5722;
-            color: #fff;
+            background: var(--btn-all-bg, #ff5722);
+            color: var(--btn-all-text, #fff);
             border: none;
             border-radius: 8px;
             width: 42px;
@@ -287,7 +286,7 @@
         }
 
         .product-card .btn-cart:hover {
-            background: #e64a19;
+            filter: brightness(.92);
         }
 
         .product-card {

@@ -38,9 +38,7 @@
         <nav class="d-flex align-items-center flex-wrap gap-1 py-1">
             <a href="{{ route('frontend.category.view') }}" class="nav-link">Categories</a>
             <a href="{{ route('home') }}" class="nav-link">Products</a>
-            <a href="{{ route('register') }}" class="btn btn-sell ms-1">Sell on Padmazon</a>
             <a href="#" class="nav-link">Discounts</a>
-            <a href="#" class="nav-link">All Shops</a>
             <a href="{{ route('frontend.brand.view') }}" class="nav-link">All Brands</a>
             <a href="{{ route('frontend.order.tracking') }}" class="nav-link">Track Order</a>
             <a href="{{ route('home') }}" class="nav-link">Home</a>

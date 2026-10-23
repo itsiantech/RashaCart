@@ -521,7 +521,6 @@
 
         .pd-btn:hover {
             opacity: .9;
-            color: #fff;
         }
 
         .pd-btn:disabled {
@@ -533,20 +532,20 @@
             background: var(--cart-btn-bg, var(--orange, #f97316));
             color: var(--cart-btn-text, #fff);
         }
-        .pd-btn--cart i { color: var(--cart-btn-icon); }
+        .pd-btn--cart i { color: var(--cart-btn-icon, var(--icon-color)); }
 
         .pd-btn--buy {
-            background: var(--buy-btn-bg, var(--navy, #12225B));
+            background: var(--buy-btn-bg, var(--btn-all-bg, var(--navy, #12225B)));
             color: var(--buy-btn-text, #fff);
         }
 
         .pd-btn--wa {
-            background: var(--wa-btn-bg, #25D366);
+            background: var(--wa-btn-bg, var(--btn-all-bg, #25D366));
             color: var(--wa-btn-text, #fff);
         }
 
         .pd-btn--call {
-            background: var(--call-btn-bg, var(--navy, #12225B));
+            background: var(--call-btn-bg, var(--btn-all-bg, var(--navy, #12225B)));
             color: var(--call-btn-text, #fff);
         }
 
@@ -961,7 +960,7 @@
             cursor: pointer;
             transition: all .15s;
         }
-        .pd-rel-cart i { color: var(--cart-btn-icon); }
+        .pd-rel-cart i { color: var(--cart-btn-icon, var(--icon-color)); }
 
         .pd-rel-cart:hover {
             background: var(--navy, #12225B);

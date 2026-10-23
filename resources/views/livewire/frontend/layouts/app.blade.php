@@ -144,6 +144,33 @@
     <!-- Header -->
     @include('livewire.frontend.layouts.partial.header.header-default')
 
+    {{-- Storefront chrome follows admin Style Settings --}}
+    <style>
+        body { font-family: var(--body-font, 'Segoe UI', sans-serif); }
+        .main-header { background-color: var(--hd-bg, #12225B); }
+        .main-header .action-btn,
+        .main-header .menu-toggle,
+        .main-header .search-toggle-btn { color: var(--hd-icon, #fff); }
+        .main-header .badge { background-color: var(--hd-badge, #ffc107); color: #111; }
+        .search-container input { background-color: var(--hd-search-bg, #fff); }
+        .search-container button { background-color: var(--hd-search-btn, #f5a623); color: var(--hd-search-icon, #fff); }
+        .search-container button:hover { background-color: var(--hd-search-btn, #f5a623); }
+        .main-header .s input[type="text"],
+        .main-header .s input[type="search"] { background: var(--hd-search-bg, #fff); }
+        .main-header .s button[type="submit"],
+        .main-header .s .search-btn { background: var(--hd-search-btn, #f5a623) !important; color: var(--hd-search-icon, #fff) !important; }
+        .footer-top, .footer-bottom { background-color: var(--ft-bg, #12225B); color: var(--ft-text, #fff); }
+        .footer-title { color: var(--ft-text, #fff); }
+        .footer-title::after { background-color: var(--ft-text, #fff); }
+        .footer-links a { color: var(--ft-nav, #f0f0f0); }
+        .footer-links a:hover { color: var(--ft-nav, #fff); }
+        .footer-bottom-links a { color: var(--ft-nav, #fff); }
+        .footer-bottom-links a:hover { color: var(--ft-nav, #fff); }
+        @media (max-width: 767.98px) {
+            .footer-bottom { padding-bottom: 96px; }
+        }
+    </style>
+
 
 
     <!-- Main Content -->

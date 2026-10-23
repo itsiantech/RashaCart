@@ -1,6 +1,7 @@
 <div>
     <h4 class="fw-bold mb-1">Style Settings <small class="text-muted">(Style Customizer)</small></h4>
     <p class="text-muted">Header, navigation, search, footer, font আর flash sales card — সব এখান থেকে dynamic বদলান। Save করলেই পুরো website-এ লাগবে।</p>
+    <p class="text-muted mb-4"><strong>Button background / text</strong> = Add to Cart, Buy Now, Order Confirm, Checkout, Track Order সহ সব action button-এ apply হয় (আলাদা Buy Now / WhatsApp / Call রঙ সেট থাকলে সেটাই আগে চলে)। <strong>Icon color</strong> = header, nav, footer, floating cart ও সব action button-এর icon।</p>
 
     <div class="card mb-4">
         <div class="card-body">

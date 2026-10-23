@@ -17,6 +17,8 @@ class AppSetting extends Component
 
     public $app_description;
 
+    public $footer_copyright;
+
     public $items_per_page;
 
     public $app_logo;
@@ -129,6 +131,8 @@ class AppSetting extends Component
     {
         $this->app_name = setting('app_name');
         $this->app_description = setting('app_description');
+        $this->footer_copyright = setting('footer_copyright')
+            ?: '© ' . date('Y') . ' ' . (setting('app_name') ?: 'Padmazon') . '. All rights reserved.';
         $this->items_per_page = setting('items_per_page');
         $this->currency = setting('currency');
         $this->google_map_location = setting('google_map_location');

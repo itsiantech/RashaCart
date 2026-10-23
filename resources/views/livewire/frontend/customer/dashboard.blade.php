@@ -265,8 +265,8 @@
 .trk-input:focus-within{border-color:#12225B;background:#fff;box-shadow:0 0 0 3px rgba(18,34,91,.12)}
 .trk-input i{color:#9ca3af}
 .trk-input .form-control{background:transparent;border:0;box-shadow:none;padding:11px 0}
-.trk-btn{background:#12225B;border-color:#12225B;color:#fff;border-radius:10px;padding:10px 22px}
-.trk-btn:hover{background:#0e1b47;color:#fff}
+.trk-btn{background:var(--cart-btn-bg, #12225B);border-color:var(--cart-btn-bg, #12225B);color:var(--cart-btn-text, #fff);border-radius:10px;padding:10px 22px}
+.trk-btn:hover{background:var(--cart-btn-bg, #0e1b47);color:var(--cart-btn-text, #fff);filter:brightness(.92)}
 .trk-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;background:#f5f6fa;border:1px solid #eef0f4;border-radius:12px;padding:14px 16px}
 .trk-invoice{font-weight:800;font-size:1.05rem;color:#12225B}
 .trk-badge{font-size:.8rem;padding:.45em .8em;border-radius:8px}

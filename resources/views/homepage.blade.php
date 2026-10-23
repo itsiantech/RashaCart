@@ -47,6 +47,12 @@
         .nav-icon .badge { font-size: .6rem; position: absolute; top: -6px; right: -8px; }
         .nav-icon .badge.bg-warning { background-color: var(--hd-badge, #ffc107) !important; }
 
+        /* Desktop logo size; mobile keeps the compact default above. */
+        @media (min-width: 768px) {
+            .hp-navbar-row { height: 120px; }
+            .hp-logo img { height: 120px; width: 230px; }
+        }
+
         /* ── Sub Nav ── */
         .subnav { background: var(--hd-bg, #12225B); border-top: 1px solid rgba(255,255,255,.12); }
         .subnav .nav-link { color: var(--hd-nav, rgba(255,255,255,.85)) !important; font-size: .85rem; padding: .4rem .75rem; border-radius: 6px; }
@@ -76,7 +82,7 @@
         .carousel-caption { background: linear-gradient(90deg, rgba(18,34,91,.85), rgba(18,34,91,0) 70%); border-radius: 8px; text-align: left; left: 5%; right: auto; bottom: 20%; padding: 1rem 1.4rem; }
 
         /* ── Mobile category pills ── */
-        .hp-pills { display: flex; gap: 8px; overflow-auto; padding-bottom: 8px; scrollbar-width: none; }
+        .hp-pills { display: flex; gap: 8px; overflow: auto; padding-bottom: 8px; scrollbar-width: none; }
         .hp-pill { background: var(--primary); color: #fff; font-size: .78rem; padding: .4rem .8rem; border-radius: 20px; flex-shrink: 0; text-decoration: none; }
         .hp-pill:hover { color: #fff; }
 
@@ -118,9 +124,9 @@
         .hp-stars small { color: #6b7280; font-size: .7rem; }
         .hp-price { font-weight: 700; color: #111827; font-size: .95rem; }
         .hp-price .old { text-decoration: line-through; color: #9ca3af; font-weight: 400; font-size: .78rem; margin-left: 4px; }
-        .btn-add-cart { width: 100%; background: var(--cart-btn-bg, #fff); color: var(--cart-btn-text, var(--navy)); border: 1px solid var(--navy); border-radius: 3px; font-size: .8rem; padding: .42rem; font-weight: 600; margin-top: auto; transition: background .2s ease, color .2s ease; }
-        .btn-add-cart:hover { background: var(--navy); color: #fff; }
-        .btn-add-cart i { color: var(--cart-btn-icon); }
+        .btn-add-cart { width: 100%; background: var(--btn-all-bg, #fff); color: var(--btn-all-text, var(--navy)); border: 1px solid var(--btn-all-bg, var(--navy)); border-radius: 3px; font-size: .8rem; padding: .42rem; font-weight: 600; margin-top: auto; transition: background .2s ease, color .2s ease; }
+        .btn-add-cart:hover { filter: brightness(.92); }
+        .btn-add-cart i { color: var(--cart-btn-icon, var(--icon-color)); }
 
         /* ── Top shops ── */
         .hp-shops { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -161,7 +167,7 @@
         .hp-footer { background: var(--ft-bg, #12225B); color: var(--ft-text, #fff); margin-top: 32px; padding: 40px 0 18px; }
         .f-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
         @media(min-width: 768px) { .f-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 992px) { .f-grid { grid-template-columns: 1.35fr 1fr 1fr 1fr .95fr 1.4fr; } }
+        @media(min-width: 992px) { .f-grid { grid-template-columns: 1.35fr 1fr 1fr 1fr .95fr; } }
         .hp-footer h6 { color: var(--ft-text, #fff); font-weight: 600; font-size: .92rem; margin-bottom: .8rem; }
         .hp-footer a { color: var(--ft-nav, rgba(255,255,255,.75)); text-decoration: none; font-size: .85rem; }
         .hp-footer a:hover { color: var(--ft-nav, #fff); }
@@ -191,7 +197,7 @@
 </head>
 <body>
     {{-- GTM noscript --}}
-    @include('partials.seo-body')}
+    @include('partials.seo-body')
 
 {{-- ══════════════ NAVBAR ══════════════ --}}
 <nav class="navbar-main sticky-top">
@@ -232,9 +238,7 @@
         <nav class="d-flex align-items-center flex-wrap gap-1 py-1">
             <a href="{{ route('frontend.category.view') }}" class="nav-link">Categories</a>
             <a href="{{ route('home') }}" class="nav-link">Products</a>
-            <a href="{{ route('register') }}" class="btn btn-sell ms-1">Sell on Padmazon</a>
             <a href="#" class="nav-link">Discounts</a>
-            <a href="#" class="nav-link">All Shops</a>
             <a href="{{ route('frontend.brand.view') }}" class="nav-link">All Brands</a>
             <a href="{{ route('frontend.order.tracking') }}" class="nav-link">Track Order</a>
             <a href="{{ route('home') }}" class="nav-link">Home</a>
@@ -540,9 +544,17 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
             <div class="f-contact">
                 <h6>Contact Us</h6>
                 <p>
+                    @if(setting('contact_address'))
+                    <i class="fas fa-map-marker-alt me-2"></i>{{ setting('contact_address') }}<br>
+                    @else
                     <i class="fas fa-map-marker-alt me-2"></i>Dhaka, Bangladesh<br>
-                    <i class="fas fa-phone me-2"></i>+880 1234 567890<br>
-                    <i class="fas fa-envelope me-2"></i>support@padmazon.com
+                    @endif
+                    @if(setting('contact_phone'))
+                    <i class="fas fa-phone me-2"></i>{{ setting('contact_phone') }}<br>
+                    @endif
+                    @if(setting('contact_email'))
+                    <i class="fas fa-envelope me-2"></i>{{ setting('contact_email') }}
+                    @endif
                 </p>
             </div>
 
@@ -556,12 +568,10 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
             </div>
 
             <div>
-                <h6>Seller Center</h6>
+                <h6>About Us</h6>
                 <ul>
-                    <li><a href="{{ route('register') }}">Sell on Padmazon</a></li>
-                    <li><a href="{{ route('login') }}">Seller Dashboard</a></li>
-                    <li><a href="#">Help Center</a></li>
-                    <li><a href="{{ route('frontend.refund.and.returns') }}">Returns Policy</a></li>
+                    <li><a href="{{ route('frontend.terms.and.conditions') }}">Terms and Conditions</a></li>
+                    <li><a href="{{ route('frontend.privacy.policy') }}">Privacy Policy</a></li>
                 </ul>
             </div>
 
@@ -585,22 +595,10 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
                 </div>
             </div>
 
-            <div>
-                <h6>Mobile App</h6>
-                <a href="#" class="f-app-btn">
-                    <i class="fab fa-google-play"></i>
-                    <span><small>GET IT ON</small><strong>Google Play</strong></span>
-                </a>
-                <a href="#" class="f-app-btn">
-                    <i class="fab fa-apple"></i>
-                    <span><small>Download on the</small><strong>App Store</strong></span>
-                </a>
-            </div>
-
         </div>
 
         <div class="f-bottom">
-            <span>© {{ date('Y') }} {{ setting('app_name') ?: 'Padmazon' }}. All rights reserved.</span>
+            <span>{{ setting('footer_copyright') ?: '© ' . date('Y') . ' ' . (setting('app_name') ?: 'Padmazon') . '. All rights reserved.' }}</span>
             <div class="d-flex gap-3">
                 <a href="{{ route('frontend.privacy.policy') }}">Privacy Policy</a>
                 <a href="{{ route('frontend.terms.and.conditions') }}">Terms &amp; Conditions</a>
