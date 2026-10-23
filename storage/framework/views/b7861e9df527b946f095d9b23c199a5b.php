@@ -17,6 +17,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
 
+    
+    <?php echo $__env->make('partials.style-vars', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
     <?php echo \App\Services\PixelManager::head(); ?>
 
     <?php echo $__env->make('partials.tracking-pixel', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
@@ -118,9 +121,7 @@
             </form>
 
             <div class="hp-nav-icons">
-                <a href="<?php echo e(route('profile.index')); ?>" class="nav-icon d-none d-md-block">
-                    <i class="fas fa-user"></i>
-                </a>
+                <?php echo $__env->make('partials.customer-account-icon', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                 <a href="#" class="nav-icon d-none d-md-block">
                     <i class="fas fa-heart"></i>
                 </a>
@@ -259,9 +260,21 @@
     <a href="#">
         <i class="fas fa-heart"></i>Wishlist
     </a>
-    <a href="<?php echo e(route('profile.index')); ?>">
-        <i class="fas fa-user"></i>Account
-    </a>
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(\App\Services\CustomerAuthSettings::enabled()): ?>
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(auth()->guard()->guest()): ?>
+        <button type="button" data-cust-open="login" style="border:none;background:none;cursor:pointer;color:inherit;font:inherit;">
+            <i class="fas fa-user"></i>Account
+        </button>
+        <?php else: ?>
+        <a href="<?php echo e(route('customer.dashboard')); ?>">
+            <i class="fas fa-user"></i>Account
+        </a>
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+    <?php else: ?>
+        <a href="<?php echo e(route('profile.index')); ?>">
+            <i class="fas fa-user"></i>Account
+        </a>
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -320,6 +333,9 @@
         } [e] || e;
     }
 </script>
+
+<?php echo $__env->make('partials.customer-account-scripts', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<?php echo $__env->make('partials.customer-auth-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
 <?php echo $__env->yieldPushContent('scripts'); ?>
 <?php echo \Livewire\Mechanisms\FrontendAssets\FrontendAssets::scripts(); ?>

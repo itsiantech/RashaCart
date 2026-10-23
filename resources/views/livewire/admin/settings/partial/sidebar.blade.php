@@ -17,6 +17,9 @@
     <a class="list-group-item list-group-item-action" id="api-tab" data-bs-toggle="list" href="#api" role="tab" aria-controls="api">
        <i class='bx bx-share-alt me-2'></i></i> API Settings
     </a>
+    <a class="list-group-item list-group-item-action" id="customer-login-tab" data-bs-toggle="list" href="#customer-login" role="tab" aria-controls="customer-login">
+        <i class="bx bx-user me-2"></i> Customer Login/Register
+    </a>
 </div>
 
 

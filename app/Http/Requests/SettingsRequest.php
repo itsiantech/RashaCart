@@ -77,6 +77,11 @@ class SettingsRequest extends FormRequest
 
             'GOOGLE_CLIENT_SECRET' => ['nullable', 'string', 'max:255'],
             'GOOGLE_CLIENT_ID' => ['nullable', 'string', 'max:255'],
+
+            // ✅ Customer Login/Register settings
+            'customer_login_enabled' => ['nullable', 'boolean'],
+            'customer_login_identifier' => ['nullable', 'string', 'in:email,phone,both'],
+            'customer_google_enabled' => ['nullable', 'boolean'],
         ];
     }
 

@@ -15,6 +15,13 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
+        // Customers use the new storefront dashboard (requirement: sidebar
+        // profile at /account/profile) — never the admin layout. Admins and
+        // vendors keep the existing page untouched.
+        if ($user && $user->role === 'customer') {
+            return redirect()->route('customer.dashboard', ['tab' => 'profile']);
+        }
+
         return view('profile.index', compact('user'));
     }
 

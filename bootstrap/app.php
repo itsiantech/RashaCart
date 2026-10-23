@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'vendor.approved' => \App\Http\Middleware\EnsureVendorApproved::class,
             'tracking.attribution' => \App\Http\Middleware\TrackingAttributionMiddleware::class,
             'module.enabled' => \App\Http\Middleware\EnsureModuleEnabled::class,
+            'customer' => \App\Http\Middleware\EnsureCustomer::class,
         ]);
         $middleware->appendToGroup('web', \App\Http\Middleware\TrackingAttributionMiddleware::class);
     })

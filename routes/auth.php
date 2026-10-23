@@ -47,7 +47,7 @@ Route::middleware('guest')->group(function () {
         ->middleware('guest')
         ->name('login');
 
-    Route::get('/admin/login', [AuthenticatedSessionController::class, 'createAdmin'])
+    Route::get('/admin/login', Login::class)
         ->middleware('guest')
         ->name('admin.login');
 

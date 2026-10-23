@@ -69,7 +69,7 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">Product <span class="text-danger">*</span></label>
-                        <select wire:model="formProductId" class="form-select @error('formProductId') is-invalid @enderror">
+                        <select wire:model.live="formProductId" class="form-select @error('formProductId') is-invalid @enderror">
                             <option value="">-- Select Product --</option>
                             @foreach ($products as $p)
                                 <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku }})</option>

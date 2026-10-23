@@ -124,6 +124,18 @@ class FlashSalesCreate extends Component
             'is_active' => $this->is_active,
         ]);
 
+        // Overlap notice (latest-wins on storefront): warn, don't block
+        if ($this->is_active) {
+            $overlap = FlashSale::where('id', '!=', $flashSale->id)
+                ->where('is_active', true)
+                ->where('start_at', '<=', $this->end_at)
+                ->where('end_at', '>=', $this->start_at)
+                ->exists();
+            if ($overlap) {
+                session()->flash('warning', 'সতর্কতা: অন্য active campaign-এর সাথে date overlap আছে — homepage-এ latest-টাই দেখাবে।');
+            }
+        }
+
         foreach ($this->selectedItems as $productId => $item) {
             FlashSaleItem::create([
                 'flash_sale_id' => $flashSale->id,

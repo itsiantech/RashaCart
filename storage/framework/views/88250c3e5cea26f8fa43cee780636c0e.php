@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
     <title><?php echo e(setting('app_name') ?: config('app.name')); ?></title>
 
     <?php $favicon = setting('fev_icon') ?: setting('app_logo'); ?>
@@ -12,6 +13,8 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <?php echo $__env->make('partials.style-vars', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+    <?php echo $__env->yieldPushContent('styles'); ?>
     <style>
         :root {
             --primary: #7A0000;
@@ -23,31 +26,32 @@
             --line: #e5e7eb;
         }
 
-        body { font-family: 'Segoe UI', sans-serif; background: #F3F4F6; }
+        body { font-family: var(--body-font, 'Segoe UI', sans-serif); background: #F3F4F6; }
 
         /* ── Layout container (max-w-7xl mx-auto px-4) ── */
         .hp-container { max-width: 1280px; margin: 0 auto; padding: 0 16px; width: 100%; }
 
         /* ── Navbar ── */
-        .navbar-main { background: var(--navy); }
+        .navbar-main { background: var(--hd-bg, #12225B); }
         .hp-navbar-row { display: flex; align-items: center; gap: 18px; height: 62px; }
         .hp-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; flex-shrink: 0; }
         .hp-logo img { height: 40px; width: auto; object-fit: contain; }
         .hp-logo i { color: #fff; font-size: 1.4rem; }
         .hp-logo span { color: #fff; font-weight: 700; font-size: 1.3rem; }
         .hp-search { flex: 1; display: flex; }
-        .hp-search input.form-control { border: none; border-radius: 4px 0 0 4px; font-size: .9rem; }
-        .hp-search .btn { background: var(--accent); border: none; color: #fff; border-radius: 0 4px 4px 0; padding: 0 18px; }
+        .hp-search input.form-control { border: none; border-radius: 4px 0 0 4px; font-size: .9rem; background: var(--hd-search-bg, #fff); }
+        .hp-search .btn { background: var(--hd-search-btn, #f5a623); border: none; color: var(--hd-search-icon, #fff); border-radius: 0 4px 4px 0; padding: 0 18px; }
         .hp-nav-icons { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
-        .nav-icon { color: rgba(255,255,255,.85); font-size: 1.1rem; position: relative; }
-        .nav-icon:hover { color: #fff; }
+        .nav-icon { color: var(--hd-icon, rgba(255,255,255,.85)); font-size: 1.1rem; position: relative; }
+        .nav-icon:hover { color: var(--hd-icon, #fff); }
         .nav-icon .badge { font-size: .6rem; position: absolute; top: -6px; right: -8px; }
+        .nav-icon .badge.bg-warning { background-color: var(--hd-badge, #ffc107) !important; }
 
         /* ── Sub Nav ── */
-        .subnav { background: var(--navy); border-top: 1px solid rgba(255,255,255,.12); }
-        .subnav .nav-link { color: rgba(255,255,255,.85) !important; font-size: .85rem; padding: .4rem .75rem; }
-        .subnav .nav-link:hover { color: #fff !important; }
-        .subnav .btn-sell { background: var(--accent); color: #fff; font-size: .8rem; border-radius: 20px; padding: .25rem .85rem; }
+        .subnav { background: var(--hd-bg, #12225B); border-top: 1px solid rgba(255,255,255,.12); }
+        .subnav .nav-link { color: var(--hd-nav, rgba(255,255,255,.85)) !important; font-size: .85rem; padding: .4rem .75rem; border-radius: 6px; }
+        .subnav .nav-link:hover { color: #fff !important; background: var(--hd-nav-hover, transparent); }
+        .subnav .btn-sell { background: var(--hd-search-btn, #f5a623); color: #fff; font-size: .8rem; border-radius: 20px; padding: .25rem .85rem; }
 
         /* ── Hero: categories + banner ── */
         .hp-hero { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 16px; }
@@ -88,7 +92,7 @@
         .hp-deal-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
         @media(min-width: 992px) { .hp-deal-grid { grid-template-columns: 250px 1fr; } }
         @media(min-width: 1200px) { .hp-deal-grid { grid-template-columns: 280px 1fr; } }
-        .hp-deal-left { background: linear-gradient(160deg, #fb923c, var(--orange) 55%, #ea580c); border-radius: 10px; color: #fff; padding: 22px 18px; display: flex; flex-direction: column; }
+        .hp-deal-left { background: var(--flash-bg, #EA580C); background: linear-gradient(160deg, color-mix(in srgb, var(--flash-bg, #EA580C) 62%, #ffffff), var(--flash-bg, #EA580C) 55%, color-mix(in srgb, var(--flash-bg, #EA580C) 86%, #000000)); border-radius: 10px; color: var(--flash-text, #fff); padding: 22px 18px; display: flex; flex-direction: column; font-family: var(--flash-font, var(--body-font, 'Segoe UI', sans-serif)); }
         .hp-deal-title { font-size: 1.05rem; font-weight: 700; line-height: 1.35; }
         .hp-deal-title .pct { color: #fde68a; }
         .hp-countdown { display: flex; gap: 8px; margin: 16px 0; }
@@ -114,8 +118,9 @@
         .hp-stars small { color: #6b7280; font-size: .7rem; }
         .hp-price { font-weight: 700; color: #111827; font-size: .95rem; }
         .hp-price .old { text-decoration: line-through; color: #9ca3af; font-weight: 400; font-size: .78rem; margin-left: 4px; }
-        .btn-add-cart { width: 100%; background: #fff; color: var(--navy); border: 1px solid var(--navy); border-radius: 3px; font-size: .8rem; padding: .42rem; font-weight: 600; margin-top: auto; transition: background .2s ease, color .2s ease; }
+        .btn-add-cart { width: 100%; background: var(--cart-btn-bg, #fff); color: var(--cart-btn-text, var(--navy)); border: 1px solid var(--navy); border-radius: 3px; font-size: .8rem; padding: .42rem; font-weight: 600; margin-top: auto; transition: background .2s ease, color .2s ease; }
         .btn-add-cart:hover { background: var(--navy); color: #fff; }
+        .btn-add-cart i { color: var(--cart-btn-icon); }
 
         /* ── Top shops ── */
         .hp-shops { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -153,18 +158,18 @@
         .hp-load-more:hover { background: var(--navy); color: #fff; }
 
         /* ── Footer ── */
-        .hp-footer { background: var(--navy); color: #fff; margin-top: 32px; padding: 40px 0 18px; }
+        .hp-footer { background: var(--ft-bg, #12225B); color: var(--ft-text, #fff); margin-top: 32px; padding: 40px 0 18px; }
         .f-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
         @media(min-width: 768px) { .f-grid { grid-template-columns: repeat(3, 1fr); } }
         @media(min-width: 992px) { .f-grid { grid-template-columns: 1.35fr 1fr 1fr 1fr .95fr 1.4fr; } }
-        .hp-footer h6 { color: #fff; font-weight: 600; font-size: .92rem; margin-bottom: .8rem; }
-        .hp-footer a { color: rgba(255,255,255,.75); text-decoration: none; font-size: .85rem; }
-        .hp-footer a:hover { color: #fff; }
+        .hp-footer h6 { color: var(--ft-text, #fff); font-weight: 600; font-size: .92rem; margin-bottom: .8rem; }
+        .hp-footer a { color: var(--ft-nav, rgba(255,255,255,.75)); text-decoration: none; font-size: .85rem; }
+        .hp-footer a:hover { color: var(--ft-nav, #fff); }
         .hp-footer ul { list-style: none; padding: 0; margin: 0; }
         .hp-footer ul li { margin-bottom: .4rem; }
-        .f-contact p { font-size: .82rem; color: rgba(255,255,255,.75); margin: 0; line-height: 1.9; }
+        .f-contact p { font-size: .82rem; color: var(--ft-text, rgba(255,255,255,.75)); margin: 0; line-height: 1.9; }
         .f-social { display: flex; gap: 10px; }
-        .f-social a { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.12); display: inline-flex; align-items: center; justify-content: center; }
+        .f-social a { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.12); display: inline-flex; align-items: center; justify-content: center; color: var(--ft-social, #fff); }
         .f-social a:hover { background: var(--accent); }
         .f-app-btn { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25); border-radius: 8px; padding: 7px 12px; margin-bottom: 8px; max-width: 190px; }
         .f-app-btn i { font-size: 1.3rem; color: #fff; }
@@ -208,9 +213,7 @@
             </form>
 
             <div class="hp-nav-icons">
-                <a href="<?php echo e(route('profile.index')); ?>" class="nav-icon d-none d-md-block">
-                    <i class="fas fa-user"></i>
-                </a>
+                <?php echo $__env->make('partials.customer-account-icon', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                 <a href="#" class="nav-icon d-none d-md-block">
                     <i class="fas fa-heart"></i>
                 </a>
@@ -302,7 +305,7 @@
 </section>
 
 
-<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($flashSaleProducts->count()): ?>
+<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($liveFlashSale) && $flashSaleProducts->count()): ?>
 <section class="hp-sec">
     <div class="hp-container">
         <div class="hp-box">
@@ -313,10 +316,10 @@
                         Limited Time <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($offerPercent > 0): ?><span class="pct"><?php echo e($offerPercent); ?>%</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?> Discount Offer Products
                     </div>
                     <div class="hp-countdown">
-                        <div class="cd-box"><span class="num" id="cdDays">00</span><span class="lbl">Days</span></div>
-                        <div class="cd-box"><span class="num" id="cdHours">00</span><span class="lbl">Hours</span></div>
-                        <div class="cd-box"><span class="num" id="cdMins">00</span><span class="lbl">Min</span></div>
-                        <div class="cd-box"><span class="num" id="cdSecs">00</span><span class="lbl">Sec</span></div>
+                        <div class="cd-box"><span class="num" id="cdDays"><?php echo e(str_pad($countdownParts['days'] ?? 0, 2, '0', STR_PAD_LEFT)); ?></span><span class="lbl">Days</span></div>
+                        <div class="cd-box"><span class="num" id="cdHours"><?php echo e(str_pad($countdownParts['hours'] ?? 0, 2, '0', STR_PAD_LEFT)); ?></span><span class="lbl">Hours</span></div>
+                        <div class="cd-box"><span class="num" id="cdMins"><?php echo e(str_pad($countdownParts['mins'] ?? 0, 2, '0', STR_PAD_LEFT)); ?></span><span class="lbl">Min</span></div>
+                        <div class="cd-box"><span class="num" id="cdSecs"><?php echo e(str_pad($countdownParts['secs'] ?? 0, 2, '0', STR_PAD_LEFT)); ?></span><span class="lbl">Sec</span></div>
                     </div>
                     <a href="<?php echo e(route('frontend.flash.sale.products')); ?>" class="btn-deal-cta">View Products</a>
                 </div>
@@ -620,15 +623,29 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
     <a href="<?php echo e(route('frontend.cart.view')); ?>">
         <i class="fas fa-shopping-cart"></i>Cart
     </a>
-    <a href="#">
-        <i class="fas fa-heart"></i>Wishlist
-    </a>
-    <a href="<?php echo e(route('profile.index')); ?>">
-        <i class="fas fa-user"></i>Account
-    </a>
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(\App\Services\CustomerAuthSettings::enabled()): ?>
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(auth()->guard()->guest()): ?>
+        <button type="button" data-cust-open="login" style="border:none;background:none;cursor:pointer;color:inherit;font:inherit;">
+            <i class="fas fa-user"></i>Account
+        </button>
+        <?php else: ?>
+        <a href="<?php echo e(route('customer.dashboard')); ?>">
+            <i class="fas fa-user"></i>Account
+        </a>
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+    <?php else: ?>
+        <a href="<?php echo e(route('profile.index')); ?>">
+            <i class="fas fa-user"></i>Account
+        </a>
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<?php echo $__env->make('partials.customer-account-scripts', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<?php echo $__env->make('partials.customer-auth-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+<?php echo $__env->yieldPushContent('scripts'); ?>
 
 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('success') || session('error')): ?>
 <div id="cartToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:<?php echo e(session('error') ? '#dc3545' : '#12225B'); ?>;color:#fff;padding:10px 22px;border-radius:4px;z-index:2000;box-shadow:0 4px 14px rgba(0,0,0,.25);font-size:.9rem;">
@@ -638,7 +655,7 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
 <script>setTimeout(function(){ document.getElementById('cartToast') && document.getElementById('cartToast').remove(); }, 2500);</script>
 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($flashSaleProducts->count()): ?>
+<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($liveFlashSale) && $flashSaleProducts->count()): ?>
 <script>
 (function () {
     var target = <?php echo e($countdownTarget->timestamp * 1000); ?>;

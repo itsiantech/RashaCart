@@ -39,6 +39,11 @@
                                 <?php echo $__env->make('livewire.admin.settings.partial.api-settings', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>;
                             </div>
 
+                            <div class="tab-pane fade" id="customer-login" role="tabpanel"
+                                aria-labelledby="customer-login-tab">
+                                <?php echo $__env->make('livewire.admin.settings.partial.customer-login-settings', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>;
+                            </div>
+
 
 
                         </div>

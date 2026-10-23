@@ -103,6 +103,13 @@ class AppSetting extends Component
 
     public $GOOGLE_CLIENT_SECRET;
 
+    // ── Customer Login/Register (new section, additive only) ──
+    public $customer_login_enabled = true;
+
+    public $customer_login_identifier = 'both';
+
+    public $customer_google_enabled = true;
+
     public $balance;
 
     public $activeTab = 'basic';
@@ -172,6 +179,11 @@ class AppSetting extends Component
 
         $this->GOOGLE_CLIENT_ID = setting('GOOGLE_CLIENT_ID');
         $this->GOOGLE_CLIENT_SECRET = setting('GOOGLE_CLIENT_SECRET');
+
+        // Customer Login/Register (defaults: enabled / both / google on)
+        $this->customer_login_enabled = (string) setting('customer_login_enabled', '1') === '1';
+        $this->customer_login_identifier = setting('customer_login_identifier', 'both');
+        $this->customer_google_enabled = (string) setting('customer_google_enabled', '1') === '1';
     }
 
     // ─── Fetch BulkSMSBD balance ─────────────────────────────────────────────
@@ -237,6 +249,31 @@ class AppSetting extends Component
         );
         Settings::clearCache();
         $this->dispatch('success', message: $value ? 'Google SEO menu চালু হয়েছে।' : 'Google SEO menu বন্ধ হয়েছে।');
+    }
+
+    // ── Customer Login/Register instant toggles (saved immediately) ──
+    public function updatedCustomerLoginEnabled($value): void
+    {
+        Settings::updateOrCreate(['key' => 'customer_login_enabled'], ['value' => $value ? 1 : 0]);
+        Settings::clearCache();
+        $this->dispatch('success', message: $value ? 'Customer login/register enabled.' : 'Customer login/register disabled — header icon hidden, guest checkout only.');
+    }
+
+    public function updatedCustomerLoginIdentifier($value): void
+    {
+        if (! in_array($value, ['email', 'phone', 'both'], true)) {
+            return;
+        }
+        Settings::updateOrCreate(['key' => 'customer_login_identifier'], ['value' => $value]);
+        Settings::clearCache();
+        $this->dispatch('success', message: 'Login identifier updated.');
+    }
+
+    public function updatedCustomerGoogleEnabled($value): void
+    {
+        Settings::updateOrCreate(['key' => 'customer_google_enabled'], ['value' => $value ? 1 : 0]);
+        Settings::clearCache();
+        $this->dispatch('success', message: $value ? 'Google sign-in enabled.' : 'Google sign-in disabled.');
     }
 
     public function update(): void

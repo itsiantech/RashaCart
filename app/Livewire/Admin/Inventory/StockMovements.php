@@ -65,8 +65,8 @@ class StockMovements extends Component
                     ->orWhereHas('variant', fn ($v) => $v
                         ->where('sku', 'like', "%{$this->search}%"));
             }))
-            ->when($from, fn ($q) => $q->where('created_at', '>=', $from))
-            ->when($to, fn ($q) => $q->where('created_at', '<=', $to));
+            ->when($from, fn ($q) => $q->where('inventories.created_at', '>=', $from))
+            ->when($to, fn ($q) => $q->where('inventories.created_at', '<=', $to));
     }
 
     public function render()
@@ -102,7 +102,7 @@ class StockMovements extends Component
 
         // Outgoing (out) grouped by product category
         $byCategory = (clone $base)
-            ->where('type', 'out')
+            ->where('inventories.type', 'out')
             ->join('products', 'products.id', '=', 'inventories.product_id')
             ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
             ->selectRaw("COALESCE(categories.name, 'Uncategorized') AS label, SUM(inventories.quantity) AS qty")
@@ -113,7 +113,7 @@ class StockMovements extends Component
 
         // Outgoing grouped by variant attribute (e.g. Color: Red)
         $byAttribute = (clone $base)
-            ->where('type', 'out')
+            ->where('inventories.type', 'out')
             ->whereNotNull('inventories.variant_id')
             ->join('variant_attribute_values', 'variant_attribute_values.product_variant_id', '=', 'inventories.variant_id')
             ->join('attributes', 'attributes.id', '=', 'variant_attribute_values.attribute_id')

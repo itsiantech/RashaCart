@@ -606,6 +606,12 @@ $currentRoute = request()->route()?->getName() ?? '';
                         <div>All Settings</div>
                     </a>
                 </li>
+                <li class="menu-item <?php echo e(Route::is('admin.settings.style') ? 'active' : ''); ?>">
+                    <a wire:navigate href="<?php echo e(route('admin.settings.style')); ?>" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-palette"></i>
+                        <div>Style Settings</div>
+                    </a>
+                </li>
                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                 <?php if($isAdmin || Auth::user()->can('pixel.view')): ?>

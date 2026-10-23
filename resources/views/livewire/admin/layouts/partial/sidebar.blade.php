@@ -606,6 +606,12 @@ $currentRoute = request()->route()?->getName() ?? '';
                         <div>All Settings</div>
                     </a>
                 </li>
+                <li class="menu-item {{ Route::is('admin.settings.style') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.settings.style') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-palette"></i>
+                        <div>Style Settings</div>
+                    </a>
+                </li>
                 @endif
 
                 @if ($isAdmin || Auth::user()->can('pixel.view'))

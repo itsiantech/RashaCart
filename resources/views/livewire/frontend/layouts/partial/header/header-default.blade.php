@@ -123,11 +123,13 @@
             </button>
 
             @guest
-            <!-- Guest user -->
-            <a href="{{ route('login') }}" class="action-btn" title="Login with Google">
+            <!-- Guest user: customer auth popup (only when enabled) + vendor link -->
+            @if(\App\Services\CustomerAuthSettings::enabled())
+            <button type="button" class="action-btn" title="Login / Register" data-cust-open="login" aria-haspopup="dialog" style="border:none;background:none;cursor:pointer;">
                 <i class="far fa-user"></i>
                 <span class="action-text"></span>
-            </a>
+            </button>
+            @endif
 
             <a href="{{ route('vendor.login.form') }}" class="action-btn" title="Vendor Login">
                 <i class="fas fa-store"></i>
@@ -145,6 +147,31 @@
                 <i class="fas fa-store"></i>
                 <span class="action-text">Seller Dashboard</span>
             </a>
+            @elseif(Auth::user()->role === 'customer' && \App\Services\CustomerAuthSettings::enabled())
+            <div class="cust-dropdown">
+                <button type="button" class="action-btn" id="custMenuBtn" aria-haspopup="menu" aria-expanded="false" style="border:none;background:none;cursor:pointer;" title="My Account">
+                    <i class="fas fa-user"></i>
+                    <span class="action-text">My Account</span>
+                </button>
+                <div class="cust-menu" id="custMenu" role="menu" hidden>
+                    <a wire:navigate href="{{ route('customer.dashboard') }}" role="menuitem"><i class="fas fa-gauge-high me-2"></i>Dashboard</a>
+                    <a wire:navigate href="{{ route('customer.dashboard', ['tab' => 'orders']) }}" role="menuitem"><i class="fas fa-bag-shopping me-2"></i>Orders</a>
+                    <form method="POST" action="{{ route('customer.logout') }}">
+                        @csrf
+                        <button type="submit" role="menuitem"><i class="fas fa-right-from-bracket me-2"></i>Logout</button>
+                    </form>
+                </div>
+            </div>
+            <script>
+                (function(){
+                    const btn=document.getElementById('custMenuBtn'), menu=document.getElementById('custMenu');
+                    if(!btn||!menu||window.__custMenuBound) return; window.__custMenuBound=true;
+                    btn.addEventListener('click',e=>{ e.stopPropagation(); const open=menu.hidden; menu.hidden=!open; btn.setAttribute('aria-expanded',String(open)); });
+                    document.addEventListener('click',e=>{ if(!e.target.closest('.cust-dropdown')){ menu.hidden=true; btn.setAttribute('aria-expanded','false'); } });
+                    document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ menu.hidden=true; } });
+                })();
+            </script>
+            <style>.cust-dropdown{position:relative}.cust-menu{position:absolute;right:0;top:calc(100% + 8px);background:#fff;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.18);min-width:190px;padding:6px;z-index:1500}.cust-menu[hidden]{display:none!important}.cust-menu a,.cust-menu button{display:flex;align-items:center;width:100%;padding:9px 12px;border-radius:8px;color:#222;text-decoration:none;border:0;background:none;font-size:.9rem}.cust-menu a:hover,.cust-menu button:hover{background:#f1f2f6}</style>
             @else
             <a wire:navigate href="{{ route('home') }}" class="action-btn">
                 <i class="fas fa-user"></i>

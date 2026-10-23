@@ -284,3 +284,34 @@ Menu, Overview card, settings form, guide, audit — ?? automatic? Custom route/jo
   LOAD MORE (+18), store layout (homepage header/footer). Sidebar removed (mock).
 - Active brands only, alphabetical; slug param ignored (previously crashed on unknown column).
 - Tests: `php artisan test --filter=BrandIndexPageTest` (2 tests).
+
+## Flash sale homepage wiring (live campaign only)
+- Section shows ONLY when an active campaign is inside its date window; countdown always
+  counts to `end_at` (no end-of-day fallback); otherwise the section is fully hidden.
+- Overlap: latest-created campaign wins; saving/editing an overlapping active campaign
+  shows a Bangla warning (non-blocking).
+- Timezone: `APP_TIMEZONE=Asia/Dhaka` — admin dates match local time; countdown JS is
+  timestamp-based so nothing breaks.
+- Design untouched (only `@if` conditions + data source changed).
+- Tests: `php artisan test --filter=FlashSaleHomepageTest` (3 tests).
+
+## Style Settings (Style Customizer)
+- Settings ? **Style Settings** (All Settings-?? ????): header/nav/icons/cart-badge/hover/
+  search/footer/social colors, body font, flash card bg+text+font — color picker + font
+  select + Reset to default? Save = instant site-wide (CSS vars, no deploy).
+- Homepage + store pages read the same `:root` vars (`partials/style-vars`); every rule
+  keeps its original value as fallback — defaults = current design, pixel-identical.
+- Flash card gradient auto-builds from the chosen bg color (color-mix).
+- Fonts: Segoe UI / Inter / Hind Siliguri / Roboto / Poppins (auto-loaded).
+- Tests: `php artisan test --filter=StyleCustomizerTest` (4 tests).
+
+## (Cont.) Add to Cart button colors
+- Style Settings-? ??? optional field: background / text / icon? ???? ????? ???????
+  ????? ????? look ???? (homepage ????-navy, details orange, card ???)?
+- Set ???? ?? Add to Cart button-? ?????? ???? (homepage, product details main/related,
+  listing cards)? Clear = ???? look-? ?????
+
+## (Cont.) More dynamic buttons/titles
+- Optional (empty = current look): Buy Now bg/text, WhatsApp bg/text, Call to Order bg/text,
+  All Categories title bg/text — plus existing Add to Cart bg/text/icon.
+- Details-page Add to Cart already follows the global cart button colors.

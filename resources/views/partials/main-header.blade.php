@@ -19,9 +19,7 @@
             </form>
 
             <div class="hp-nav-icons">
-                <a href="{{ route('profile.index') }}" class="nav-icon d-none d-md-block">
-                    <i class="fas fa-user"></i>
-                </a>
+                @include('partials.customer-account-icon')
                 <a href="#" class="nav-icon d-none d-md-block">
                     <i class="fas fa-heart"></i>
                 </a>

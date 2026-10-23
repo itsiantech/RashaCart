@@ -39,6 +39,11 @@
                                 @include('livewire.admin.settings.partial.api-settings');
                             </div>
 
+                            <div class="tab-pane fade" id="customer-login" role="tabpanel"
+                                aria-labelledby="customer-login-tab">
+                                @include('livewire.admin.settings.partial.customer-login-settings');
+                            </div>
+
 
 
                         </div>

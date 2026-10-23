@@ -30,7 +30,7 @@
             </div>
             <style>
                 .catview-titlebar {
-                    background: #12225B; color: #fff; text-align: center;
+                    background: var(--cat-title-bg, #12225B); color: var(--cat-title-text, #fff); text-align: center;
                     font-size: 1.05rem; font-weight: 700; padding: 12px;
                     border-radius: 10px; margin: 16px 0;
                 }

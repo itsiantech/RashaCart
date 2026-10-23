@@ -19,9 +19,7 @@
             </form>
 
             <div class="hp-nav-icons">
-                <a href="<?php echo e(route('profile.index')); ?>" class="nav-icon d-none d-md-block">
-                    <i class="fas fa-user"></i>
-                </a>
+                <?php echo $__env->make('partials.customer-account-icon', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                 <a href="#" class="nav-icon d-none d-md-block">
                     <i class="fas fa-heart"></i>
                 </a>

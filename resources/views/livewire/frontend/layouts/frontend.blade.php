@@ -17,6 +17,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
 
+    {{-- Dynamic style vars (Style Settings page) --}}
+    @include('partials.style-vars')
+
     {!! \App\Services\PixelManager::head() !!}
     @include('partials.tracking-pixel')
     {{-- Google SEO (verification, GTM, schema) --}}
@@ -116,9 +119,7 @@
             </form>
 
             <div class="hp-nav-icons">
-                <a href="{{ route('profile.index') }}" class="nav-icon d-none d-md-block">
-                    <i class="fas fa-user"></i>
-                </a>
+                @include('partials.customer-account-icon')
                 <a href="#" class="nav-icon d-none d-md-block">
                     <i class="fas fa-heart"></i>
                 </a>
@@ -255,9 +256,21 @@
     <a href="#">
         <i class="fas fa-heart"></i>Wishlist
     </a>
-    <a href="{{ route('profile.index') }}">
-        <i class="fas fa-user"></i>Account
-    </a>
+    @if(\App\Services\CustomerAuthSettings::enabled())
+        @guest
+        <button type="button" data-cust-open="login" style="border:none;background:none;cursor:pointer;color:inherit;font:inherit;">
+            <i class="fas fa-user"></i>Account
+        </button>
+        @else
+        <a href="{{ route('customer.dashboard') }}">
+            <i class="fas fa-user"></i>Account
+        </a>
+        @endif
+    @else
+        <a href="{{ route('profile.index') }}">
+            <i class="fas fa-user"></i>Account
+        </a>
+    @endif
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -316,6 +329,9 @@
         } [e] || e;
     }
 </script>
+
+@include('partials.customer-account-scripts')
+@include('partials.customer-auth-modal')
 
 @stack('scripts')
 @livewireScripts

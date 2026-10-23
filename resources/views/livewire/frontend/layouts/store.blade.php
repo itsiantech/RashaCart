@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
     <link rel="stylesheet" href="{{ asset('assets/frontend/css/plp.css') }}" />
 
+    @include('partials.style-vars')
     @include('partials.main-chrome-css')
     @include('partials.seo-tags')
 
@@ -31,13 +32,26 @@
     @include('partials.main-footer')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
         document.addEventListener('livewire:init', () => {
             Livewire.on('success', (e) => toastr.success(e.message || e[0]?.message || 'Success!'));
             Livewire.on('error', (e) => toastr.error(e.message || e[0]?.message || 'Error!'));
         });
+
+        toastr.options = {
+            "progressBar": true,
+            "closeButton": true,
+            "positionClass": "toast-top-right",
+            "timeOut": 2500,
+            "preventDuplicates": true,
+            "preventOpenDuplicates": true
+        };
     </script>
+    @include('partials.customer-account-scripts')
+    @include('partials.customer-auth-modal')
+
     @livewireScripts
     @stack('scripts')
 </body>

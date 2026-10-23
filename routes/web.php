@@ -31,32 +31,27 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
 
     $liveFlashSale = \App\Models\FlashSale::active()->live()->latest()->first();
 
-    // Flash sale products: live flash sale items first, then discounted, then latest — fill up to 5
+    // Flash sale products ONLY from the live campaign (no fallbacks — the
+    // section stays hidden unless a campaign is actually live).
     $flashSaleProducts = collect([]);
+    $offerPercent = 0;
+    $countdownTarget = now();
     if ($liveFlashSale) {
         $flashSaleProducts = \App\Models\Product::whereHas('activeFlashSaleItem', fn ($q) => $q->where('flash_sale_id', $liveFlashSale->id))
             ->withCount('reviews')->with('activeFlashSaleItem')->limit(5)->get();
-    }
-    if ($flashSaleProducts->count() < 5) {
-        $flashSaleProducts = $flashSaleProducts->merge(
-            \App\Models\Product::whereNotNull('discount_price')
-                ->withCount('reviews')->with('activeFlashSaleItem')
-                ->latest()->limit(5)->get()
-        )->unique('id')->take(5);
-    }
-    if ($flashSaleProducts->count() < 5) {
-        $flashSaleProducts = $flashSaleProducts->merge(
-            \App\Models\Product::withCount('reviews')->with('activeFlashSaleItem')
-                ->latest()->limit(5)->get()
-        )->unique('id')->take(5);
-    }
-
-    $offerPercent = 0;
-    if ($liveFlashSale) {
         $offerPercent = (int) round($liveFlashSale->activeItems()->max('discount_percent') ?? 0);
-    }
-    if (! $offerPercent) {
-        $offerPercent = (int) $flashSaleProducts->max(fn ($p) => $p->price_info['percent'] ?? 0);
+        if (! $offerPercent) {
+            $offerPercent = (int) $flashSaleProducts->max(fn ($p) => $p->price_info['percent'] ?? 0);
+        }
+        $countdownTarget = $liveFlashSale->end_at;
+        // Server-rendered initial values (JS takes over ticking every second)
+        $diff = max(0, now()->diffInSeconds($countdownTarget));
+        $countdownParts = [
+            'days' => intdiv($diff, 86400),
+            'hours' => intdiv($diff % 86400, 3600),
+            'mins' => intdiv($diff % 3600, 60),
+            'secs' => $diff % 60,
+        ];
     }
 
     // Homepage categories with products
@@ -87,8 +82,10 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
         'topShops'            => \App\Models\User::where('role', 'vendor')->with('vendorDetails')->withCount('products')->latest()->limit(6)->get(),
         'topBrands'           => \App\Models\Brand::limit(6)->get(),
         'flashSaleProducts'   => $flashSaleProducts,
+        'liveFlashSale'       => $liveFlashSale,
         'offerPercent'        => $offerPercent,
-        'countdownTarget'     => $liveFlashSale?->end_at ?? now()->endOfDay(),
+        'countdownTarget'     => $countdownTarget,
+        'countdownParts'      => $countdownParts ?? ['days' => 0, 'hours' => 0, 'mins' => 0, 'secs' => 0],
         'homeCategories'      => $homeCategories,
         'recommendedTitle'    => $recommendedTitle,
         'recommendedLimit'    => $recommendedLimit,
@@ -172,6 +169,7 @@ Route::prefix('frontend')->name('frontend.')->group(function () {
 Route::get('/landing/{slug}', PublicLandingPage::class)->name('public.landing');
 
 require __DIR__.'/auth.php';
+require __DIR__.'/web/customer.php';
 
 Route::middleware('auth')->group(function () {
 
