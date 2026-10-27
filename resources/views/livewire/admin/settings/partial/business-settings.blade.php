@@ -112,25 +112,64 @@
             </div>
         </div>
 
-        {{-- Delivery Charge Section --}}
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label for="dc_inside" class="form-label">Inside City Delivery Charge</label>
-                <input type="number" class="form-control @error('dc_inside') is-invalid @enderror" id="dc_inside"
-                    wire:model.defer="dc_inside" min="1" max="500" placeholder="0">
-                @error('dc_inside')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
+        {{-- City-wise Delivery Charges (dynamic) --}}
+        <div class="border-top pt-3 mt-4 mb-3">
+            <h5 class="mb-1">Delivery Charge (City-wise)</h5>
+            <small class="text-muted d-block mb-3">
+                যত ইচ্ছা শহর যোগ করুন — Product Detail Page-এ ঠিক এই তালিকা (শহর + চার্জ) দেখাবে।
+                প্রথম দুইটি row checkout-এর Inside/Outside charge হিসেবেও ব্যবহৃত হবে।
+            </small>
+
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-2">
+                    <thead>
+                        <tr>
+                            <th style="width:45%;">City / Area Name</th>
+                            <th style="width:30%;">Delivery Charge</th>
+                            <th style="width:25%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($delivery_cities as $index => $row)
+                            <tr wire:key="delivery-city-{{ $index }}">
+                                <td>
+                                    <input type="text"
+                                        class="form-control @error('delivery_cities.' . $index . '.city') is-invalid @enderror"
+                                        wire:model.defer="delivery_cities.{{ $index }}.city"
+                                        placeholder="যেমন: Dhaka / Chattogram / Sylhet">
+                                    @error('delivery_cities.' . $index . '.city')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" min="0"
+                                        class="form-control @error('delivery_cities.' . $index . '.charge') is-invalid @enderror"
+                                        wire:model.defer="delivery_cities.{{ $index }}.charge"
+                                        placeholder="0">
+                                    @error('delivery_cities.' . $index . '.charge')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                        wire:click="removeDeliveryCity({{ $index }})"
+                                        title="এই শহরটি বাদ দিন">
+                                        <i class="bx bx-trash"></i> Remove
+                                    </button>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
 
-            <div class="col-md-6">
-                <label for="dc_outside" class="form-label">Outside City Delivery Charge</label>
-                <input type="number" class="form-control @error('dc_outside') is-invalid @enderror" id="dc_outside"
-                    wire:model.defer="dc_outside" min="1" max="500" placeholder="0">
-                @error('dc_outside')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
+            @if (empty($delivery_cities))
+                <div class="text-muted small mb-2">কোনো শহর যোগ করা নেই।</div>
+            @endif
+
+            <button type="button" class="btn btn-sm btn-outline-primary" wire:click="addDeliveryCity">
+                <i class="bx bx-plus"></i> Add City
+            </button>
         </div>
 
         <div class="form-check form-switch mb-3">

@@ -31,8 +31,11 @@ class SettingsRequest extends FormRequest
             'currency' => ['nullable', 'string', 'max:255'],
             'google_map_location' => ['nullable', 'string'],
 
-            'dc_inside' => ['nullable', 'numeric', 'min:1', 'max:500'],
-            'dc_outside' => ['nullable', 'numeric', 'min:1', 'max:500'],
+            // ✅ Dynamic city-wise delivery charges (dc_inside / dc_outside are
+            // derived from the first two rows and no longer edited directly)
+            'delivery_cities' => ['nullable', 'array'],
+            'delivery_cities.*.city' => ['nullable', 'string', 'max:60'],
+            'delivery_cities.*.charge' => ['nullable', 'numeric', 'min:0', 'max:100000'],
 
             // ✅ Contact settings validation
             'contact_phone' => ['nullable', 'string', 'max:50'],

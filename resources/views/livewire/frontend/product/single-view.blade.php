@@ -625,6 +625,37 @@
             font-weight: 600;
         }
 
+        /* ---- City-wise delivery charges ---- */
+        .pd-city-charges {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .pd-city-charge {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 4px 8px;
+            border: 1px solid var(--line, #e5e7eb);
+            border-radius: 6px;
+            background: #fafafa;
+            font-size: .75rem;
+        }
+
+        .pd-city-name {
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .pd-city-amount {
+            color: #111827;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
         .pd-seller {
             display: flex;
             align-items: center;
@@ -1426,6 +1457,29 @@
                             <span class="pd-meta-value">{{ setting('delivery_time') ?: '2 to 4 Days' }}</span>
                         </span>
                     </div>
+
+                    @php
+                        $cityCharges = collect(delivery_cities());
+                    @endphp
+
+                    @if ($cityCharges->isNotEmpty())
+                        <div class="pd-meta-row">
+                            <span class="pd-meta-ic"><i class="fas fa-map-marker-alt"></i></span>
+                            <span style="flex:1;">
+                                <span class="pd-meta-label">Delivery Charge</span>
+                                <span class="pd-city-charges">
+                                    @foreach ($cityCharges as $cityCharge)
+                                        <span class="pd-city-charge">
+                                            <span class="pd-city-name">{{ $cityCharge['city'] }}</span>
+                                            <span class="pd-city-amount">
+                                                {{ setting('currency', '৳') }}{{ number_format($cityCharge['charge'], $cityCharge['charge'] == (int) $cityCharge['charge'] ? 0 : 2) }}
+                                            </span>
+                                        </span>
+                                    @endforeach
+                                </span>
+                            </span>
+                        </div>
+                    @endif
 
                     <div class="pd-meta-row">
                         <span class="pd-meta-ic"><i class="fas fa-undo"></i></span>

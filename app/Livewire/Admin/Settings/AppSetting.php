@@ -69,6 +69,9 @@ class AppSetting extends Component
 
     public $dc_outside;
 
+    // ── City-wise delivery charges (dynamic rows: [['city' => ..., 'charge' => ...]]) ──
+    public $delivery_cities = [];
+
     public $sms_notification;
 
     public $sms_api_key;
@@ -157,6 +160,7 @@ class AppSetting extends Component
 
         $this->dc_inside = setting('dc_inside');
         $this->dc_outside = setting('dc_outside');
+        $this->delivery_cities = $this->storedDeliveryCities();
 
         $this->contact_phone = setting('contact_phone');
         $this->contact_email = setting('contact_email');
@@ -209,6 +213,55 @@ class AppSetting extends Component
         $this->add_to_cart_label = setting('add_to_cart_label') ?: \App\Services\PurchaseActions::DEFAULT_ADD_LABEL;
         $this->buy_now_label = setting('buy_now_label') ?: \App\Services\PurchaseActions::DEFAULT_BUY_LABEL;
         $this->purchase_disabled_text = setting('purchase_disabled_text') ?: \App\Services\PurchaseActions::DEFAULT_DISABLED_TEXT;
+    }
+
+    // ─── City-wise delivery charges ──────────────────────────────────────────
+    private function storedDeliveryCities(): array
+    {
+        $raw = setting('delivery_cities');
+
+        if ($raw === null || $raw === '' || $raw === false) {
+            $stored = [
+                ['city' => 'Inside City', 'charge' => setting('dc_inside', 60)],
+                ['city' => 'Outside City', 'charge' => setting('dc_outside', 120)],
+            ];
+        } else {
+            $stored = json_decode((string) $raw, true);
+            $stored = is_array($stored) ? $stored : [];
+        }
+
+        return collect($stored)
+            ->filter(fn ($row) => is_array($row))
+            ->map(fn ($row) => [
+                'city' => (string) ($row['city'] ?? ''),
+                'charge' => (string) ($row['charge'] ?? ''),
+            ])
+            ->values()
+            ->all();
+    }
+
+    public function addDeliveryCity(): void
+    {
+        $this->delivery_cities[] = ['city' => '', 'charge' => ''];
+    }
+
+    public function removeDeliveryCity(int $index): void
+    {
+        unset($this->delivery_cities[$index]);
+        $this->delivery_cities = array_values($this->delivery_cities);
+    }
+
+    private function normalizedDeliveryCities(): array
+    {
+        return collect($this->delivery_cities)
+            ->map(fn ($row) => [
+                'city' => trim((string) ($row['city'] ?? '')),
+                'charge' => $row['charge'] ?? '',
+            ])
+            ->filter(fn ($row) => $row['city'] !== '' && is_numeric($row['charge']))
+            ->map(fn ($row) => ['city' => $row['city'], 'charge' => round((float) $row['charge'], 2)])
+            ->values()
+            ->all();
     }
 
     // ─── Fetch BulkSMSBD balance ─────────────────────────────────────────────
@@ -309,6 +362,20 @@ class AppSetting extends Component
         $validatedData['add_to_cart_enabled'] = $this->add_to_cart_enabled ? 1 : 0;
         $validatedData['buy_now_enabled'] = $this->buy_now_enabled ? 1 : 0;
         $validatedData['cart_drawer_enabled'] = $this->cart_drawer_enabled ? 1 : 0;
+
+        // City-wise delivery charges — first two rows also feed the checkout's
+        // legacy inside/outside charges so existing order flow keeps working.
+        $cities = $this->normalizedDeliveryCities();
+
+        $validatedData['delivery_cities'] = json_encode($cities);
+
+        if (isset($cities[0])) {
+            $validatedData['dc_inside'] = $cities[0]['charge'];
+        }
+
+        if (isset($cities[1])) {
+            $validatedData['dc_outside'] = $cities[1]['charge'];
+        }
 
         if ($this->app_logo) {
             $oldLogo = setting('app_logo');
