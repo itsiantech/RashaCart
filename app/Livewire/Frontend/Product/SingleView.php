@@ -111,7 +111,7 @@ class SingleView extends Component
         $this->meta_keywords = $this->product->meta_keywords;
         $this->meta_tags = $this->product->meta_tags;
 
-        $this->relatedProducts = Product::where('category_id', $this->product->category_id)
+        $this->relatedProducts = Product::inCategories($this->product->categoryIds())
             ->where('id', '!=', $this->product->id)
             ->where('status', true)
             ->withCount('reviews')

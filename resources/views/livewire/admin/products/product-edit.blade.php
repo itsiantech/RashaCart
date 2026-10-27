@@ -35,7 +35,7 @@
                         <select wire:model="category_id" class="form-select">
                             <option value="">Select Category</option>
                             @foreach ($categories as $category)
-                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            <option value="{{ $category->id }}">{{ $category->depth ? str_repeat('— ', $category->depth) : '' }}{{ $category->name }}</option>
                             @endforeach
                         </select>
                         @error('category_id')
@@ -54,6 +54,39 @@
                         @error('brand_id')
                         <span class="text-danger small">{{ $message }}</span>
                         @enderror
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <label class="form-label d-flex justify-content-between align-items-center mb-1">
+                            <span>Additional Categories <small class="text-muted">(optional — unlimited)</small></span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#additionalCategoriesBox">
+                                <i class="bx bx-chevron-down"></i>
+                            </button>
+                        </label>
+                        <div class="collapse {{ count($additional_category_ids) ? 'show' : '' }}" id="additionalCategoriesBox">
+                            <div class="border rounded p-3" style="max-height: 240px; overflow-y: auto;">
+                                @foreach ($categories as $category)
+                                <div class="form-check" style="margin-left: {{ $category->depth * 20 }}px;">
+                                    <input class="form-check-input" type="checkbox"
+                                           id="additional-category-{{ $category->id }}"
+                                           value="{{ $category->id }}"
+                                           wire:model="additional_category_ids">
+                                    <label class="form-check-label" for="additional-category-{{ $category->id }}">
+                                        {{ $category->name }}
+                                        @if ((int) $category->id === (int) $category_id)
+                                        <span class="badge bg-secondary">Primary</span>
+                                        @endif
+                                    </label>
+                                </div>
+                                @endforeach
+                            </div>
+                            <small class="text-muted">উপরে select করা Primary category ছাড়া যেসব category-তে product দেখাতে চান, সেগুলো টিক দিন।</small>
+                            @error('additional_category_ids.*')
+                            <div class="text-danger small">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
                 </div>
 

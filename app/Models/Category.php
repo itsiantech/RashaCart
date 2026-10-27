@@ -34,6 +34,29 @@ class Category extends Model
         return $this->children()->with('allChildren');
     }
 
+    /** Flat list of every category below this one (sub + sub-sub + ...). */
+    public function descendantIds(): array
+    {
+        $byParent = static::query()->select('id', 'parent_id')->get()->groupBy('parent_id');
+
+        $collect = function (int $parentId) use (&$collect, $byParent): array {
+            $ids = [];
+            foreach ($byParent->get($parentId, collect()) as $child) {
+                $ids[] = (int) $child->id;
+                $ids = array_merge($ids, $collect((int) $child->id));
+            }
+
+            return $ids;
+        };
+
+        return $collect((int) $this->id);
+    }
+
+    public function selfAndDescendantIds(): array
+    {
+        return array_merge([(int) $this->id], $this->descendantIds());
+    }
+
     public function isLeaf()
     {
         return $this->children()->count() === 0;

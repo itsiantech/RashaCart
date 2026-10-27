@@ -53,6 +53,8 @@ class ProductCreate extends Component
 
     public $category_id;
 
+    public $additional_category_ids = [];
+
     public $brand_id;
 
     public $thumbnail;
@@ -354,6 +356,8 @@ class ProductCreate extends Component
             'sale_price' => 'required|numeric|min:0',
             'short_description' => 'required|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
+            'additional_category_ids' => 'array',
+            'additional_category_ids.*' => 'exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'thumbnail' => 'required|image|max:7048',
             'video' => 'nullable|string|max:255',
@@ -424,6 +428,19 @@ class ProductCreate extends Component
                 'preorder_end_date' => $this->is_preorder ? $this->preorder_end_date : null,
                 'expected_release_date' => $this->is_preorder ? $this->expected_release_date : null,
             ]);
+
+            // Primary category always stays in the pivot; extras come from the checkbox tree.
+            if (Product::hasCategoryPivot()) {
+                $categoryIds = collect($this->additional_category_ids)
+                    ->push($this->category_id)
+                    ->filter()
+                    ->map(fn ($id) => (int) $id)
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $product->categories()->sync($categoryIds);
+            }
 
             if ($this->thumbnail) {
                 $path = $this->thumbnail->store('products/thumbnails', 'public');
@@ -552,13 +569,33 @@ class ProductCreate extends Component
 
     public function render()
     {
-        $categories = Category::with('children')
-            ->whereNull('parent_id')
-            ->get();
-
         return view('livewire.admin.products.product-create', [
-            'categories' => $categories,
+            'categories' => $this->flattenCategories(),
             'brands' => Brand::all(),
         ])->layout('livewire.admin.layouts.app');
+    }
+
+    private function flattenCategories(): array
+    {
+        $byParent = Category::orderBy('sort_order')->orderBy('name')->get()
+            ->groupBy(fn ($category) => $category->parent_id ?? 0);
+
+        $flatten = function (int $parentId, int $depth) use (&$flatten, $byParent): array {
+            $rows = [];
+
+            foreach ($byParent->get($parentId, collect()) as $category) {
+                $rows[] = (object) [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'depth' => $depth,
+                ];
+
+                $rows = array_merge($rows, $flatten($category->id, $depth + 1));
+            }
+
+            return $rows;
+        };
+
+        return $flatten(0, 0);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Livewire\Frontend\NewArrival;
 
 use App\Models\Category;
 use App\Models\NewArrival;
+use App\Models\Product;
 use App\Traits\HandlesCartActions;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -57,15 +58,21 @@ class NewArrivals extends Component
 
     public function render()
     {
-        $query = NewArrival::with(['product.category', 'product.activeFlashSaleItem'])->active();
+        $with = ['product.category', 'product.activeFlashSaleItem'];
+        if (Product::hasCategoryPivot()) {
+            $with[] = 'product.categories';
+        }
+
+        $query = NewArrival::with($with)->active();
 
         // Get all, then filter/sort on collection
         $all = $query->ordered()->get();
 
         // Filter by category
         if ($this->selectedCategory) {
-            $all = $all->filter(fn ($a) => $a->product && $a->product->category_id == $this->selectedCategory
-            );
+            $category = Category::find($this->selectedCategory);
+            $categoryIds = $category ? $category->selfAndDescendantIds() : [(int) $this->selectedCategory];
+            $all = $all->filter(fn ($a) => $a->product && array_intersect($a->product->categoryIds(), $categoryIds));
         }
 
         // Filter by price range

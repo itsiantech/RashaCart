@@ -63,6 +63,8 @@ class ProductEdit extends Component
 
     public $category_id;
 
+    public $additional_category_ids = [];
+
     public $brand_id;
 
     public $thumbnail;
@@ -146,6 +148,11 @@ class ProductEdit extends Component
         $this->discount_type = $product->discount_type;
         $this->discount_price = $product->discount_price;
         $this->category_id = $product->category_id;
+        $this->additional_category_ids = Product::hasCategoryPivot()
+            ? $product->categories()->pluck('categories.id')
+                ->reject(fn ($id) => (int) $id === (int) $product->category_id)
+                ->map(fn ($id) => (string) $id)->values()->all()
+            : [];
         $this->brand_id = $product->brand_id;
         $this->video = $product->video;
         $this->status = $product->status ? true : false;
@@ -422,6 +429,8 @@ class ProductEdit extends Component
             'discount_type' => 'nullable|string|in:fixed,percentage|required_with:discount_price',
             'discount_price' => 'nullable|numeric|min:0|required_with:discount_type',
             'category_id' => 'required|exists:categories,id',
+            'additional_category_ids' => 'array',
+            'additional_category_ids.*' => 'exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'thumbnail' => 'nullable|image|max:2048',
             'images.*' => 'nullable|image|max:2048',
@@ -490,6 +499,19 @@ class ProductEdit extends Component
                 'preorder_end_date' => $this->is_preorder ? $this->preorder_end_date : null,
                 'expected_release_date' => $this->is_preorder ? $this->expected_release_date : null,
             ]);
+
+            // Primary category always stays in the pivot; extras come from the checkbox tree.
+            if (Product::hasCategoryPivot()) {
+                $categoryIds = collect($this->additional_category_ids)
+                    ->push($this->category_id)
+                    ->filter()
+                    ->map(fn ($id) => (int) $id)
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $product->categories()->sync($categoryIds);
+            }
 
             // Handle thumbnail update
             if ($this->thumbnail) {
@@ -686,8 +708,32 @@ class ProductEdit extends Component
     public function render()
     {
         return view('livewire.admin.products.product-edit', [
-            'categories' => Category::whereDoesntHave('children')->get(),
+            'categories' => $this->flattenCategories(),
             'brands' => Brand::all(),
         ])->layout('livewire.admin.layouts.app');
+    }
+
+    private function flattenCategories(): array
+    {
+        $byParent = Category::orderBy('sort_order')->orderBy('name')->get()
+            ->groupBy(fn ($category) => $category->parent_id ?? 0);
+
+        $flatten = function (int $parentId, int $depth) use (&$flatten, $byParent): array {
+            $rows = [];
+
+            foreach ($byParent->get($parentId, collect()) as $category) {
+                $rows[] = (object) [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'depth' => $depth,
+                ];
+
+                $rows = array_merge($rows, $flatten($category->id, $depth + 1));
+            }
+
+            return $rows;
+        };
+
+        return $flatten(0, 0);
     }
 }

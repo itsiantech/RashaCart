@@ -75,6 +75,50 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class, 'category_product')->withTimestamps();
+    }
+
+    /** Pivot table may not exist until the migration runs; memoised per request. */
+    public static function hasCategoryPivot(): bool
+    {
+        static $exists = null;
+
+        return $exists ??= \Illuminate\Support\Facades\Schema::hasTable('category_product');
+    }
+
+    /** Primary category + every extra category assigned through the pivot. */
+    public function categoryIds(): array
+    {
+        $ids = $this->category_id ? [(int) $this->category_id] : [];
+
+        if (self::hasCategoryPivot()) {
+            $ids = array_merge($ids, $this->categories->pluck('id')->map(fn ($id) => (int) $id)->all());
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /** Matches products whose primary or additional category is in the given set. */
+    public function scopeInCategories($query, array $categoryIds)
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $categoryIds))));
+
+        if (empty($ids)) {
+            return $query;
+        }
+
+        if (! self::hasCategoryPivot()) {
+            return $query->whereIn('category_id', $ids);
+        }
+
+        return $query->where(function ($q) use ($ids) {
+            $q->whereIn('category_id', $ids)
+                ->orWhereHas('categories', fn ($qq) => $qq->whereIn('categories.id', $ids));
+        });
+    }
+
     public function brand()
     {
         return $this->belongsTo(Brand::class);

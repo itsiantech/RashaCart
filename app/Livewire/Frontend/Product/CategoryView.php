@@ -57,7 +57,7 @@ class CategoryView extends Component
         $query = Product::query();
 
         if ($this->category) {
-            $query->where('category_id', $this->category->id);
+            $query->inCategories($this->category->selfAndDescendantIds());
         }
 
         if ($this->selectedPrice) {

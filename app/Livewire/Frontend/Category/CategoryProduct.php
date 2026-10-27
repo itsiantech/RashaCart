@@ -188,7 +188,7 @@ class CategoryProduct extends Component
 
         // Category filter
         if ($this->category) {
-            $query->where('category_id', $this->category->id);
+            $query->inCategories($this->category->selfAndDescendantIds());
         }
 
         if ($this->selectedPrice) {
@@ -236,7 +236,7 @@ class CategoryProduct extends Component
     {
         $base = Product::query()->where('status', true);
         if ($this->category) {
-            $base->where('category_id', $this->category->id);
+            $base->inCategories($this->category->selfAndDescendantIds());
         }
 
         $counts = (clone $base)->selectRaw('brand_id, COUNT(*) as total')

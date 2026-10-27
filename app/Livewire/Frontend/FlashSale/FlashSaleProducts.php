@@ -62,7 +62,8 @@ class FlashSaleProducts extends Component
                 }
 
                 if ($this->selectedCategory) {
-                    $q->where('category_id', $this->selectedCategory);
+                    $category = Category::find($this->selectedCategory);
+                    $q->inCategories($category ? $category->selfAndDescendantIds() : [(int) $this->selectedCategory]);
                 }
             });
 

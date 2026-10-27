@@ -62,16 +62,23 @@ class TrendyProduct extends Component
 
     public function render()
     {
+        $with = ['category', 'activeFlashSaleItem'];
+        if (Product::hasCategoryPivot()) {
+            $with[] = 'categories';
+        }
+
         $query = Product::where('status', 1)
             ->where('is_featured', 1)
-            ->with(['category', 'activeFlashSaleItem']);
+            ->with($with);
             
         $all = $query->get();
 
         // Filter by category
         if ($this->selectedCategory) {
+            $category = Category::find($this->selectedCategory);
+            $categoryIds = $category ? $category->selfAndDescendantIds() : [(int) $this->selectedCategory];
             $all = $all->filter(
-                fn($p) => $p->category_id == $this->selectedCategory
+                fn($p) => array_intersect($p->categoryIds(), $categoryIds)
             );
         }
 
