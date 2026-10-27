@@ -67,13 +67,13 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
         ->where('status', 1)->whereNull('parent_id')
         ->with(['children' => function ($q) {
             $q->select('id', 'name', 'slug', 'parent_id', 'status', 'image', 'sort_order')
-                ->where('status', 1)->orderBy('name')
+                ->where('status', 1)->orderBy('sort_order')->orderBy('name')
                 ->with(['children' => function ($q2) {
                     $q2->select('id', 'name', 'slug', 'parent_id', 'status', 'image', 'sort_order')
-                        ->where('status', 1)->orderBy('name');
+                        ->where('status', 1)->orderBy('sort_order')->orderBy('name');
                 }]);
         }])
-        ->orderBy('name')->limit(15)->get();
+        ->orderBy('sort_order')->orderBy('name')->limit(15)->get();
 
     // "Shop by Category" showcase: root categories with image + product count (sub-categories included)
     $productCounts = \App\Models\Product::selectRaw('category_id, count(*) as total')

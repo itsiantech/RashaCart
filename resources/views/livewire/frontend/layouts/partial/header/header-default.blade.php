@@ -26,7 +26,7 @@
             <div class="mobile-header">
                 <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
             </div>
-            @include('livewire.frontend.layouts.partial.category.category-list', ['categories' => \App\Models\Category::with('allChildren')->where('parent_id', null)->where('status', 1)->orderBy('name')->get()])
+            @include('livewire.frontend.layouts.partial.category.category-list', ['categories' => \App\Models\Category::with('allChildren')->where('parent_id', null)->where('status', 1)->orderBy('sort_order')->orderBy('name')->get()])
         </div>
 
         <!-- Overlay for mobile sidebar -->

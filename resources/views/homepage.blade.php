@@ -504,6 +504,59 @@
 </section>
 @endif
 
+{{-- ══════════════ RECOMMENDED FOR YOU (right below Flash Sale) ══════════════ --}}
+<section class="hp-sec">
+    <div class="hp-container">
+        <div class="hp-box">
+            <div class="hp-sec-head">
+                <h5 class="hp-sec-title">{{ $recommendedTitle }}</h5>
+            </div>
+            <div class="rp-grid rp-cols-{{ min($recommendedProducts->count(), 6) }}">
+                @forelse($recommendedProducts as $product)
+                @php $pi = $product->price_info; @endphp
+                <div class="hp-pcard">
+                    <a href="{{ route('frontend.product.single.view', $product->slug) }}" class="hp-pimg">
+                        <img src="{{ asset('storage/'.$product->thumbnail) }}" alt="{{ $product->name }}"
+                             onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
+                        @if($pi['percent'] > 0)
+                        <span class="hp-pbadge">-{{ $pi['percent'] }}%</span>
+                        @endif
+                    </a>
+                    <div class="hp-pbody">
+                        <p class="hp-ptitle">{{ $product->name }}</p>
+                        <div class="hp-stars">
+                            @for($s=1;$s<=5;$s++)
+                            <i class="fas fa-star"></i>
+                            @endfor
+                            <small>({{ $product->reviews_count }})</small>
+                        </div>
+                        <div class="hp-price mb-2">
+                            ৳{{ number_format($pi['final'], 0) }}
+                            @if($pi['has_discount'])
+                            <span class="old">৳{{ number_format($pi['original'], 0) }}</span>
+                            @endif
+                        </div>
+                        @include('partials.purchase-add-to-cart', ['product' => $product])
+                    </div>
+                </div>
+                @empty
+                <div class="text-center py-4 text-muted" style="grid-column:1/-1">
+                    <i class="fas fa-box-open fa-2x mb-2"></i><p class="mb-0">No products found</p>
+                </div>
+                @endforelse
+            </div>
+
+            @if($show < $totalProducts)
+            <div class="hp-load-wrap">
+                <a href="{{ route('home', ['show' => min($show + 12, $totalProducts)]) }}" class="hp-load-more">
+                    LOAD MORE PRODUCTS
+                </a>
+            </div>
+            @endif
+        </div>
+    </div>
+</section>
+
 {{-- ══════════════ HOMEPAGE CATEGORIES ══════════════ --}}
 {{-- DEBUG: {{ $homeCategories->count() }} categories found --}}
 @if($homeCategories->count())
@@ -583,59 +636,6 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
     </div>
 </section>
 @endif
-
-{{-- ══════════════ RECOMMENDED FOR YOU ══════════════ --}}
-<section class="hp-sec">
-    <div class="hp-container">
-        <div class="hp-box">
-            <div class="hp-sec-head">
-                <h5 class="hp-sec-title">{{ $recommendedTitle }}</h5>
-            </div>
-            <div class="rp-grid rp-cols-{{ min($recommendedProducts->count(), 6) }}">
-                @forelse($recommendedProducts as $product)
-                @php $pi = $product->price_info; @endphp
-                <div class="hp-pcard">
-                    <a href="{{ route('frontend.product.single.view', $product->slug) }}" class="hp-pimg">
-                        <img src="{{ asset('storage/'.$product->thumbnail) }}" alt="{{ $product->name }}"
-                             onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
-                        @if($pi['percent'] > 0)
-                        <span class="hp-pbadge">-{{ $pi['percent'] }}%</span>
-                        @endif
-                    </a>
-                    <div class="hp-pbody">
-                        <p class="hp-ptitle">{{ $product->name }}</p>
-                        <div class="hp-stars">
-                            @for($s=1;$s<=5;$s++)
-                            <i class="fas fa-star"></i>
-                            @endfor
-                            <small>({{ $product->reviews_count }})</small>
-                        </div>
-                        <div class="hp-price mb-2">
-                            ৳{{ number_format($pi['final'], 0) }}
-                            @if($pi['has_discount'])
-                            <span class="old">৳{{ number_format($pi['original'], 0) }}</span>
-                            @endif
-                        </div>
-                        @include('partials.purchase-add-to-cart', ['product' => $product])
-                    </div>
-                </div>
-                @empty
-                <div class="text-center py-4 text-muted" style="grid-column:1/-1">
-                    <i class="fas fa-box-open fa-2x mb-2"></i><p class="mb-0">No products found</p>
-                </div>
-                @endforelse
-            </div>
-
-            @if($show < $totalProducts)
-            <div class="hp-load-wrap">
-                <a href="{{ route('home', ['show' => min($show + 12, $totalProducts)]) }}" class="hp-load-more">
-                    LOAD MORE PRODUCTS
-                </a>
-            </div>
-            @endif
-        </div>
-    </div>
-</section>
 
 {{-- ══════════════ FOOTER ══════════════ --}}
 <footer class="hp-footer">
