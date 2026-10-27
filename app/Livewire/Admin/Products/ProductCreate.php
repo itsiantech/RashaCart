@@ -354,7 +354,7 @@ class ProductCreate extends Component
             'meta_tags' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
             'sale_price' => 'required|numeric|min:0',
-            'short_description' => 'required|string|max:255',
+            'short_description' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'additional_category_ids' => 'array',
             'additional_category_ids.*' => 'exists:categories,id',

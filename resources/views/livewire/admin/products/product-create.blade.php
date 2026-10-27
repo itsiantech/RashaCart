@@ -60,37 +60,32 @@
 
                 <div class="row">
                     <div class="col-12 mb-3">
-                        <label class="form-label d-flex justify-content-between align-items-center mb-1">
-                            <span>Additional Categories <small class="text-muted">(optional — unlimited)</small></span>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#additionalCategoriesBox">
-                                <i class="bx bx-chevron-down"></i>
-                            </button>
+                        <label class="form-label">
+                            Additional Categories <small class="text-muted">(optional — একাধিক টিক দেওয়া যাবে)</small>
                         </label>
-                        <div class="collapse {{ count($additional_category_ids) ? 'show' : '' }}" id="additionalCategoriesBox">
-                            <div class="border rounded p-3" style="max-height: 240px; overflow-y: auto;">
-                                @foreach ($categories as $category)
-                                <div class="form-check" style="margin-left: {{ $category->depth * 20 }}px;">
-                                    <input class="form-check-input" type="checkbox"
-                                           id="additional-category-{{ $category->id }}"
-                                           value="{{ $category->id }}"
-                                           wire:model="additional_category_ids">
-                                    <label class="form-check-label" for="additional-category-{{ $category->id }}">
-                                        {{ $category->name }}
-                                    </label>
-                                </div>
-                                @endforeach
+                        <div class="border rounded p-3" style="max-height: 240px; overflow-y: auto;">
+                            @foreach ($categories as $category)
+                            <div class="form-check" style="margin-left: {{ $category->depth * 20 }}px;">
+                                <input class="form-check-input" type="checkbox"
+                                       id="additional-category-{{ $category->id }}"
+                                       value="{{ $category->id }}"
+                                       wire:model="additional_category_ids">
+                                <label class="form-check-label" for="additional-category-{{ $category->id }}">
+                                    {{ $category->name }}
+                                </label>
                             </div>
-                            <small class="text-muted">Primary category ছাড়া যেসব category-তে product দেখাতে চান, সেগুলো টিক দিন।</small>
-                            @error('additional_category_ids.*')
-                            <div class="text-danger small">{{ $message }}</div>
-                            @enderror
+                            @endforeach
                         </div>
+                        <small class="text-muted">Primary category ছাড়া যেসব category-তে product দেখাতে চান, সেগুলো টিক দিন।</small>
+                        @error('additional_category_ids.*')
+                        <div class="text-danger small">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-4">
-                        <label class="form-label">Short Description <span class="text-danger">*</span></label>
+                        <label class="form-label">Short Description <small class="text-muted">(optional)</small></label>
                         <textarea wire:model="short_description" class="form-control" rows="3" placeholder="Brief description"></textarea>
                         @error('short_description')
                         <span class="text-danger small">{{ $message }}</span>
@@ -100,9 +95,21 @@
                     <div class="col-md-8">
                         <label class="form-label">Long Description</label>
 
-                        <div wire:ignore>
-                            <div id="quill-editor" style="min-height:150px;">{!! $long_description !!}</div>
+                        <div wire:ignore class="lx-desc-editor">
+                            <div id="quill-editor">{!! $long_description !!}</div>
                         </div>
+                        <div class="lx-desc-hint"><i class="bx bx-move-vertical"></i> নিচের ডান কোণা ধরে টেনে এডিটর বড়/ছোট করুন</div>
+
+                        <style>
+                            .lx-desc-editor{display:flex;flex-direction:column;height:300px;min-height:220px;max-height:75vh;resize:vertical;overflow:hidden;border:1px solid #dfe3e8;border-radius:.65rem;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.04);transition:border-color .15s,box-shadow .15s}
+                            .lx-desc-editor:focus-within{border-color:#696cff;box-shadow:0 0 0 .2rem rgba(105,108,255,.12)}
+                            .lx-desc-editor .ql-toolbar.ql-snow{border:0;border-bottom:1px solid #eef0f3;background:#f8f9fc;padding:8px 10px;border-radius:.65rem .65rem 0 0}
+                            .lx-desc-editor .ql-container.ql-snow{border:0;flex:1;min-height:0;overflow-y:auto;font-size:15px;font-family:inherit}
+                            .lx-desc-editor .ql-editor{min-height:100%;line-height:1.75;padding:14px 16px}
+                            .lx-desc-editor .ql-editor.ql-blank::before{color:#a1a7b3;font-style:normal}
+                            .lx-desc-editor .ql-snow .ql-tooltip{z-index:5}
+                            .lx-desc-hint{font-size:.75rem;color:#8a91a0;margin-top:4px}
+                        </style>
 
                         <input id="long_description_input" type="hidden" wire:model="long_description">
                         @error('long_description')
@@ -155,6 +162,7 @@
 
                                     var quill = new Quill(editorEl, {
                                         theme: 'snow',
+                                        placeholder: 'Product-এর বিস্তারিত বর্ণনা লিখুন…',
                                         modules: {
                                             toolbar: [
                                                 [{
