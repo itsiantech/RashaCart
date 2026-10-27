@@ -166,11 +166,28 @@
         .hp-catshow-name { font-size: .78rem; font-weight: 600; color: #1f2937; text-align: center; line-height: 1.25; }
         .hp-catshow-count { font-size: .68rem; color: #9ca3af; }
 
-        /* ── Homepage Categories grid ── */
-        .hp-cat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-        @media(min-width: 576px) { .hp-cat-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 768px) { .hp-cat-grid { grid-template-columns: repeat(4, 1fr); } }
-        @media(min-width: 992px) { .hp-cat-grid { grid-template-columns: repeat(6, 1fr); } }
+        /* ── Homepage Categories grid (adapts to each category's product limit) ── */
+        .hp-cat-grid { display: grid; grid-template-columns: repeat(var(--cat-cols, 2), minmax(0, 1fr)); gap: 14px; }
+        .hp-cat-cols-1 { --cat-cols: 1; max-width: 280px; margin-inline: auto; }
+        .hp-cat-cols-2 { --cat-cols: 2; }
+        .hp-cat-cols-3 { --cat-cols: 3; }
+        .hp-cat-cols-4 { --cat-cols: 4; }
+        .hp-cat-cols-5 { --cat-cols: 5; }
+        .hp-cat-cols-6 { --cat-cols: 6; }
+        @media (max-width: 575px) {
+            .hp-cat-cols-3, .hp-cat-cols-4, .hp-cat-cols-5, .hp-cat-cols-6 { --cat-cols: 2; }
+        }
+        @media (min-width: 576px) and (max-width: 767px) {
+            .hp-cat-cols-4, .hp-cat-cols-5, .hp-cat-cols-6 { --cat-cols: 3; }
+        }
+        @media (min-width: 768px) and (max-width: 991px) {
+            .hp-cat-cols-5, .hp-cat-cols-6 { --cat-cols: 4; }
+        }
+        @media (min-width: 992px) {
+            .hp-cat-cols-1 { max-width: 300px; margin-inline: auto; }
+            .hp-cat-cols-2 { max-width: 610px; margin-inline: auto; }
+            .hp-cat-cols-3 { max-width: 900px; margin-inline: auto; }
+        }
 
         /* ── Recommended grid ── */
         .rp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
@@ -472,7 +489,7 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
                 <h5 class="hp-sec-title">{{ $homeCat->category->name }}</h5>
                 <a href="{{ route('frontend.category.products.view', $homeCat->category->slug) }}" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
             </div>
-            <div class="hp-cat-grid">
+            <div class="hp-cat-grid hp-cat-cols-{{ min($categoryProducts->count(), 6) }}">
                 @foreach($categoryProducts as $product)
                 @php $pi = $product->price_info; @endphp
                 <div class="hp-pcard">
