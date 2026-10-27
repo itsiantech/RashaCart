@@ -24,6 +24,9 @@ class CartView extends Component
 
     public function mount()
     {
+        // A direct Buy Now must not hijack a normal cart checkout.
+        session()->forget('buy_now_item');
+
         $this->refreshCart();
         $allProducts = Cache::get('products', collect());
         $this->mayLikeProducts = $allProducts->shuffle()->take(8);

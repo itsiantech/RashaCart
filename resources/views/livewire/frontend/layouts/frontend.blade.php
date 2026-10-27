@@ -321,6 +321,9 @@
     }
 </script>
 
+{{-- Site-wide slide-out cart drawer (admin toggle: Business Settings) --}}
+@include('partials.cart-drawer')
+
 @include('partials.customer-account-scripts')
 @include('partials.customer-auth-modal')
 

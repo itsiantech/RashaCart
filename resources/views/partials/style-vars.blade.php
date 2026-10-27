@@ -50,4 +50,28 @@
     .product-card .btn-cart:hover {
         filter: brightness(.92);
     }
+
+    /* Variant-aware card links behave like the buttons they replace */
+    .product-cta a.btn-order-now,
+    .product-cta a.cart-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+
+    .purchase-disabled-text {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 34px;
+        padding: 6px 10px;
+        border-radius: 10px;
+        background: #f3f4f6;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+    }
 </style>

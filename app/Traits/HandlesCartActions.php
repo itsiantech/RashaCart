@@ -61,10 +61,77 @@ trait HandlesCartActions
         $this->dispatch('cartUpdated');
 
         $cartCount = array_sum(array_column($this->cartItems, 'qty'));
-        $this->dispatch('cart-updated', count: $cartCount);
+        $cartTotal = $this->cartTotal($this->cartItems);
+        $this->dispatch('cart-updated', count: $cartCount, total: $cartTotal);
+    }
+
+    private function cartTotal(array $cart): float
+    {
+        return array_sum(array_map(
+            fn ($item) => ((float) ($item['price'] ?? 0)) * ((int) ($item['qty'] ?? 1)),
+            $cart
+        ));
     }
 
     public function addToCart($productId)
+    {
+        if (! \App\Services\PurchaseActions::addToCartEnabled()) {
+            $this->dispatch('error', message: 'Add to Cart is currently disabled.');
+
+            return false;
+        }
+
+        session()->forget('buy_now_item');
+
+        $resolved = $this->buildPurchaseItem($productId);
+        if ($resolved === false) {
+            return false;
+        }
+
+        $cart = session()->get('cart', []);
+        $key = $resolved['key'];
+        $qty = $resolved['qty'];
+        $currentQtyInCart = (int) ($cart[$key]['qty'] ?? 0);
+
+        if (($currentQtyInCart + $qty) > $resolved['available']) {
+            $this->dispatch('error', message: "Not enough stock available. Only {$resolved['available']} left.");
+
+            return false;
+        }
+
+        if (isset($cart[$key])) {
+            $cart[$key]['qty'] += $qty;
+        } else {
+            $cart[$key] = $resolved['item'];
+        }
+
+        session()->put('cart', $cart);
+        $this->quantity = 1;
+
+        $cartCount = array_sum(array_column($cart, 'qty'));
+        $cartTotal = $this->cartTotal($cart);
+        $this->dispatch('cart-updated', count: $cartCount, total: $cartTotal);
+        $this->dispatch('cartUpdated');
+        $this->dispatch('cart-drawer-open', count: $cartCount, total: $cartTotal);
+        $this->dispatch('success', message: 'Product added to cart!');
+
+        $this->dispatch('track-event', eventName: 'AddToCart', data: [
+            'content_id'   => $resolved['content_id'],
+            'content_name' => $resolved['item']['title'],
+            'content_type' => 'product',
+            'variant'      => trim(($resolved['variant_label'] ?: '').($resolved['option_label'] ? ' | '.$resolved['option_label'] : '')) ?: null,
+            'value'        => $resolved['item']['price'] * $qty,
+            'currency'     => 'BDT',
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Resolve a single purchasable line without writing to the cart.
+     * Used by both Add to Cart and the independent Buy Now flow.
+     */
+    private function buildPurchaseItem($productId)
     {
         // CHANGED (1): 'activeFlashSaleItem' added to eager load
         $product = Product::with([
@@ -74,9 +141,7 @@ trait HandlesCartActions
             'activeFlashSaleItem',
         ])->findOrFail($productId);
 
-        $cart = session()->get('cart', []);
-        $key = $productId;
-        $qty = $this->quantity > 0 ? $this->quantity : 1;
+        $qty = max(1, (int) ($this->quantity ?? 1));
 
         // CHANGED (2): flash sale + normal discount, both handled
         $price = $product->price_info['final'];
@@ -164,19 +229,10 @@ trait HandlesCartActions
                     return false;
                 }
 
-                // Stock check
+                // Stock check (authoritative qty check runs after CombinationResolver)
                 $currentStock = $variant->inventories()->orderByDesc('id')->value('current_stock') ?? 0;
                 if ($currentStock <= 0) {
                     $this->dispatch('error', message: 'Sorry, this variant is out of stock.');
-
-                    return false;
-                }
-
-                $cartKey = $productId . '-v' . $variantId;
-                $currentQtyInCart = $cart[$cartKey]['qty'] ?? 0;
-
-                if (($currentQtyInCart + $qty) > $currentStock) {
-                    $this->dispatch('error', message: "Not enough stock available. Only {$currentStock} left.");
 
                     return false;
                 }
@@ -262,53 +318,43 @@ trait HandlesCartActions
             return false;
         }
 
-        if ($optionId) {
-            $finalKey .= '-o' . $optionId;
+        $resolvedOptionId = $combo->option?->id;
+
+        if ($resolvedOptionId) {
+            $finalKey .= '-o' . $resolvedOptionId;
         }
 
-        if (isset($cart[$finalKey])) {
-            $cart[$finalKey]['qty'] += $qty;
-        } else {
-            $cart[$finalKey] = [
-                'id' => $product->id,
-                'product_id' => $product->id,
-                'category_id' => $product->category_id,
-                'variant_id' => $variantId,
-                'image_option_id' => $optionId,
-                'option_label' => $optionLabel,
-                'variant_label' => $variantLabel ?: null,
-                'color' => $color,
-                'size' => $size,
-                'title' => $product->name,
-                'price' => $price,
-                'img' => $optionImage
-                    ? asset('storage/' . $optionImage)
-                    : ($variantImage
-                        ?? ($product->thumbnail
-                            ? asset('storage/' . $product->thumbnail)
-                            : 'https://placehold.co/500x500')),
-                'qty' => $qty,
-            ];
-        }
+        $item = [
+            'id' => $product->id,
+            'product_id' => $product->id,
+            'category_id' => $product->category_id,
+            'variant_id' => $variantId,
+            'image_option_id' => $resolvedOptionId,
+            'option_label' => $optionLabel,
+            'variant_label' => $variantLabel ?: null,
+            'color' => $color,
+            'size' => $size,
+            'title' => $product->name,
+            'price' => $price,
+            'img' => $optionImage
+                ? asset('storage/' . $optionImage)
+                : ($variantImage
+                    ?? ($product->thumbnail
+                        ? asset('storage/' . $product->thumbnail)
+                        : 'https://placehold.co/500x500')),
+            'qty' => $qty,
+        ];
 
-        session()->put('cart', $cart);
-        $this->quantity = 1;
-
-        $cartCount = array_sum(array_column($cart, 'qty'));
-        $this->dispatch('cart-updated', count: $cartCount);
-        $this->dispatch('cartUpdated');
-        $this->dispatch('success', message: 'Product added to cart!');
-
-        $this->dispatch('track-event', eventName: 'AddToCart', data: [
-            'content_id'   => $combo->contentId,
-            'content_name' => $product->name,
-            'content_type' => 'product',
-            'variant'      => trim(($variantLabel ?: '').($optionLabel ? ' | '.$optionLabel : '')) ?: null,
-            'value'        => $price * $qty,
-            'currency'     => 'BDT',
-        ]);
-
-        return true;
+        return [
+            'key' => $finalKey,
+            'item' => $item,
+            'qty' => $qty,
+            'available' => $combo->available,
+            'content_id' => $combo->contentId,
+            'variant_label' => $variantLabel,
+            'option_label' => $optionLabel,
+            'product' => $product,
+        ];
     }
 
     private function findVariantByAttributes($product, ?string $colorValue, ?string $sizeValue): ?ProductVariant
@@ -343,10 +389,33 @@ trait HandlesCartActions
 
     public function buyNow($productId)
     {
-        $result = $this->addToCart($productId);
-        if ($result === false) {
+        if (! \App\Services\PurchaseActions::buyNowEnabled()) {
+            $this->dispatch('error', message: 'Buy Now is currently disabled.');
+
             return;
         }
+
+        session()->forget('buy_now_item');
+
+        $resolved = $this->buildPurchaseItem($productId);
+        if ($resolved === false) {
+            return;
+        }
+
+        if ($resolved['qty'] > $resolved['available']) {
+            $this->dispatch('error', message: "Not enough stock available. Only {$resolved['available']} left.");
+
+            return;
+        }
+
+        // Direct purchase: keep the cart untouched.
+        $item = $resolved['item'];
+        $item['_key'] = $resolved['key'];
+        $item['product_slug'] = $resolved['product']->slug;
+
+        session()->put('buy_now_item', $item);
+        $this->quantity = 1;
+
         $this->redirect(route('frontend.checkout'), navigate: true);
     }
 
@@ -401,6 +470,6 @@ trait HandlesCartActions
         $this->cartItems = $cart;
 
         $cartCount = array_sum(array_column($this->cartItems, 'qty') ?: [0]);
-        $this->dispatch('cart-updated', count: $cartCount);
+        $this->dispatch('cart-updated', count: $cartCount, total: $this->cartTotal($this->cartItems));
     }
 }

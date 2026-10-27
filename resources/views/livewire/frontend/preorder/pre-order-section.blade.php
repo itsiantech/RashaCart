@@ -1,4 +1,9 @@
 {{-- resources/views/livewire/pre-order-section.blade.php --}}
+@php
+    $preorderAddEnabled = \App\Services\PurchaseActions::addToCartEnabled();
+    $preorderBuyEnabled = \App\Services\PurchaseActions::buyNowEnabled();
+    $preorderDisabledText = \App\Services\PurchaseActions::disabledText();
+@endphp
 <div class="container py-5 px-4">
 
     {{-- Hero Banner --}}
@@ -92,6 +97,7 @@
 
                             {{-- Buttons --}}
                             <div class="d-flex gap-2">
+                                @if ($preorderAddEnabled)
                                 <button class="btn-buy" wire:click="addToCart({{ $product->id }})" wire:loading.attr="disabled">
                                     Pre Order Now
                                 </button>
@@ -109,6 +115,9 @@
                                         <span class="spinner-border spinner-border-sm" style="width:0.7rem;height:0.7rem;border-width:2px;" role="status"></span>
                                     </span>
                                 </button>
+                                @elseif (! $preorderBuyEnabled)
+                                <span class="purchase-disabled-text">{{ $preorderDisabledText }}</span>
+                                @endif
                             </div>
 
                         </div>

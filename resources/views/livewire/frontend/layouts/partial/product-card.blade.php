@@ -21,6 +21,14 @@ if ($product->relationLoaded('variants')) {
     }
 }
 $cardDefaultImg = $product->thumbnail ? asset('storage/' . $product->thumbnail) : 'https://placehold.co/500x500';
+
+$purchaseAddEnabled = \App\Services\PurchaseActions::addToCartEnabled();
+$purchaseBuyEnabled = \App\Services\PurchaseActions::buyNowEnabled();
+$purchaseAddLabel = \App\Services\PurchaseActions::addToCartLabel();
+$purchaseBuyLabel = \App\Services\PurchaseActions::buyNowLabel();
+$purchaseDisabledText = \App\Services\PurchaseActions::disabledText();
+$needsVariantSelection = \App\Services\PurchaseActions::requiresVariantSelection($product);
+$productUrl = route('frontend.product.single.view', $product->slug);
 @endphp
 <div class="product-card" @if($cardSwatches->isNotEmpty()) x-data="{ cardImg: '{{ $cardDefaultImg }}' }" @endif>
 
@@ -73,27 +81,49 @@ $cardDefaultImg = $product->thumbnail ? asset('storage/' . $product->thumbnail) 
         </div>
 
         <div class="product-cta">
-            <!-- Buy Now Button -->
-            <button class="btn-order-now" wire:click="buyNow({{ $product->id }})" wire:loading.attr="disabled" wire:target="buyNow">
-                <span wire:loading.remove wire:target="buyNow({{ $product->id }})">
-                    Buy Now
-                </span>
-                <span wire:loading wire:target="buyNow({{ $product->id }})">
-                    <i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Please wait...
-                </span>
-            </button>
+            @if ($purchaseBuyEnabled)
+                @if ($needsVariantSelection)
+                <a href="{{ $productUrl }}" wire:navigate class="btn-order-now" title="{{ $purchaseBuyLabel }}">
+                    {{ $purchaseBuyLabel }}
+                </a>
+                @else
+                <!-- Buy Now Button -->
+                <button class="btn-order-now" wire:click="buyNow({{ $product->id }})" wire:loading.attr="disabled" wire:target="buyNow">
+                    <span wire:loading.remove wire:target="buyNow({{ $product->id }})">
+                        {{ $purchaseBuyLabel }}
+                    </span>
+                    <span wire:loading wire:target="buyNow({{ $product->id }})">
+                        <i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Please wait...
+                    </span>
+                </button>
+                @endif
+            @endif
 
-            <button class="cart-button"
-                wire:click="addToCart({{ $product->id }})" wire:loading.attr="disabled"
-                wire:target="addToCart({{ $product->id }})">
-
-                <span wire:loading.remove wire:target="addToCart({{ $product->id }})">
+            @if ($purchaseAddEnabled)
+                @if ($needsVariantSelection)
+                <a href="{{ $productUrl }}" wire:navigate class="cart-button"
+                    title="{{ $purchaseAddLabel }}" aria-label="{{ $purchaseAddLabel }}">
                     <i class="fas fa-shopping-cart"></i>
-                </span>
-                <span wire:loading wire:target="addToCart({{ $product->id }})">
-                    <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
-                </span>
-            </button>
+                </a>
+                @else
+                <button class="cart-button"
+                    wire:click="addToCart({{ $product->id }})" wire:loading.attr="disabled"
+                    wire:target="addToCart({{ $product->id }})"
+                    title="{{ $purchaseAddLabel }}" aria-label="{{ $purchaseAddLabel }}">
+
+                    <span wire:loading.remove wire:target="addToCart({{ $product->id }})">
+                        <i class="fas fa-shopping-cart"></i>
+                    </span>
+                    <span wire:loading wire:target="addToCart({{ $product->id }})">
+                        <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+                    </span>
+                </button>
+                @endif
+            @endif
+
+            @if (! $purchaseBuyEnabled && ! $purchaseAddEnabled)
+            <span class="purchase-disabled-text">{{ $purchaseDisabledText }}</span>
+            @endif
         </div>
 
     </div>

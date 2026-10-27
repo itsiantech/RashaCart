@@ -336,8 +336,20 @@
                         অর্ডার আইটেমস ({{ count($cartItems) }} Items)
                     </h2>
 
+                    @if ($isBuyNow)
+                    <div class="ck-buynow-note">
+                        <div class="ck-buynow-text">
+                            <strong><i class="fa-solid fa-bolt"></i> Buy Now</strong>
+                            <span>শুধু এই item-টাই অর্ডার হবে — আপনার cart অক্ষত থাকবে।</span>
+                        </div>
+                        <button type="button" wire:click="cancelBuyNow" class="ck-buynow-cancel" wire:loading.attr="disabled">
+                            Cancel
+                        </button>
+                    </div>
+                    @endif
+
                     <div class="ck-items">
-                        <livewire:frontend.components.cart-items :cartItems="$cartItems" />
+                        <livewire:frontend.components.cart-items :cartItems="$cartItems" :directBuy="$isBuyNow" />
                     </div>
 
                     <h2 class="ck-title ck-title-sm">
@@ -576,6 +588,50 @@
         .ck-title-sm {
             font-size: 15px;
             margin: 16px 0 10px;
+        }
+
+        .ck-buynow-note {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: var(--ck-orange-soft);
+            border: 1px solid var(--ck-orange-line);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+        }
+
+        .ck-buynow-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 13px;
+            color: var(--ck-ink);
+        }
+
+        .ck-buynow-text i {
+            color: var(--ck-orange);
+        }
+
+        .ck-buynow-text span {
+            color: var(--ck-muted);
+            font-size: 12px;
+        }
+
+        .ck-buynow-cancel {
+            border: 1px solid var(--ck-orange-line);
+            background: #fff;
+            color: #c2410c;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .ck-buynow-cancel:hover {
+            background: var(--ck-orange-soft);
         }
 
         /* ── Fields ── */

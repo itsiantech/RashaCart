@@ -180,43 +180,15 @@
         {{ $slot }}
         @endisset
         @yield('content')
-        <!-- Right Side Shopping Cart -->
-        @php
-        $cartItems = session()->get('cart', []);
-        $cartCount = array_sum(array_column($cartItems, 'qty'));
-        @endphp
-        <div class="cart-sidebar" x-data="{ cartCount: {{ $cartCount }} }" x-on:cart-updated.window="cartCount = $event.detail.count">
-
-            <div class="cart-icon">
-                <i class="fas fa-shopping-cart"></i>
-                <span class="cart-count" x-text="cartCount">{{ $cartCount }}</span>
-            </div>
-            <div class="cart-dropdown">
-                <div class="cart-header">
-                    <h4>Your Cart</h4>
-                    <span class="close-cart">&times;</span>
-                </div>
-
-
-                <div class="cart-items">
-                    <livewire:frontend.components.cart-items :cartItems="$cartItems" />
-                </div>
-                <div class="cart-footer">
-                    <div class="cart-actions">
-                        <!-- <a wire:navigate href="{{ route('frontend.cart.view') }}"
-                            class="btn btn-secondary btn-view-cart">Go to Cart</a> -->
-                        <a wire:navigate href="{{ route('frontend.checkout') }}"
-                            class="btn btn-dark btn-checkout">CHECKOUT NOW</a>
-                    </div>
-                </div>
-            </div>
-        </div>
 
     </main>
 
     @unless(request()->routeIs('frontend.product.single.view'))
     @include('livewire.frontend.layouts.partial.footer.footer-default')
     @endunless
+
+    {{-- Site-wide slide-out cart drawer (admin toggle: Business Settings) --}}
+    @include('partials.cart-drawer')
 
 
     <!-- Scripts -->

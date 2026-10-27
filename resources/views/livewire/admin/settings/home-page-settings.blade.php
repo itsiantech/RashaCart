@@ -11,6 +11,118 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Homepage Sections</h5>
+                    <small class="text-muted">Show / hide these sections and change their titles</small>
+                </div>
+                <div class="card-body">
+                    <form wire:submit.prevent="saveSectionSettings">
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-3">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 90px;">Show</th>
+                                        <th style="width: 220px;">Section</th>
+                                        <th>Section Title</th>
+                                        <th style="width: 160px;">Show Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox"
+                                                       id="switchShopByCategory"
+                                                       wire:model="shop_by_category_enabled">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <label for="switchShopByCategory" class="mb-0 fw-semibold">Shop by Category</label>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control" maxlength="100"
+                                                   wire:model="shop_by_category_title"
+                                                   placeholder="Shop by Category">
+                                            @error('shop_by_category_title')
+                                                <div class="text-danger small">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control" min="2" max="12"
+                                                   style="max-width: 110px;"
+                                                   wire:model="shop_by_category_limit">
+                                            @error('shop_by_category_limit')
+                                                <div class="text-danger small">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox"
+                                                       id="switchTopBrands"
+                                                       wire:model="top_brands_enabled">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <label for="switchTopBrands" class="mb-0 fw-semibold">Top Brands</label>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control" maxlength="100"
+                                                   wire:model="top_brands_title"
+                                                   placeholder="Top Brands">
+                                            @error('top_brands_title')
+                                                <div class="text-danger small">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control" min="2" max="12"
+                                                   style="max-width: 110px;"
+                                                   wire:model="top_brands_limit">
+                                            @error('top_brands_limit')
+                                                <div class="text-danger small">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox"
+                                                       id="switchFlashSale"
+                                                       wire:model="flash_sale_enabled">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <label for="switchFlashSale" class="mb-0 fw-semibold">Flash Sale</label>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control" maxlength="100"
+                                                   wire:model="flash_sale_title"
+                                                   placeholder="Flash Sale">
+                                            @error('flash_sale_title')
+                                                <div class="text-danger small">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                        <td><span class="text-muted">—</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bx bx-save me-1"></i> Save Section Settings
+                            </button>
+                            <small class="text-muted">Flash Sale section only appears when a campaign is live.</small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">Add Category to Homepage</h5>
                 </div>

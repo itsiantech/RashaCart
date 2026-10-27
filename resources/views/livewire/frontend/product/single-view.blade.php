@@ -9,6 +9,12 @@
     $showDiscount = $strikePrice > $displayPrice && $strikePrice > 0;
     $discountPercent = $showDiscount ? (int) round((($strikePrice - $displayPrice) / $strikePrice) * 100) : 0;
 
+    $purchaseAddEnabled = \App\Services\PurchaseActions::addToCartEnabled();
+    $purchaseBuyEnabled = \App\Services\PurchaseActions::buyNowEnabled();
+    $purchaseAddLabel = \App\Services\PurchaseActions::addToCartLabel();
+    $purchaseBuyLabel = \App\Services\PurchaseActions::buyNowLabel();
+    $purchaseDisabledText = \App\Services\PurchaseActions::disabledText();
+
     $phoneRaw = setting('contact_phone') ?: '';
     $waNumber = preg_replace('/\D+/', '', $phoneRaw);
     $waText = rawurlencode(
@@ -526,6 +532,21 @@
         .pd-btn:disabled {
             opacity: .55;
             cursor: not-allowed;
+        }
+
+        .pd-purchase-disabled {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 10px 16px;
+            border-radius: 6px;
+            background: #f3f4f6;
+            color: #6b7280;
+            font-size: .86rem;
+            font-weight: 600;
+            text-align: center;
         }
 
         .pd-btn--cart {
@@ -1342,19 +1363,27 @@
 
                     {{-- ===== Action buttons ===== --}}
                     <div class="pd-actions">
+                        @if ($purchaseAddEnabled)
                         <button type="button" class="pd-btn pd-btn--cart" wire:click="addToCart({{ $product->id }})"
                             @disabled(!$isInStock)>
                             <i class="fas fa-shopping-cart"></i>
-                            <span wire:loading.remove wire:target="addToCart">Add to Cart</span>
+                            <span wire:loading.remove wire:target="addToCart">{{ $purchaseAddLabel }}</span>
                             <span wire:loading wire:target="addToCart">Adding...</span>
                         </button>
+                        @endif
 
+                        @if ($purchaseBuyEnabled)
                         <button type="button" class="pd-btn pd-btn--buy" wire:click="buyNow({{ $product->id }})"
                             @disabled(!$isInStock)>
                             <i class="fas fa-bolt"></i>
-                            <span wire:loading.remove wire:target="buyNow">Buy Now</span>
+                            <span wire:loading.remove wire:target="buyNow">{{ $purchaseBuyLabel }}</span>
                             <span wire:loading wire:target="buyNow">Please wait...</span>
                         </button>
+                        @endif
+
+                        @if (! $purchaseAddEnabled && ! $purchaseBuyEnabled)
+                        <span class="pd-purchase-disabled">{{ $purchaseDisabledText }}</span>
+                        @endif
 
                         @if ($waNumber)
                             <a class="pd-btn pd-btn--wa"
@@ -1582,9 +1611,18 @@
 
                                 <x-rating-stars :rating="$rel->reviews_avg_rating ?? 0" :count="$rel->reviews_count ?? 0" />
 
+                                @if ($purchaseAddEnabled)
+                                @if (\App\Services\PurchaseActions::requiresVariantSelection($rel))
+                                <a class="pd-rel-cart"
+                                    href="{{ route('frontend.product.single.view', $rel->slug) }}" wire:navigate>
+                                    <i class="fas fa-shopping-cart"></i> {{ $purchaseAddLabel }}
+                                </a>
+                                @else
                                 <button type="button" class="pd-rel-cart" wire:click="addToCart({{ $rel->id }})">
-                                    <i class="fas fa-shopping-cart"></i> Add to Cart
+                                    <i class="fas fa-shopping-cart"></i> {{ $purchaseAddLabel }}
                                 </button>
+                                @endif
+                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -1595,20 +1633,26 @@
     </div>
 
     {{-- ===== Mobile sticky bar ===== --}}
+    @if ($purchaseAddEnabled || $purchaseBuyEnabled)
     <div class="pd-sticky-bar">
         <button type="button" class="pd-fav" wire:click="addToWishlist({{ $product->id }})"
             aria-label="Add to wishlist">
             <i class="far fa-heart"></i>
         </button>
+        @if ($purchaseAddEnabled)
         <button type="button" class="pd-btn pd-btn--cart" wire:click="addToCart({{ $product->id }})"
             @disabled(!$isInStock)>
-            <i class="fas fa-shopping-cart"></i> Add to Cart
+            <i class="fas fa-shopping-cart"></i> {{ $purchaseAddLabel }}
         </button>
+        @endif
+        @if ($purchaseBuyEnabled)
         <button type="button" class="pd-btn pd-btn--buy" wire:click="buyNow({{ $product->id }})" @disabled(!$isInStock)>
-            <i class="fas fa-bolt"></i> Buy Now
+            <i class="fas fa-bolt"></i> {{ $purchaseBuyLabel }}
         </button>
+        @endif
     </div>
     <div class="pd-sticky-spacer"></div>
+    @endif
 </div>
 
 @script

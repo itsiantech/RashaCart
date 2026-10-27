@@ -83,6 +83,14 @@ class SettingsRequest extends FormRequest
             'customer_login_enabled' => ['nullable', 'boolean'],
             'customer_login_identifier' => ['nullable', 'string', 'in:email,phone,both'],
             'customer_google_enabled' => ['nullable', 'boolean'],
+
+            // ✅ Purchase actions
+            'add_to_cart_enabled' => ['nullable', 'boolean'],
+            'buy_now_enabled' => ['nullable', 'boolean'],
+            'cart_drawer_enabled' => ['nullable', 'boolean'],
+            'add_to_cart_label' => ['nullable', 'string', 'max:40'],
+            'buy_now_label' => ['nullable', 'string', 'max:40'],
+            'purchase_disabled_text' => ['nullable', 'string', 'max:120'],
         ];
     }
 

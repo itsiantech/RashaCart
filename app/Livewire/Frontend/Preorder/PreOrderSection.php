@@ -14,6 +14,14 @@ class PreOrderSection extends Component
 
     public function addToCart(int $productId): void
     {
+        if (! \App\Services\PurchaseActions::addToCartEnabled()) {
+            $this->dispatch('notify', message: 'Add to Cart is currently disabled.', type: 'error');
+
+            return;
+        }
+
+        session()->forget('buy_now_item');
+
         $product = Product::activePreorder()->findOrFail($productId);
 
         $cart = session()->get('cart', []);

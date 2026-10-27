@@ -45,6 +45,73 @@
             </div>
         </div>
 
+        {{-- Purchase actions --}}
+        <div class="border-top pt-3 mt-4 mb-3">
+            <h5 class="mb-1">Purchase Actions</h5>
+            <small class="text-muted d-block mb-3">
+                Add to Cart এবং Buy Now আলাদাভাবে চালু/বন্ধ ও নাম পরিবর্তন করা যাবে। দুটোই বন্ধ থাকলে product page-এ
+                নিচের disabled text দেখাবে। বন্ধ করলেও আগে থেকে cart-এ থাকা product checkout করা যাবে।
+            </small>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" wire:model="add_to_cart_enabled"
+                            id="add_to_cart_enabled" value="1">
+                        <label class="form-check-label" for="add_to_cart_enabled">Enable Add to Cart</label>
+                    </div>
+                    <label for="add_to_cart_label" class="form-label">Add to Cart Button Text</label>
+                    <input type="text" class="form-control @error('add_to_cart_label') is-invalid @enderror"
+                        id="add_to_cart_label" wire:model.defer="add_to_cart_label"
+                        placeholder="Add to Cart" maxlength="40">
+                    @error('add_to_cart_label')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-md-6">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" wire:model="buy_now_enabled"
+                            id="buy_now_enabled" value="1">
+                        <label class="form-check-label" for="buy_now_enabled">Enable Buy Now</label>
+                    </div>
+                    <label for="buy_now_label" class="form-label">Buy Now Button Text</label>
+                    <input type="text" class="form-control @error('buy_now_label') is-invalid @enderror"
+                        id="buy_now_label" wire:model.defer="buy_now_label" placeholder="Buy Now" maxlength="40">
+                    @error('buy_now_label')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <label for="purchase_disabled_text" class="form-label">Both Buttons Disabled Text</label>
+                    <input type="text" class="form-control @error('purchase_disabled_text') is-invalid @enderror"
+                        id="purchase_disabled_text" wire:model.defer="purchase_disabled_text"
+                        placeholder="Contact us to order" maxlength="120">
+                    @error('purchase_disabled_text')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <small class="text-muted">Add to Cart ও Buy Now দুটোই বন্ধ থাকলে এই লেখাটি দেখাবে।</small>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" wire:model="cart_drawer_enabled"
+                            id="cart_drawer_enabled" value="1">
+                        <label class="form-check-label" for="cart_drawer_enabled">Enable Cart Drawer</label>
+                    </div>
+                    <small class="text-muted">
+                        Add to Cart করলে পাশ থেকে slide করে cart drawer খুলবে এবং website-এ floating cart button দেখাবে।
+                        বন্ধ থাকলে আগের মতো header-এর cart page ব্যবহার হবে।
+                    </small>
+                </div>
+            </div>
+        </div>
+
         {{-- Delivery Charge Section --}}
         <div class="row mb-3">
             <div class="col-md-6">

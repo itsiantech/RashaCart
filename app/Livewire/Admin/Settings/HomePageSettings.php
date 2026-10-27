@@ -18,6 +18,16 @@ class HomePageSettings extends Component
     public $recommended_title = 'Recommended For You';
     public $recommended_product_limit = 12;
 
+    // Homepage sections (visibility + title)
+    public $shop_by_category_enabled = true;
+    public $shop_by_category_title = 'Shop by Category';
+    public $top_brands_enabled = true;
+    public $top_brands_title = 'Top Brands';
+    public $flash_sale_enabled = true;
+    public $flash_sale_title = 'Flash Sale';
+    public $shop_by_category_limit = 8;
+    public $top_brands_limit = 8;
+
     protected $rules = [
         'selected_category_id' => 'required|exists:categories,id',
         'product_limit' => 'required|integer|min:1|max:50',
@@ -44,6 +54,16 @@ class HomePageSettings extends Component
         // Load Recommended For You settings
         $this->recommended_title = setting('recommended_title') ?? 'Recommended For You';
         $this->recommended_product_limit = setting('recommended_product_limit') ?? 12;
+
+        // Load homepage section visibility + titles
+        $this->shop_by_category_enabled = (bool) setting('shop_by_category_enabled', 1);
+        $this->shop_by_category_title = setting('shop_by_category_title', 'Shop by Category');
+        $this->shop_by_category_limit = (int) setting('shop_by_category_limit', 8);
+        $this->top_brands_enabled = (bool) setting('top_brands_enabled', 1);
+        $this->top_brands_title = setting('top_brands_title', 'Top Brands');
+        $this->top_brands_limit = (int) setting('top_brands_limit', 8);
+        $this->flash_sale_enabled = (bool) setting('flash_sale_enabled', 1);
+        $this->flash_sale_title = setting('flash_sale_title', 'Flash Sale');
     }
 
     public function addCategory()
@@ -154,6 +174,35 @@ class HomePageSettings extends Component
         Settings::clearCache();
 
         $this->dispatch('success', message: 'Recommended For You settings updated!');
+    }
+
+    public function saveSectionSettings()
+    {
+        $this->validate([
+            'shop_by_category_title' => 'required|string|max:100',
+            'shop_by_category_limit' => 'required|integer|min:2|max:12',
+            'top_brands_title' => 'required|string|max:100',
+            'top_brands_limit' => 'required|integer|min:2|max:12',
+            'flash_sale_title' => 'required|string|max:100',
+        ]);
+
+        $sections = [
+            'shop_by_category' => [$this->shop_by_category_enabled, $this->shop_by_category_title],
+            'top_brands' => [$this->top_brands_enabled, $this->top_brands_title],
+            'flash_sale' => [$this->flash_sale_enabled, $this->flash_sale_title],
+        ];
+
+        foreach ($sections as $section => [$enabled, $title]) {
+            Settings::updateOrCreate(['key' => $section.'_enabled'], ['value' => $enabled ? '1' : '0']);
+            Settings::updateOrCreate(['key' => $section.'_title'], ['value' => trim($title)]);
+        }
+
+        Settings::updateOrCreate(['key' => 'shop_by_category_limit'], ['value' => $this->shop_by_category_limit]);
+        Settings::updateOrCreate(['key' => 'top_brands_limit'], ['value' => $this->top_brands_limit]);
+
+        Settings::clearCache();
+
+        $this->dispatch('success', message: 'Homepage section settings updated!');
     }
 
     public function render()

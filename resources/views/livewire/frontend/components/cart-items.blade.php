@@ -37,30 +37,36 @@
                 <div class="ci-meta">
                     {{-- Quantity controls --}}
                     <div class="quantity-controls">
+                        @if (! $directBuy)
                         <button wire:click="decreaseQty('{{ $id }}')" class="ci-minus"
                             wire:loading.attr="disabled" wire:target="decreaseQty('{{ $id }}')">
                             <span wire:loading.remove wire:target="decreaseQty('{{ $id }}')">-</span>
                             <i wire:loading wire:target="decreaseQty('{{ $id }}')" class="fa-solid fa-spinner fa-spin"></i>
                         </button>
+                        @endif
 
                         <input type="number" value="{{ $item['qty'] ?? 1 }}" readonly class="ci-input">
 
+                        @if (! $directBuy)
                         <button wire:click="increaseQty('{{ $id }}')" class="ci-plus"
                             wire:loading.attr="disabled" wire:target="increaseQty('{{ $id }}')">
                             <span wire:loading.remove wire:target="increaseQty('{{ $id }}')">+</span>
                             <i wire:loading wire:target="increaseQty('{{ $id }}')" class="fa-solid fa-spinner fa-spin"></i>
                         </button>
+                        @endif
                     </div>
 
                     <div class="ci-price">Price: {{ setting('currency') }} {{ number_format($item['price'] ?? 0) }}</div>
                     <div class="ci-total">Total: {{ setting('currency') }} {{ number_format(($item['price'] ?? 0) * ($item['qty'] ?? 1)) }}</div>
 
+                    @if (! $directBuy)
                     <button wire:click="removeItem('{{ $id }}')" class="ci-remove" wire:loading.attr="disabled">
                         <i class="fa-solid fa-xmark"></i>
                         <span wire:loading wire:target="removeItem('{{ $id }}')">
                             <i class="fa-solid fa-spinner fa-spin"></i>
                         </span>
                     </button>
+                    @endif
                 </div>
 
             </div>

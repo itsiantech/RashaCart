@@ -25,7 +25,7 @@
                 </a>
                 <a href="{{ route('frontend.cart.view') }}" class="nav-icon">
                     <i class="fas fa-shopping-cart"></i>
-                    <span class="badge bg-warning text-dark">{{ $cartCount }}</span>
+                    <span class="badge bg-warning text-dark" data-cd-header-count>{{ $cartCount }}</span>
                 </a>
             </div>
         </div>

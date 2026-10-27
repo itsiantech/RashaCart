@@ -6,6 +6,7 @@ use App\Models\FreeShipping;
 use App\Models\ManualPaymentSetting;
 use App\Services\CouponService;
 use App\Services\OrderService;
+use App\Services\PurchaseActions;
 use App\Traits\HandlesCartActions;
 use Livewire\Component;
 
@@ -38,6 +39,8 @@ class Checkout extends Component
 
     // Cart
     public $cartItems = [];
+
+    public bool $isBuyNow = false;
 
     public $subtotal = 0;
 
@@ -182,7 +185,37 @@ class Checkout extends Component
 
     public function loadCart(): void
     {
+        $direct = session('buy_now_item');
+
+        if (is_array($direct) && PurchaseActions::buyNowEnabled()) {
+            $key = $direct['_key'] ?? ('buy-now-' . ($direct['id'] ?? 'item'));
+
+            $this->isBuyNow = true;
+            $this->cartItems = [$key => $direct];
+
+            return;
+        }
+
+        if ($direct) {
+            session()->forget('buy_now_item');
+        }
+
+        $this->isBuyNow = false;
         $this->cartItems = session('cart', []);
+    }
+
+    public function cancelBuyNow(): void
+    {
+        $slug = session('buy_now_item.product_slug');
+        session()->forget('buy_now_item');
+
+        if ($slug) {
+            $this->redirect(route('frontend.product.single.view', $slug), navigate: true);
+
+            return;
+        }
+
+        $this->redirect(route('frontend.cart.view'), navigate: true);
     }
 
     public function refreshCart(): void
@@ -302,7 +335,11 @@ class Checkout extends Component
             'note'                  => $this->note,
         ], $this->cartItems);
 
-            session()->forget('cart');
+            if ($this->isBuyNow) {
+                session()->forget('buy_now_item');
+            } else {
+                session()->forget('cart');
+            }
 
             return $this->redirectRoute('frontend.order.success', ['order' => $order->id], navigate: true);
         } catch (\Exception $e) {

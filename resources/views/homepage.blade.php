@@ -15,6 +15,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     @include('partials.style-vars')
     @stack('styles')
+    @if (\App\Services\PurchaseActions::cartDrawerEnabled())
+    @livewireStyles
+    @endif
     <style>
         :root {
             --primary: #7A0000;
@@ -125,6 +128,7 @@
         .hp-price { font-weight: 700; color: #111827; font-size: .95rem; }
         .hp-price .old { text-decoration: line-through; color: #9ca3af; font-weight: 400; font-size: .78rem; margin-left: 4px; }
         .btn-add-cart { width: 100%; background: var(--btn-all-bg, #fff); color: var(--btn-all-text, var(--navy)); border: 1px solid var(--btn-all-bg, var(--navy)); border-radius: 3px; font-size: .8rem; padding: .42rem; font-weight: 600; margin-top: auto; transition: background .2s ease, color .2s ease; }
+        a.btn-add-cart { display: flex; align-items: center; justify-content: center; text-decoration: none; }
         .btn-add-cart:hover { filter: brightness(.92); }
         .btn-add-cart i { color: var(--cart-btn-icon, var(--icon-color)); }
 
@@ -140,12 +144,27 @@
         .hp-shop-count { font-size: .7rem; color: #6b7280; }
 
         /* ── Top brands ── */
-        .hp-brands { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-        @media(min-width: 768px) { .hp-brands { grid-template-columns: repeat(6, 1fr); } }
-        .hp-brand-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; transition: box-shadow .2s; padding: 8px; }
-        .hp-brand-card:hover { box-shadow: 0 8px 20px rgba(17,24,39,.1); }
-        .hp-brand-card img { max-height: 56px; max-width: 90%; object-fit: contain; }
-        .hp-brand-card span { font-size: .72rem; color: #4b5563; font-weight: 600; }
+        .hp-brands { display: grid; grid-template-columns: repeat(var(--brand-cols-sm, 3), minmax(0, 1fr)); gap: 12px; }
+        @media(min-width: 576px) { .hp-brands { grid-template-columns: repeat(var(--brand-cols-md, 4), minmax(0, 1fr)); } }
+        @media(min-width: 992px) { .hp-brands { grid-template-columns: repeat(var(--brand-cols, 8), minmax(0, 1fr)); } }
+        .hp-brand-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-decoration: none; padding: 14px 10px; transition: box-shadow .2s, transform .2s, border-color .2s; }
+        .hp-brand-card:hover { border-color: var(--primary); box-shadow: 0 10px 24px rgba(17,24,39,.1); transform: translateY(-3px); }
+        .hp-brand-logo { width: 100%; aspect-ratio: 16 / 10; display: grid; place-items: center; background: #f7f8fb; border-radius: 8px; padding: 8px; overflow: hidden; }
+        .hp-brand-logo img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+        .hp-brand-mark { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, var(--navy), var(--primary)); color: #fff; font-weight: 700; font-size: 1.05rem; letter-spacing: .5px; }
+        .hp-brand-name { font-size: .78rem; font-weight: 600; color: #1f2937; text-align: center; line-height: 1.25; }
+        .hp-brand-count { font-size: .68rem; color: #9ca3af; }
+
+        /* ── Shop by Category (desktop showcase with images) ── */
+        .hp-catshow { display: grid; grid-template-columns: repeat(var(--cat-cols, 8), minmax(0, 1fr)); gap: 14px; }
+        .hp-catshow-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-decoration: none; transition: box-shadow .2s, transform .2s, border-color .2s; }
+        .hp-catshow-card:hover { border-color: var(--primary); box-shadow: 0 10px 24px rgba(17,24,39,.1); transform: translateY(-3px); }
+        .hp-catshow-img { width: 100%; max-width: 130px; aspect-ratio: 1 / 1; border-radius: 50%; background: #f6f7f9; overflow: hidden; display: grid; place-items: center; border: 1px solid #f1f2f5; }
+        .hp-catshow-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s ease; }
+        .hp-catshow-card:hover .hp-catshow-img img { transform: scale(1.07); }
+        .hp-catshow-fallback { color: var(--primary); opacity: .45; font-size: 1.5rem; }
+        .hp-catshow-name { font-size: .78rem; font-weight: 600; color: #1f2937; text-align: center; line-height: 1.25; }
+        .hp-catshow-count { font-size: .68rem; color: #9ca3af; }
 
         /* ── Homepage Categories grid ── */
         .hp-cat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
@@ -225,7 +244,7 @@
                 </a>
                 <a href="{{ route('frontend.cart.view') }}" class="nav-icon">
                     <i class="fas fa-shopping-cart"></i>
-                    <span class="badge bg-warning text-dark">{{ $cartCount ?? 0 }}</span>
+                    <span class="badge bg-warning text-dark" data-cd-header-count>{{ $cartCount ?? 0 }}</span>
                 </a>
             </div>
         </div>
@@ -308,11 +327,83 @@
     </div>
 </section>
 
-{{-- ══════════════ DEAL / FLASH SALE (live campaign only) ══════════════ --}}
-@if(!empty($liveFlashSale) && $flashSaleProducts->count())
+{{-- ══════════════ SHOP BY CATEGORY (desktop: images below hero) ══════════════ --}}
+@if(setting('shop_by_category_enabled', 1) && !empty($categoryGrid) && $categoryGrid->count())
+<section class="hp-sec d-none d-lg-block">
+    <div class="hp-container">
+        <div class="hp-box">
+            <div class="hp-sec-head">
+                <h5 class="hp-sec-title">{{ setting('shop_by_category_title', 'Shop by Category') }}</h5>
+                <a href="{{ route('frontend.category.view') }}" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
+            </div>
+            <div class="hp-catshow" style="--cat-cols: {{ $categoryGrid->count() > 8 ? (int) ceil($categoryGrid->count() / 2) : $categoryGrid->count() }}">
+                @foreach($categoryGrid as $row)
+                @php $cat = $row['category']; @endphp
+                <a href="{{ route('frontend.category.view', $cat->slug) }}" class="hp-catshow-card">
+                    <span class="hp-catshow-img">
+                        @if($cat->image)
+                        <img src="{{ asset('storage/'.$cat->image) }}" alt="{{ $cat->name }}" loading="lazy">
+                        @else
+                        <i class="fas fa-layer-group hp-catshow-fallback"></i>
+                        @endif
+                    </span>
+                    <span class="hp-catshow-name">{{ $cat->name }}</span>
+                    @if($row['products_count'] > 0)
+                    <span class="hp-catshow-count">{{ $row['products_count'] }} {{ \Illuminate\Support\Str::plural('item', $row['products_count']) }}</span>
+                    @endif
+                </a>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</section>
+@endif
+
+{{-- ══════════════ TOP BRANDS ══════════════ --}}
+@if(setting('top_brands_enabled', 1) && $topBrands->count())
 <section class="hp-sec">
     <div class="hp-container">
         <div class="hp-box">
+            <div class="hp-sec-head">
+                <h5 class="hp-sec-title">{{ setting('top_brands_title', 'Top Brands') }}</h5>
+                <a href="{{ route('frontend.brand.view') }}" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
+            </div>
+            @php
+            $brandShowCount = $topBrands->count();
+            $brandCols = $brandShowCount > 8 ? (int) ceil($brandShowCount / 2) : $brandShowCount;
+            @endphp
+            <div class="hp-brands" style="--brand-cols: {{ $brandCols }}; --brand-cols-md: {{ min($brandCols, 4) }}; --brand-cols-sm: {{ min($brandCols, 3) }}">
+                @foreach($topBrands as $brand)
+                <a href="{{ route('frontend.brands.products.view', $brand->slug ?? $brand->id) }}" class="hp-brand-card">
+                    <span class="hp-brand-logo">
+                        @if($brand->logo)
+                        <img src="{{ asset('storage/'.$brand->logo) }}" alt="{{ $brand->name }}" loading="lazy"
+                             onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=\'hp-brand-mark\'>{{ strtoupper(mb_substr(trim($brand->name), 0, 1)) }}</span>';">
+                        @else
+                        <span class="hp-brand-mark">{{ strtoupper(mb_substr(trim($brand->name), 0, 1)) }}</span>
+                        @endif
+                    </span>
+                    <span class="hp-brand-name">{{ $brand->name }}</span>
+                    @if(($brand->products_count ?? 0) > 0)
+                    <span class="hp-brand-count">{{ $brand->products_count }} {{ \Illuminate\Support\Str::plural('product', $brand->products_count) }}</span>
+                    @endif
+                </a>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</section>
+@endif
+
+{{-- ══════════════ DEAL / FLASH SALE (live campaign only) ══════════════ --}}
+@if(setting('flash_sale_enabled', 1) && !empty($liveFlashSale) && $flashSaleProducts->count())
+<section class="hp-sec">
+    <div class="hp-container">
+        <div class="hp-box">
+            <div class="hp-sec-head">
+                <h5 class="hp-sec-title">{{ setting('flash_sale_title', 'Flash Sale') }}</h5>
+                <a href="{{ route('frontend.flash.sale.products') }}" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
+            </div>
             <div class="hp-deal-grid">
 
                 <div class="hp-deal-left">
@@ -353,12 +444,7 @@
                                 <span class="old">৳{{ number_format($pi['original'], 0) }}</span>
                                 @endif
                             </div>
-                            <form method="POST" action="{{ route('frontend.cart.add', $product->id) }}">
-                                @csrf
-                                <button type="submit" class="btn-add-cart">
-                                    <i class="fas fa-cart-plus me-1"></i>Add to Cart
-                                </button>
-                            </form>
+                            @include('partials.purchase-add-to-cart', ['product' => $product])
                         </div>
                     </div>
                     @endforeach
@@ -369,114 +455,6 @@
     </div>
 </section>
 @endif
-
-{{-- ══════════════ TOP SHOPS ══════════════ --}}
-@if($topShops->count())
-<section class="hp-sec">
-    <div class="hp-container">
-        <div class="hp-box">
-            <div class="hp-sec-head">
-                <h5 class="hp-sec-title">Top Shops</h5>
-                <a href="#" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
-            </div>
-            <div class="hp-shops">
-                @foreach($topShops as $shop)
-                <a href="{{ route('frontend.user.products.view', $shop->id) }}" class="hp-shop-card">
-                    @if($shop->vendorDetails?->profile_image)
-                    <img src="{{ asset('storage/'.$shop->vendorDetails->profile_image) }}" alt="{{ $shop->vendorDetails->shop_name ?? $shop->name }}">
-                    @else
-                    <span class="hp-shop-logo-fallback"><i class="fas fa-store"></i></span>
-                    @endif
-                    <p class="hp-shop-name">{{ $shop->vendorDetails->shop_name ?? $shop->name }}</p>
-                    <span class="hp-shop-count">{{ $shop->products_count }} items</span>
-                </a>
-                @endforeach
-            </div>
-        </div>
-    </div>
-</section>
-@endif
-
-{{-- ══════════════ TOP BRANDS ══════════════ --}}
-@if($topBrands->count())
-<section class="hp-sec">
-    <div class="hp-container">
-        <div class="hp-box">
-            <div class="hp-sec-head">
-                <h5 class="hp-sec-title">Top Brands</h5>
-                <a href="{{ route('frontend.brand.view') }}" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
-            </div>
-            <div class="hp-brands">
-                @foreach($topBrands as $brand)
-                <a href="{{ route('frontend.brands.products.view', $brand->slug ?? $brand->id) }}" class="hp-brand-card">
-                    <img src="{{ asset('storage/'.$brand->logo) }}" alt="{{ $brand->name }}"
-                         onerror="this.src='https://via.placeholder.com/120x60?text=Brand'">
-                    <span>{{ $brand->name }}</span>
-                </a>
-                @endforeach
-            </div>
-        </div>
-    </div>
-</section>
-@endif
-
-{{-- ══════════════ RECOMMENDED FOR YOU ══════════════ --}}
-<section class="hp-sec">
-    <div class="hp-container">
-        <div class="hp-box">
-            <div class="hp-sec-head">
-                <h5 class="hp-sec-title">Recommended For You</h5>
-            </div>
-            <div class="rp-grid">
-                @forelse($recommendedProducts as $product)
-                @php $pi = $product->price_info; @endphp
-                <div class="hp-pcard">
-                    <a href="{{ route('frontend.product.single.view', $product->slug) }}" class="hp-pimg">
-                        <img src="{{ asset('storage/'.$product->thumbnail) }}" alt="{{ $product->name }}"
-                             onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
-                        @if($pi['percent'] > 0)
-                        <span class="hp-pbadge">-{{ $pi['percent'] }}%</span>
-                        @endif
-                    </a>
-                    <div class="hp-pbody">
-                        <p class="hp-ptitle">{{ $product->name }}</p>
-                        <div class="hp-stars">
-                            @for($s=1;$s<=5;$s++)
-                            <i class="fas fa-star"></i>
-                            @endfor
-                            <small>({{ $product->reviews_count }})</small>
-                        </div>
-                        <div class="hp-price mb-2">
-                            ৳{{ number_format($pi['final'], 0) }}
-                            @if($pi['has_discount'])
-                            <span class="old">৳{{ number_format($pi['original'], 0) }}</span>
-                            @endif
-                        </div>
-                        <form method="POST" action="{{ route('frontend.cart.add', $product->id) }}">
-                            @csrf
-                            <button type="submit" class="btn-add-cart">
-                                <i class="fas fa-cart-plus me-1"></i>Add to Cart
-                            </button>
-                        </form>
-                    </div>
-                </div>
-                @empty
-                <div class="text-center py-4 text-muted" style="grid-column:1/-1">
-                    <i class="fas fa-box-open fa-2x mb-2"></i><p class="mb-0">No products found</p>
-                </div>
-                @endforelse
-            </div>
-
-            @if($show < $totalProducts)
-            <div class="hp-load-wrap">
-                <a href="{{ route('home', ['show' => min($show + 12, $totalProducts)]) }}" class="hp-load-more">
-                    LOAD MORE PRODUCTS
-                </a>
-            </div>
-            @endif
-        </div>
-    </div>
-</section>
 
 {{-- ══════════════ HOMEPAGE CATEGORIES ══════════════ --}}
 {{-- DEBUG: {{ $homeCategories->count() }} categories found --}}
@@ -519,12 +497,7 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
                             <span class="old">৳{{ number_format($pi['original'], 0) }}</span>
                             @endif
                         </div>
-                        <form method="POST" action="{{ route('frontend.cart.add', $product->id) }}">
-                            @csrf
-                            <button type="submit" class="btn-add-cart">
-                                <i class="fas fa-cart-plus me-1"></i>Add to Cart
-                            </button>
-                        </form>
+                        @include('partials.purchase-add-to-cart', ['product' => $product])
                     </div>
                 </div>
                 @endforeach
@@ -535,6 +508,86 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
 @endif
 @endforeach
 @endif
+
+{{-- ══════════════ TOP SHOPS ══════════════ --}}
+@if($topShops->count())
+<section class="hp-sec">
+    <div class="hp-container">
+        <div class="hp-box">
+            <div class="hp-sec-head">
+                <h5 class="hp-sec-title">Top Shops</h5>
+                <a href="#" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
+            </div>
+            <div class="hp-shops">
+                @foreach($topShops as $shop)
+                <a href="{{ route('frontend.user.products.view', $shop->id) }}" class="hp-shop-card">
+                    @if($shop->vendorDetails?->profile_image)
+                    <img src="{{ asset('storage/'.$shop->vendorDetails->profile_image) }}" alt="{{ $shop->vendorDetails->shop_name ?? $shop->name }}">
+                    @else
+                    <span class="hp-shop-logo-fallback"><i class="fas fa-store"></i></span>
+                    @endif
+                    <p class="hp-shop-name">{{ $shop->vendorDetails->shop_name ?? $shop->name }}</p>
+                    <span class="hp-shop-count">{{ $shop->products_count }} items</span>
+                </a>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</section>
+@endif
+
+{{-- ══════════════ RECOMMENDED FOR YOU ══════════════ --}}
+<section class="hp-sec">
+    <div class="hp-container">
+        <div class="hp-box">
+            <div class="hp-sec-head">
+                <h5 class="hp-sec-title">{{ $recommendedTitle }}</h5>
+            </div>
+            <div class="rp-grid">
+                @forelse($recommendedProducts as $product)
+                @php $pi = $product->price_info; @endphp
+                <div class="hp-pcard">
+                    <a href="{{ route('frontend.product.single.view', $product->slug) }}" class="hp-pimg">
+                        <img src="{{ asset('storage/'.$product->thumbnail) }}" alt="{{ $product->name }}"
+                             onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
+                        @if($pi['percent'] > 0)
+                        <span class="hp-pbadge">-{{ $pi['percent'] }}%</span>
+                        @endif
+                    </a>
+                    <div class="hp-pbody">
+                        <p class="hp-ptitle">{{ $product->name }}</p>
+                        <div class="hp-stars">
+                            @for($s=1;$s<=5;$s++)
+                            <i class="fas fa-star"></i>
+                            @endfor
+                            <small>({{ $product->reviews_count }})</small>
+                        </div>
+                        <div class="hp-price mb-2">
+                            ৳{{ number_format($pi['final'], 0) }}
+                            @if($pi['has_discount'])
+                            <span class="old">৳{{ number_format($pi['original'], 0) }}</span>
+                            @endif
+                        </div>
+                        @include('partials.purchase-add-to-cart', ['product' => $product])
+                    </div>
+                </div>
+                @empty
+                <div class="text-center py-4 text-muted" style="grid-column:1/-1">
+                    <i class="fas fa-box-open fa-2x mb-2"></i><p class="mb-0">No products found</p>
+                </div>
+                @endforelse
+            </div>
+
+            @if($show < $totalProducts)
+            <div class="hp-load-wrap">
+                <a href="{{ route('home', ['show' => min($show + 12, $totalProducts)]) }}" class="hp-load-more">
+                    LOAD MORE PRODUCTS
+                </a>
+            </div>
+            @endif
+        </div>
+    </div>
+</section>
 
 {{-- ══════════════ FOOTER ══════════════ --}}
 <footer class="hp-footer">
@@ -635,11 +688,17 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
     @endif
 </div>
 
+{{-- Site-wide slide-out cart drawer (admin toggle: Business Settings) --}}
+@include('partials.cart-drawer')
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 @include('partials.customer-account-scripts')
 @include('partials.customer-auth-modal')
 
+@if (\App\Services\PurchaseActions::cartDrawerEnabled())
+@livewireScripts
+@endif
 @stack('scripts')
 
 @if(session('success') || session('error'))

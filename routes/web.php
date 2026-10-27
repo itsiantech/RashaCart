@@ -62,25 +62,53 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
     ->orderBy('sort_order', 'asc')
     ->get();
 
+    // Navigation categories (root level, up to 3 levels of children)
+    $navCategories = \App\Models\Category::select('id', 'name', 'slug', 'parent_id', 'status', 'image', 'sort_order')
+        ->where('status', 1)->whereNull('parent_id')
+        ->with(['children' => function ($q) {
+            $q->select('id', 'name', 'slug', 'parent_id', 'status', 'image', 'sort_order')
+                ->where('status', 1)->orderBy('name')
+                ->with(['children' => function ($q2) {
+                    $q2->select('id', 'name', 'slug', 'parent_id', 'status', 'image', 'sort_order')
+                        ->where('status', 1)->orderBy('name');
+                }]);
+        }])
+        ->orderBy('name')->limit(15)->get();
+
+    // "Shop by Category" showcase: root categories with image + product count (sub-categories included)
+    $productCounts = \App\Models\Product::selectRaw('category_id, count(*) as total')
+        ->where('status', 1)->groupBy('category_id')->pluck('total', 'category_id');
+
+    $categoryGrid = $navCategories->map(function ($cat) use ($productCounts) {
+        $ids = [$cat->id];
+        $walk = function ($nodes) use (&$walk, &$ids) {
+            foreach ($nodes as $node) {
+                $ids[] = $node->id;
+                if ($node->relationLoaded('children')) {
+                    $walk($node->children);
+                }
+            }
+        };
+        $walk($cat->children);
+
+        $count = collect($ids)->sum(fn ($id) => (int) ($productCounts[$id] ?? 0));
+
+        return ['category' => $cat, 'products_count' => $count];
+    })->values();
+
+    // "Shop by Category" card count comes from admin settings
+    $categoryGrid = $categoryGrid->take(max(1, (int) setting('shop_by_category_limit', 8)));
+
     // Recommended For You settings
     $recommendedTitle = setting('recommended_title') ?? 'Recommended For You';
     $recommendedLimit = setting('recommended_product_limit') ?? 12;
 
     return view('homepage', [
-        'categories'          => \App\Models\Category::select('id', 'name', 'slug', 'parent_id', 'status', 'image', 'sort_order')
-            ->where('status', 1)->whereNull('parent_id')
-            ->with(['children' => function ($q) {
-                $q->select('id', 'name', 'slug', 'parent_id', 'status', 'image', 'sort_order')
-                    ->where('status', 1)->orderBy('name')
-                    ->with(['children' => function ($q2) {
-                        $q2->select('id', 'name', 'slug', 'parent_id', 'status', 'image', 'sort_order')
-                            ->where('status', 1)->orderBy('name');
-                    }]);
-            }])
-            ->orderBy('name')->limit(15)->get(),
+        'categories'          => $navCategories,
+        'categoryGrid'        => $categoryGrid,
         'heroBanners'         => \App\Models\Banner::where('status', 1)->latest()->limit(5)->get(),
         'topShops'            => \App\Models\User::where('role', 'vendor')->with('vendorDetails')->withCount('products')->latest()->limit(6)->get(),
-        'topBrands'           => \App\Models\Brand::limit(6)->get(),
+        'topBrands'           => \App\Models\Brand::withCount('products')->orderByDesc('products_count')->orderBy('name')->take(max(1, (int) setting('top_brands_limit', 8)))->get(),
         'flashSaleProducts'   => $flashSaleProducts,
         'liveFlashSale'       => $liveFlashSale,
         'offerPercent'        => $offerPercent,

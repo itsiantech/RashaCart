@@ -112,6 +112,19 @@ class AppSetting extends Component
 
     public $customer_google_enabled = true;
 
+    // ── Purchase actions (Add to Cart / Buy Now) ──
+    public $add_to_cart_enabled = true;
+
+    public $buy_now_enabled = true;
+
+    public $cart_drawer_enabled = true;
+
+    public $add_to_cart_label;
+
+    public $buy_now_label;
+
+    public $purchase_disabled_text;
+
     public $balance;
 
     public $activeTab = 'basic';
@@ -188,6 +201,14 @@ class AppSetting extends Component
         $this->customer_login_enabled = (string) setting('customer_login_enabled', '1') === '1';
         $this->customer_login_identifier = setting('customer_login_identifier', 'both');
         $this->customer_google_enabled = (string) setting('customer_google_enabled', '1') === '1';
+
+        // Purchase actions (defaults: both enabled)
+        $this->add_to_cart_enabled = (string) setting('add_to_cart_enabled', '1') === '1';
+        $this->buy_now_enabled = (string) setting('buy_now_enabled', '1') === '1';
+        $this->cart_drawer_enabled = (string) setting('cart_drawer_enabled', '1') === '1';
+        $this->add_to_cart_label = setting('add_to_cart_label') ?: \App\Services\PurchaseActions::DEFAULT_ADD_LABEL;
+        $this->buy_now_label = setting('buy_now_label') ?: \App\Services\PurchaseActions::DEFAULT_BUY_LABEL;
+        $this->purchase_disabled_text = setting('purchase_disabled_text') ?: \App\Services\PurchaseActions::DEFAULT_DISABLED_TEXT;
     }
 
     // ─── Fetch BulkSMSBD balance ─────────────────────────────────────────────
@@ -283,6 +304,11 @@ class AppSetting extends Component
     public function update(): void
     {
         $validatedData = $this->validate((new SettingsRequest)->rules());
+
+        // Persist explicit 1/0 so unchecked toggles reliably disable the action.
+        $validatedData['add_to_cart_enabled'] = $this->add_to_cart_enabled ? 1 : 0;
+        $validatedData['buy_now_enabled'] = $this->buy_now_enabled ? 1 : 0;
+        $validatedData['cart_drawer_enabled'] = $this->cart_drawer_enabled ? 1 : 0;
 
         if ($this->app_logo) {
             $oldLogo = setting('app_logo');
