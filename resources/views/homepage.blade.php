@@ -110,9 +110,22 @@
         .cd-box .lbl { font-size: .62rem; opacity: .85; }
         .btn-deal-cta { margin-top: auto; background: #fff; color: var(--orange); border: none; border-radius: 3px; font-weight: 600; font-size: .85rem; padding: .5rem 1rem; display: inline-block; text-align: center; text-decoration: none; }
         .btn-deal-cta:hover { background: #fff7ed; color: #ea580c; }
-        .hp-deal-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-        @media(min-width: 576px) { .hp-deal-products { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 992px) { .hp-deal-products { grid-template-columns: repeat(5, 1fr); } }
+        .hp-deal-products { display: grid; grid-template-columns: repeat(var(--deal-cols, 2), minmax(0, 1fr)); gap: 12px; }
+        .hp-deal-cols-1 { --deal-cols: 1; max-width: 240px; margin-inline: auto; }
+        .hp-deal-cols-2 { --deal-cols: 2; }
+        .hp-deal-cols-3 { --deal-cols: 3; }
+        .hp-deal-cols-4 { --deal-cols: 4; }
+        .hp-deal-cols-5 { --deal-cols: 5; }
+        @media (max-width: 575px) {
+            .hp-deal-cols-3, .hp-deal-cols-4, .hp-deal-cols-5 { --deal-cols: 2; }
+        }
+        @media (min-width: 576px) and (max-width: 991px) {
+            .hp-deal-cols-4, .hp-deal-cols-5 { --deal-cols: 3; }
+        }
+        @media (min-width: 992px) {
+            .hp-deal-cols-2 { max-width: 520px; margin-inline: auto; }
+            .hp-deal-cols-3 { max-width: 760px; margin-inline: auto; }
+        }
 
         /* ── Product card ── */
         .hp-pcard { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; transition: box-shadow .2s, transform .2s; height: 100%; }
@@ -189,10 +202,28 @@
             .hp-cat-cols-3 { max-width: 900px; margin-inline: auto; }
         }
 
-        /* ── Recommended grid ── */
-        .rp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-        @media(min-width: 576px) { .rp-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 992px) { .rp-grid { grid-template-columns: repeat(6, 1fr); } }
+        /* ── Recommended grid (adapts to recommended product limit) ── */
+        .rp-grid { display: grid; grid-template-columns: repeat(var(--rp-cols, 2), minmax(0, 1fr)); gap: 14px; }
+        .rp-cols-1 { --rp-cols: 1; max-width: 280px; margin-inline: auto; }
+        .rp-cols-2 { --rp-cols: 2; }
+        .rp-cols-3 { --rp-cols: 3; }
+        .rp-cols-4 { --rp-cols: 4; }
+        .rp-cols-5 { --rp-cols: 5; }
+        .rp-cols-6 { --rp-cols: 6; }
+        @media (max-width: 575px) {
+            .rp-cols-3, .rp-cols-4, .rp-cols-5, .rp-cols-6 { --rp-cols: 2; }
+        }
+        @media (min-width: 576px) and (max-width: 767px) {
+            .rp-cols-4, .rp-cols-5, .rp-cols-6 { --rp-cols: 3; }
+        }
+        @media (min-width: 768px) and (max-width: 991px) {
+            .rp-cols-5, .rp-cols-6 { --rp-cols: 4; }
+        }
+        @media (min-width: 992px) {
+            .rp-cols-1 { max-width: 300px; margin-inline: auto; }
+            .rp-cols-2 { max-width: 610px; margin-inline: auto; }
+            .rp-cols-3 { max-width: 900px; margin-inline: auto; }
+        }
 
         /* ── Load more ── */
         .hp-load-wrap { text-align: center; margin-top: 22px; }
@@ -436,7 +467,7 @@
                     <a href="{{ route('frontend.flash.sale.products') }}" class="btn-deal-cta">View Products</a>
                 </div>
 
-                <div class="hp-deal-products">
+                <div class="hp-deal-products hp-deal-cols-{{ min($flashSaleProducts->count(), 5) }}">
                     @foreach($flashSaleProducts as $product)
                     @php $pi = $product->price_info; @endphp
                     <div class="hp-pcard">
@@ -560,7 +591,7 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
             <div class="hp-sec-head">
                 <h5 class="hp-sec-title">{{ $recommendedTitle }}</h5>
             </div>
-            <div class="rp-grid">
+            <div class="rp-grid rp-cols-{{ min($recommendedProducts->count(), 6) }}">
                 @forelse($recommendedProducts as $product)
                 @php $pi = $product->price_info; @endphp
                 <div class="hp-pcard">

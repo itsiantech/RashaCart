@@ -38,7 +38,7 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
     $countdownTarget = now();
     if ($liveFlashSale) {
         $flashSaleProducts = \App\Models\Product::whereHas('activeFlashSaleItem', fn ($q) => $q->where('flash_sale_id', $liveFlashSale->id))
-            ->withCount('reviews')->with('activeFlashSaleItem')->limit(5)->get();
+            ->withCount('reviews')->with('activeFlashSaleItem')->limit(max(1, (int) setting('flash_sale_limit', 5)))->get();
         $offerPercent = (int) round($liveFlashSale->activeItems()->max('discount_percent') ?? 0);
         if (! $offerPercent) {
             $offerPercent = (int) $flashSaleProducts->max(fn ($p) => $p->price_info['percent'] ?? 0);

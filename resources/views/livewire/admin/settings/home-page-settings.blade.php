@@ -103,7 +103,14 @@
                                                 <div class="text-danger small">{{ $message }}</div>
                                             @enderror
                                         </td>
-                                        <td><span class="text-muted">—</span></td>
+                                        <td>
+                                            <input type="number" class="form-control" min="1" max="12"
+                                                   style="max-width: 110px;"
+                                                   wire:model="flash_sale_limit">
+                                            @error('flash_sale_limit')
+                                                <div class="text-danger small">{{ $message }}</div>
+                                            @enderror
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>

@@ -25,6 +25,7 @@ class HomePageSettings extends Component
     public $top_brands_title = 'Top Brands';
     public $flash_sale_enabled = true;
     public $flash_sale_title = 'Flash Sale';
+    public $flash_sale_limit = 5;
     public $shop_by_category_limit = 8;
     public $top_brands_limit = 8;
 
@@ -64,6 +65,7 @@ class HomePageSettings extends Component
         $this->top_brands_limit = (int) setting('top_brands_limit', 8);
         $this->flash_sale_enabled = (bool) setting('flash_sale_enabled', 1);
         $this->flash_sale_title = setting('flash_sale_title', 'Flash Sale');
+        $this->flash_sale_limit = (int) setting('flash_sale_limit', 5);
     }
 
     public function addCategory()
@@ -184,6 +186,7 @@ class HomePageSettings extends Component
             'top_brands_title' => 'required|string|max:100',
             'top_brands_limit' => 'required|integer|min:2|max:12',
             'flash_sale_title' => 'required|string|max:100',
+            'flash_sale_limit' => 'required|integer|min:1|max:12',
         ]);
 
         $sections = [
@@ -199,6 +202,7 @@ class HomePageSettings extends Component
 
         Settings::updateOrCreate(['key' => 'shop_by_category_limit'], ['value' => $this->shop_by_category_limit]);
         Settings::updateOrCreate(['key' => 'top_brands_limit'], ['value' => $this->top_brands_limit]);
+        Settings::updateOrCreate(['key' => 'flash_sale_limit'], ['value' => $this->flash_sale_limit]);
 
         Settings::clearCache();
 
