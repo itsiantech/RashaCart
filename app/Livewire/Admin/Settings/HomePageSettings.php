@@ -47,10 +47,17 @@ class HomePageSettings extends Component
             ->orderBy('sort_order', 'asc')
             ->get();
 
-        $this->allCategories = Category::where('status', 1)
-            ->whereNotIn('id', $this->homepageCategories->pluck('category_id'))
+        // Full category tree (category + sub + sub-sub), admin sort order.
+        // Inactive categories are kept so deeper levels never go missing here.
+        $excluded = $this->homepageCategories->pluck('category_id')
+            ->map(fn ($id) => (int) $id)->all();
+
+        $all = Category::select('id', 'name', 'parent_id', 'status', 'sort_order')
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
+
+        $this->allCategories = $this->flattenCategoryTree($all, $excluded);
 
         // Load Recommended For You settings
         $this->recommended_title = setting('recommended_title') ?? 'Recommended For You';
@@ -66,6 +73,36 @@ class HomePageSettings extends Component
         $this->flash_sale_enabled = (bool) setting('flash_sale_enabled', 1);
         $this->flash_sale_title = setting('flash_sale_title', 'Flash Sale');
         $this->flash_sale_limit = (int) setting('flash_sale_limit', 5);
+    }
+
+    /**
+     * Depth-first flatten of the category tree for a <select>, keeping admin
+     * sort order and exposing depth so the Blade view can indent sub levels.
+     * Categories already on the homepage stay visible (disabled) so the tree
+     * never looks like levels are missing.
+     */
+    private function flattenCategoryTree($categories, array $excluded): array
+    {
+        $byParent = $categories->groupBy(fn ($category) => (int) ($category->parent_id ?? 0));
+        $flat = [];
+
+        $walk = function (int $parentId, int $depth) use (&$walk, &$flat, $byParent, $excluded): void {
+            foreach ($byParent->get($parentId, collect()) as $category) {
+                $flat[] = [
+                    'id' => (int) $category->id,
+                    'name' => $category->name,
+                    'depth' => $depth,
+                    'is_active' => (bool) $category->status,
+                    'is_added' => in_array((int) $category->id, $excluded, true),
+                ];
+
+                $walk((int) $category->id, $depth + 1);
+            }
+        };
+
+        $walk(0, 0);
+
+        return $flat;
     }
 
     public function addCategory()

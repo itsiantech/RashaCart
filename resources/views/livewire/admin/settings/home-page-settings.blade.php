@@ -141,9 +141,16 @@
                                 <select class="form-select" wire:model.live="selected_category_id" required>
                                     <option value="">-- Choose a Category --</option>
                                     @foreach($allCategories as $category)
-                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                        <option value="{{ $category['id'] }}" @disabled($category['is_added'])>
+                                            {{ str_repeat('— ', $category['depth']) }}{{ $category['name'] }}{{ $category['is_added'] ? '  (already added)' : '' }}{{ $category['is_active'] ? '' : ' (inactive)' }}
+                                        </option>
                                     @endforeach
                                 </select>
+                                <small class="text-muted">
+                                    Category, Sub category ও Sub-sub category — সব লেভেল admin অর্ডার অনুযায়ী
+                                    indentation দিয়ে দেখানো হচ্ছে। Homepage-এ যোগ করা ক্যাটেগরি disabled,
+                                    inactive ক্যাটেগরিতে "(inactive)" লেখা।
+                                </small>
                                 @error('selected_category_id')
                                     <div class="text-danger small">{{ $message }}</div>
                                 @enderror
