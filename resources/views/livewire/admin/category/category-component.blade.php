@@ -146,25 +146,55 @@
             background: currentColor;
         }
 
-        .cat-row {
+        /* ── Nested sortable list ── */
+        .cat-tree-wrap {
+            overflow-x: auto;
+        }
+
+        .cat-tree-head,
+        .cat-item {
+            display: grid;
+            grid-template-columns: minmax(240px, 45%) 1fr 100px 130px 110px;
+            gap: 12px;
+            align-items: center;
+            min-width: 720px;
+        }
+
+        .cat-tree-head {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e7e7f1;
+            font-size: .8125rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            color: #697a8d;
+        }
+
+        .cat-item {
+            padding: 8px 16px;
+            border-bottom: 1px solid #f2f3f7;
+            background: #fff;
             transition: background .15s ease;
         }
 
-        .cat-row:hover {
+        .cat-item:hover {
             background: #f9fafc;
         }
 
-        .cat-ghost {
-            opacity: .4;
+        .cat-children .cat-item {
+            background: #fdfdff;
+        }
+
+        .cat-children .cat-item:hover {
+            background: #f7f8fc;
+        }
+
+        .cat-node.cat-ghost .cat-item {
             background: #eeedff;
         }
 
-        .cat-chosen {
+        .cat-node.cat-chosen > .cat-item {
             box-shadow: 0 2px 10px rgba(105, 108, 255, .25);
-        }
-
-        tbody.cat-sort-group {
-            display: table-row-group;
         }
 
         .cat-drag-hint {
@@ -300,119 +330,80 @@
             <span class="cat-drag-hint">Search results — clear search to reorder</span>
             @endif
         </div>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th style="width: 45%;">Category</th>
-                        <th>Slug</th>
-                        <th class="text-center">Products</th>
-                        <th>Status</th>
-                        <th class="text-end">Actions</th>
-                    </tr>
-                </thead>
-
-                @if(count($tree) === 0)
-                <tbody>
-                    <tr>
-                        <td colspan="5" class="text-center py-5">
-                            <i class='bx bx-folder-open bx-lg text-muted d-block mb-2'></i>
-                            <span class="text-muted">No categories found.</span>
-                        </td>
-                    </tr>
-                </tbody>
-                @else
-                <tbody class="cat-sort-group" wire:key="cat-tree"
-                    @if(trim($search) === '') data-sortable="1" @endif>
-                    @foreach($tree as $row)
-                    <tr wire:key="cat-{{ $row['id'] }}" data-id="{{ $row['id'] }}"
-                        data-parent="{{ $row['parent_id'] ?? '' }}"
-                        class="cat-row cat-depth-{{ $row['depth'] }}">
-                        <td>
-                            <div class="d-flex align-items-center gap-2" style="padding-left: {{ $row['depth'] * 26 }}px;">
-                                @if(trim($search) === '')
-                                <span class="cat-drag" title="Drag to reorder (same level only)"><i class='bx bx-menu'></i></span>
-                                @endif
-                                <span class="cat-sign">{{ $row['depth'] ? str_repeat('- ', $row['depth']) : '' }}</span>
-                                @if($row['image'])
-                                <img src="{{ asset('storage/'.$row['image']) }}" alt="{{ $row['name'] }}"
-                                    class="cat-thumb">
-                                @else
-                                <span class="cat-thumb-placeholder"><i class='bx bx-image'></i></span>
-                                @endif
-                                <span class="cat-name">{{ $row['name'] }}</span>
-                                @if(!empty($row['parent_name']))
-                                <small class="text-muted">({{ $row['parent_name'] }})</small>
-                                @endif
-                                @if($row['is_featured'])
-                                <i class='bx bxs-star cat-featured' title="Featured on homepage"></i>
-                                @endif
-                            </div>
-                        </td>
-                        <td><span class="text-muted small">{{ $row['slug'] }}</span></td>
-                        <td class="text-center"><span class="cat-products-badge">{{ $row['products'] }}</span></td>
-                        <td>
-                            <button type="button" class="cat-status-pill {{ $row['status'] ? 'cat-active' : 'cat-inactive' }}"
-                                wire:click="toggleStatus({{ $row['id'] }})"
-                                title="Click to {{ $row['status'] ? 'deactivate' : 'activate' }}">
-                                <span class="dot"></span> {{ $row['status'] ? 'Active' : 'Inactive' }}
-                            </button>
-                        </td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-icon btn-label-primary me-1"
-                                wire:click="showEditForm({{ $row['id'] }})" title="Edit">
-                                <i class="bx bx-edit-alt"></i>
-                            </button>
-                            <button class="btn btn-sm btn-icon btn-label-danger"
-                                wire:click="confirmDelete({{ $row['id'] }})" title="Delete">
-                                <i class="bx bx-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-                @endif
-            </table>
+        <div class="cat-tree-wrap">
+            @if(count($forest) === 0)
+            <div class="text-center py-5">
+                <i class='bx bx-folder-open bx-lg text-muted d-block mb-2'></i>
+                <span class="text-muted">No categories found.</span>
+            </div>
+            @else
+            <div class="cat-tree-head">
+                <span>Category</span>
+                <span>Slug</span>
+                <span class="text-center">Products</span>
+                <span>Status</span>
+                <span class="text-end">Actions</span>
+            </div>
+            <div class="cat-tree" wire:key="cat-tree" data-parent="" @if(trim($search) === '') data-sortable="1" @endif>
+                @foreach($forest as $row)
+                @include('livewire.admin.category.partial.tree-node', ['row' => $row, 'sortable' => trim($search) === ''])
+                @endforeach
+            </div>
+            @endif
         </div>
     </div>
 
     @script
     <script>
+        const sortableUrl = @js(asset('assets/admin/vendor/libs/sortable/Sortable.min.js'));
+
         const loadSortable = (cb) => {
             if (window.Sortable) return cb();
+            const existing = document.querySelector('script[data-sortable-lib]');
+            if (existing) {
+                existing.addEventListener('load', cb);
+                return;
+            }
             const s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js';
+            s.src = sortableUrl;
+            s.dataset.sortableLib = '1';
             s.onload = cb;
+            s.onerror = () => console.warn('SortableJS failed to load:', sortableUrl);
             document.head.appendChild(s);
         };
 
-        const initSortables = (root) => {
-            if (!window.Sortable || !root) return;
-            root.querySelectorAll('tbody[data-sortable]').forEach((tbody) => {
-                if (tbody.dataset.sortInit) return;
-                tbody.dataset.sortInit = '1';
-                new Sortable(tbody, {
+        const initSortables = () => {
+            if (!window.Sortable) return;
+            const root = $wire.$el;
+            if (!root) return;
+            root.querySelectorAll('[data-sortable]').forEach((list) => {
+                // Livewire morphs can drop the marker attribute, so also ask
+                // Sortable itself before wiring a list twice.
+                if (list.dataset.sortInit || Sortable.get(list)) return;
+                list.dataset.sortInit = '1';
+                new Sortable(list, {
                     handle: '.cat-drag',
+                    draggable: '.cat-node',
                     animation: 150,
                     ghostClass: 'cat-ghost',
                     chosenClass: 'cat-chosen',
-                    // Tree list: only allow reordering among same-parent rows
-                    onMove: (evt) => (evt.dragged.dataset.parent || '') === (evt.related.dataset.parent || ''),
+                    // Every level is its own list, so a dragged category takes
+                    // its sub-tree along and can only be reordered among its
+                    // siblings (re-parent via the edit form).
+                    group: { name: 'cat-tree', pull: false, put: false },
                     onEnd: (evt) => {
                         if (evt.oldIndex === evt.newIndex) return;
-                        const parent = evt.item.dataset.parent || '';
-                        const ids = Array.from(tbody.querySelectorAll(':scope > tr'))
-                            .filter((tr) => (tr.dataset.parent || '') === parent)
-                            .map((tr) => tr.dataset.id);
-                        $wire.reorder(parent, ids);
-                    }
+                        const ids = Array.from(list.querySelectorAll(':scope > .cat-node'))
+                            .map((node) => node.dataset.id);
+                        $wire.reorderAll(ids);
+                    },
                 });
             });
         };
 
         loadSortable(() => {
-            initSortables(this.$el);
-            Livewire.hook('morphed', ({ el }) => initSortables(el));
+            initSortables();
+            Livewire.hook('morphed', () => initSortables());
         });
 
         window.addEventListener('scroll-to-form', () => {

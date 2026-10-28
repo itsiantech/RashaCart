@@ -16,9 +16,7 @@ class CategoryComponent extends Component
 
     const MAX_DEPTH = 3; // Category > Sub Category > Sub Sub Category
 
-    public $tree = [];
-
-    public $groups = [];
+    public $forest = [];
 
     public $parentOptions = [];
 
@@ -99,40 +97,33 @@ class CategoryComponent extends Component
             ];
         };
 
-        $this->groups = [];
+        $this->forest = [];
 
-        if ($term === '') {
-            // True tree-walk order: each parent is immediately followed by its
-            // descendants (Fashion, MAN, Tshirt, Woman, ...) so children always
-            // appear directly under their parent. Drag-sort stays per level —
-            // the blade constrains drags to same-parent rows (data-parent).
-            $walk = function ($parentId, $depth, $parentName) use (&$walk, $byParent, $makeRow) {
-                foreach ($byParent->get($parentId ?: 'root', collect()) as $node) {
-                    $row = $makeRow($node, $depth);
-                    $row['parent_name'] = $parentName;
-                    $this->tree[] = $row;
-                    $walk($node->id, $depth + 1, $node->name);
-                }
-            };
-            $this->tree = [];
-            $walk(null, 0, null);
-        } else {
-            // Searching: flat filtered list, keep matches or ancestors of matches
-            $filterFlatten = function ($parentId, $depth) use (&$filterFlatten, $byParent, $makeRow, $matches) {
-                $rows = [];
-                foreach ($byParent->get($parentId ?: 'root', collect()) as $node) {
-                    $childRows = $filterFlatten($node->id, $depth + 1);
-                    if ($matches($node) || count($childRows) > 0) {
-                        $rows[] = $makeRow($node, $depth);
-                        $rows = array_merge($rows, $childRows);
-                    }
+        // Nested tree: every node carries its own children list so the admin
+        // list renders one sortable container per level — dragging a category
+        // moves its whole sub-tree instead of a single row.
+        $build = function ($parentKey, $depth, $parentName) use (&$build, $byParent, $makeRow, $term, $matches) {
+            $nodes = [];
+
+            foreach ($byParent->get($parentKey, collect()) as $node) {
+                $children = $build($node->id, $depth + 1, $node->name);
+
+                // While searching keep matches plus their ancestors
+                if ($term !== '' && ! $matches($node) && count($children) === 0) {
+                    continue;
                 }
 
-                return $rows;
-            };
-            $this->groups[] = ['parent_id' => 'search', 'rows' => $filterFlatten(null, 0)];
-            $this->tree = collect($this->groups)->flatMap(fn ($g) => $g['rows'])->all();
-        }
+                $row = $makeRow($node, $depth);
+                $row['parent_name'] = $parentName;
+                $row['children'] = $children;
+
+                $nodes[] = $row;
+            }
+
+            return $nodes;
+        };
+
+        $this->forest = $build('root', 0, null);
 
         $this->totalCount = $all->count();
         $this->activeCount = $all->where('status', true)->count();
@@ -323,16 +314,39 @@ class CategoryComponent extends Component
         $this->dispatch('success', message: $category->status ? 'Category activated!' : 'Category deactivated!');
     }
 
-    public function reorder($parentId, $ids)
+    /**
+     * Persist a drag-and-drop order from the tree list. The blade sends the
+     * flat visible order (all levels); each parent's rows keep their relative
+     * position in that list, so a root category dragged past another root
+     * (together with its children) simply moves below it on the storefront.
+     */
+    public function reorderAll($ids = [])
     {
-        $parentId = ($parentId === '' || $parentId === null) ? null : (int) $parentId;
-        $ids = array_map('intval', (array) $ids);
+        $ids = collect((array) $ids)
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
 
-        DB::transaction(function () use ($parentId, $ids) {
-            foreach ($ids as $index => $id) {
-                Category::where('id', $id)
-                    ->where('parent_id', $parentId)
-                    ->update(['sort_order' => $index + 1]);
+        if ($ids->isEmpty()) {
+            return;
+        }
+
+        $parents = Category::whereIn('id', $ids)
+            ->pluck('parent_id', 'id');
+
+        DB::transaction(function () use ($ids, $parents) {
+            $position = [];
+
+            foreach ($ids as $id) {
+                if (! $parents->has($id)) {
+                    continue;
+                }
+
+                $parentKey = (int) ($parents[$id] ?? 0);
+                $position[$parentKey] = ($position[$parentKey] ?? 0) + 1;
+
+                Category::whereKey($id)->update(['sort_order' => $position[$parentKey]]);
             }
         });
 
