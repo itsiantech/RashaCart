@@ -91,6 +91,7 @@ class SettingsRequest extends FormRequest
             'add_to_cart_enabled' => ['nullable', 'boolean'],
             'buy_now_enabled' => ['nullable', 'boolean'],
             'cart_drawer_enabled' => ['nullable', 'boolean'],
+            'home_category_sidebar' => ['nullable', 'boolean'],
             'add_to_cart_label' => ['nullable', 'string', 'max:40'],
             'buy_now_label' => ['nullable', 'string', 'max:40'],
             'purchase_disabled_text' => ['nullable', 'string', 'max:120'],

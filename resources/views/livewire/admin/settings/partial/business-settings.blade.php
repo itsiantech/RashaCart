@@ -112,6 +112,23 @@
             </div>
         </div>
 
+        {{-- Home page category menu --}}
+        <div class="border-top pt-3 mt-4 mb-3">
+            <h5 class="mb-1">Home Page Category Menu</h5>
+            <small class="text-muted d-block mb-3">
+                চালু থাকলে হোমপেজে বাম পাশে ক্যাটাগরি সাইডবার দেখাবে, স্লাইডার তার ডানে থাকবে।
+                বন্ধ করলে সাইডবার থাকবে না — স্লাইডার পুরো প্রস্থ নেবে এবং হেডারের মেনুতে
+                <b>Categories</b> বাটন আসবে, যেটায় ক্লিক করলে ড্রপডাউন প্যানেল খুলবে।
+                মোবাইলে (&lt; 768px) দুই ক্ষেত্রেই হেডারের হ্যামবার্গার থেকে বাম দিকের ড্রয়ার খুলবে।
+            </small>
+
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" wire:model="home_category_sidebar"
+                    id="home_category_sidebar" value="1">
+                <label class="form-check-label" for="home_category_sidebar">Show Category Sidebar on Home Page</label>
+            </div>
+        </div>
+
         {{-- City-wise Delivery Charges (dynamic) --}}
         <div class="border-top pt-3 mt-4 mb-3">
             <h5 class="mb-1">Delivery Charge (City-wise)</h5>

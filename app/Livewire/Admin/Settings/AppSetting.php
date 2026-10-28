@@ -122,6 +122,9 @@ class AppSetting extends Component
 
     public $cart_drawer_enabled = true;
 
+    // ── Home page category menu ──
+    public $home_category_sidebar = true;
+
     public $add_to_cart_label;
 
     public $buy_now_label;
@@ -210,6 +213,7 @@ class AppSetting extends Component
         $this->add_to_cart_enabled = (string) setting('add_to_cart_enabled', '1') === '1';
         $this->buy_now_enabled = (string) setting('buy_now_enabled', '1') === '1';
         $this->cart_drawer_enabled = (string) setting('cart_drawer_enabled', '1') === '1';
+        $this->home_category_sidebar = (string) setting('home_category_sidebar', '1') === '1';
         $this->add_to_cart_label = setting('add_to_cart_label') ?: \App\Services\PurchaseActions::DEFAULT_ADD_LABEL;
         $this->buy_now_label = setting('buy_now_label') ?: \App\Services\PurchaseActions::DEFAULT_BUY_LABEL;
         $this->purchase_disabled_text = setting('purchase_disabled_text') ?: \App\Services\PurchaseActions::DEFAULT_DISABLED_TEXT;
@@ -362,6 +366,7 @@ class AppSetting extends Component
         $validatedData['add_to_cart_enabled'] = $this->add_to_cart_enabled ? 1 : 0;
         $validatedData['buy_now_enabled'] = $this->buy_now_enabled ? 1 : 0;
         $validatedData['cart_drawer_enabled'] = $this->cart_drawer_enabled ? 1 : 0;
+        $validatedData['home_category_sidebar'] = $this->home_category_sidebar ? 1 : 0;
 
         // City-wise delivery charges — first two rows also feed the checkout's
         // legacy inside/outside charges so existing order flow keeps working.

@@ -44,6 +44,27 @@
         .hp-search { flex: 1; display: flex; }
         .hp-search input.form-control { border: none; border-radius: 4px 0 0 4px; font-size: .9rem; background: var(--hd-search-bg, #fff); }
         .hp-search .btn { background: var(--hd-search-btn, #f5a623); border: none; color: var(--hd-search-icon, #fff); border-radius: 0 4px 4px 0; padding: 0 18px; }
+
+        /* Mobile: the inline search field collapses into a toggle so the header stays usable */
+        .hp-search-toggle { display: none; }
+        @media (max-width: 767.98px) {
+            .hp-navbar-row { gap: 12px; }
+            .hp-search-toggle {
+                display: inline-flex; align-items: center; justify-content: center;
+                width: 38px; height: 38px; flex: 0 0 auto; padding: 0;
+                border: 0; border-radius: 10px; cursor: pointer;
+                background: rgba(255, 255, 255, .08); color: var(--hd-icon, #fff); font-size: .95rem;
+            }
+            .hp-search-toggle:active { background: rgba(255, 255, 255, .2); }
+            .hp-search-toggle:focus-visible { outline: 2px solid #ffd479; outline-offset: 2px; }
+            .navbar-main .hp-container { position: relative; }
+            .hp-search {
+                position: absolute; top: 100%; left: 0; right: 0; z-index: 30;
+                display: none; padding: 0 16px 12px; background: var(--hd-bg, #10100a);
+                box-shadow: 0 14px 24px rgba(0, 0, 0, .25);
+            }
+            .hp-navbar-row.search-open .hp-search { display: flex; }
+        }
         .hp-nav-icons { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
         .nav-icon { color: var(--hd-icon, rgba(255,255,255,.85)); font-size: 1.1rem; position: relative; }
         .nav-icon:hover { color: var(--hd-icon, #fff); }
@@ -63,11 +84,20 @@
         .subnav .btn-sell { background: var(--hd-search-btn, #f5a623); color: #fff; font-size: .8rem; border-radius: 20px; padding: .25rem .85rem; }
 
         /* ── Hero: categories + banner ── */
-        .hp-hero { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 16px; }
-        @media(min-width: 992px) { .hp-hero { grid-template-columns: 240px 1fr; } }
+        .hp-hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 16px; }
 
+        /* Sidebar exists only when "Show Category Sidebar on Home Page" is ON */
         .hp-cat { display: none; }
-        @media(min-width: 992px) { .hp-cat { display: block; } }
+        @media(min-width: 768px) {
+            .hp-hero--side { grid-template-columns: 210px minmax(0, 1fr); }
+            .hp-hero--side .hp-cat { display: block; }
+        }
+        @media(min-width: 992px) {
+            .hp-hero--side { grid-template-columns: 240px minmax(0, 1fr); }
+        }
+
+        /* Sub nav row that hosts the Categories button (mode OFF) */
+        .hp-subrow { display: flex; align-items: center; gap: 4px; min-height: 40px; }
         .hp-cat-card { background: #fff; border-radius: 12px; border: 1px solid var(--line); height: 380px; overflow-y: auto; }
         .hp-cat-item { display: flex; justify-content: space-between; align-items: center; padding: .55rem 1rem; font-size: .85rem; color: #4b5563; text-decoration: none; border-bottom: 1px solid #f3f4f6; transition: background .15s, color .15s, padding-left .15s; }
         .hp-cat-item:last-child { border-bottom: none; }
@@ -76,9 +106,10 @@
 
         .hero-carousel { border-radius: 12px; overflow: hidden; }
         .hero-carousel .carousel-item img { height: 380px; width: 100%; object-fit: cover; display: block; }
-        @media(max-width: 991px) { .hero-carousel .carousel-item img { height: 220px; } }
+        /* 220px only on phones: from 768px the banner sits beside the sidebar and matches its height */
+        @media(max-width: 767.98px) { .hero-carousel .carousel-item img { height: 220px; } }
         .hp-slide-fallback .inner { height: 380px; display: flex; flex-direction: column; justify-content: center; padding: 0 8%; background: linear-gradient(120deg, var(--navy), var(--primary)); }
-        @media(max-width: 991px) { .hp-slide-fallback .inner { height: 220px; } }
+        @media(max-width: 767.98px) { .hp-slide-fallback .inner { height: 220px; } }
         .hp-slide-fallback .tag { color: #fde68a; font-weight: 600; letter-spacing: 1px; font-size: .8rem; }
         .hp-slide-fallback h2 { color: #fff; font-weight: 800; font-size: 2rem; margin: 4px 0; }
         .hp-slide-fallback .off { color: #fde68a; font-weight: 700; font-size: 1.4rem; }
@@ -266,10 +297,21 @@
     {{-- GTM noscript --}}
     @include('partials.seo-body')
 
+@php
+    // Server-rendered so the first paint is already correct (no layout jump):
+    // OFF => sidebar markup is skipped entirely, slider takes the full width.
+    $homeCatSidebar = (string) setting('home_category_sidebar', '1') === '1';
+@endphp
+
 {{-- ══════════════ NAVBAR ══════════════ --}}
 <nav class="navbar-main sticky-top">
     <div class="hp-container">
         <div class="hp-navbar-row">
+            <button type="button" class="hp-burger" id="hpCatToggle"
+                aria-label="Open categories menu" aria-expanded="false" aria-controls="hpCatDrawer">
+                <i class="fas fa-bars" aria-hidden="true"></i>
+            </button>
+
             <a class="hp-logo" href="{{ route('home') }}">
                 @if(setting('app_logo'))
                     <img src="{{ asset('storage/logo/' . rawurlencode(setting('app_logo'))) }}"
@@ -280,12 +322,16 @@
                 @endif
             </a>
 
-            <form class="hp-search" method="GET" action="{{ route('home') }}">
+            <form class="hp-search" id="hpSearchForm" method="GET" action="{{ route('home') }}">
                 <input type="search" name="q" class="form-control" placeholder="Search products...">
                 <button class="btn" type="submit"><i class="fas fa-search"></i></button>
             </form>
 
             <div class="hp-nav-icons">
+                <button type="button" class="hp-search-toggle" id="hpSearchToggle"
+                    aria-label="Search" aria-expanded="false" aria-controls="hpSearchForm">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                </button>
                 @include('partials.customer-account-icon')
                 <a href="#" class="nav-icon d-none d-md-block">
                     <i class="fas fa-heart"></i>
@@ -299,33 +345,68 @@
     </div>
 </nav>
 
+<script>
+(function () {
+    var toggle = document.getElementById('hpSearchToggle');
+    var row = document.querySelector('.hp-navbar-row');
+    if (!toggle || !row) return;
+    var input = row.querySelector('.hp-search input');
+
+    toggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var open = row.classList.toggle('search-open');
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open && input) input.focus();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' || !row.classList.contains('search-open')) return;
+        row.classList.remove('search-open');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.focus();
+    });
+})();
+</script>
+
 {{-- ══════════════ SUB NAV ══════════════ --}}
 <div class="subnav d-none d-md-block">
     <div class="hp-container">
-        @php $hpMenuItems = header_menu(); @endphp
-        @if (! empty($hpMenuItems))
-            @include('livewire.frontend.layouts.partial.header.homepage-menu', ['items' => $hpMenuItems])
-        @else
-        <nav class="d-flex align-items-center flex-wrap gap-1 py-1">
-            <a href="{{ route('frontend.category.view') }}" class="nav-link">Categories</a>
-            <a href="{{ route('home') }}" class="nav-link">Products</a>
-            <a href="#" class="nav-link">Discounts</a>
-            <a href="{{ route('frontend.brand.view') }}" class="nav-link">All Brands</a>
-            <a href="{{ route('frontend.order.tracking') }}" class="nav-link">Track Order</a>
-            <a href="{{ route('home') }}" class="nav-link">Home</a>
-        </nav>
-        @endif
+        <div class="hp-subrow">
+            @unless ($homeCatSidebar)
+                @include('livewire.frontend.layouts.partial.category.home-category-dropdown', ['categories' => $categories])
+            @endunless
+
+            @php $hpMenuItems = header_menu(); @endphp
+            @if (! empty($hpMenuItems))
+                @include('livewire.frontend.layouts.partial.header.homepage-menu', ['items' => $hpMenuItems])
+            @else
+            <nav class="d-flex align-items-center flex-wrap gap-1 py-1">
+                <a href="{{ route('frontend.category.view') }}" class="nav-link">Categories</a>
+                <a href="{{ route('home') }}" class="nav-link">Products</a>
+                <a href="#" class="nav-link">Discounts</a>
+                <a href="{{ route('frontend.brand.view') }}" class="nav-link">All Brands</a>
+                <a href="{{ route('frontend.order.tracking') }}" class="nav-link">Track Order</a>
+                <a href="{{ route('home') }}" class="nav-link">Home</a>
+            </nav>
+            @endif
+        </div>
     </div>
 </div>
 
+{{-- Mobile category drawer (both settings states) --}}
+@include('livewire.frontend.layouts.partial.category.home-category-drawer', ['categories' => $categories])
+
 {{-- ══════════════ HERO: CATEGORIES + BANNER ══════════════ --}}
 <section class="hp-container">
-    <div class="hp-hero">
+    <div class="hp-hero {{ $homeCatSidebar ? 'hp-hero--side' : 'hp-hero--full' }}">
 
+        @if ($homeCatSidebar)
         {{-- Categories menu (3-level flyout) --}}
         <aside class="hp-cat">
             @include('livewire.frontend.layouts.partial.category.category-flyout', ['categories' => $categories])
         </aside>
+        @endif
 
         {{-- Banner slider --}}
         <div id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel">
@@ -373,7 +454,7 @@
     </div>
 
     {{-- Mobile category pills --}}
-    <div class="hp-pills d-lg-none mt-3">
+    <div class="hp-pills d-md-none mt-3">
         @foreach($categories as $cat)
         <a href="{{ route('frontend.category.view', $cat->slug) }}" class="hp-pill">{{ $cat->name }}</a>
         @endforeach
