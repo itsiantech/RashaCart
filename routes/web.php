@@ -22,6 +22,7 @@ use App\Livewire\Frontend\Product\UserProductsView;
 use App\Livewire\Frontend\TrendyProduct\TrendyProduct;
 use App\Livewire\Frontend\Welcome;
 use App\Livewire\Frontend\LandingPage\PublicLandingPage;
+use App\Livewire\Frontend\Pages\PublicPage;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -195,6 +196,9 @@ Route::prefix('frontend')->name('frontend.')->group(function () {
 
 // Public Landing Page Route (outside frontend prefix for direct access)
 Route::get('/landing/{slug}', PublicLandingPage::class)->name('public.landing');
+
+// Public CMS page (admin >> Pages)
+Route::get('/page/{slug}', PublicPage::class)->name('public.page');
 
 require __DIR__.'/auth.php';
 require __DIR__.'/web/customer.php';

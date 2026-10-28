@@ -517,6 +517,30 @@ $currentRoute = request()->route()?->getName() ?? '';
         </li>
         @endif
 
+        <!-- Pages -->
+        @if ($isAdmin)
+        <li class="menu-item {{ Route::is('admin.pages.*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-file"></i>
+                <div>Pages</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ Route::is('admin.pages.create') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.pages.create') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-plus-circle"></i>
+                        <div>Add Page</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::is('admin.pages.index') || Route::is('admin.pages.edit') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.pages.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-list-ul"></i>
+                        <div>Pages</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        @endif
+
         <!-- Automation (registry-driven; toggles are super-admin only) -->
         @if (setting('automation_menu', true))
         @php

@@ -10,6 +10,8 @@ use App\Livewire\Admin\Banner\BannerIndex;
 use App\Livewire\Admin\LandingPage\LandingPageCreate;
 use App\Livewire\Admin\LandingPage\LandingPageEdit;
 use App\Livewire\Admin\LandingPage\LandingPageIndex;
+use App\Livewire\Admin\Pages\PageForm;
+use App\Livewire\Admin\Pages\PageIndex;
 use App\Livewire\Admin\BestOffer\BestOfferIndex;
 use App\Livewire\Admin\Brands\Create;
 use App\Livewire\Admin\Brands\Edit;
@@ -107,6 +109,11 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
     Route::get('/landing-page', LandingPageIndex::class)->name('landing-page.index')->middleware('role:admin');
     Route::get('/landing-page/create', LandingPageCreate::class)->name('landing-page.create')->middleware('role:admin');
     Route::get('/landing-page/edit/{id}', LandingPageEdit::class)->name('landing-page.edit')->middleware('role:admin');
+
+    // Pages
+    Route::get('/pages', PageIndex::class)->name('pages.index')->middleware('role:admin');
+    Route::get('/pages/create', PageForm::class)->name('pages.create')->middleware('role:admin');
+    Route::get('/pages/edit/{id}', PageForm::class)->name('pages.edit')->middleware('role:admin');
 
     Route::get('/category', CategoryComponent::class)->name('category.index')->middleware('role:admin');
     Route::get('/attribute', AttributeComponent::class)->name('attribute.index')->middleware('role:admin');
