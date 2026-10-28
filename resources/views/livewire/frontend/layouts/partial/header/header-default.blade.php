@@ -26,6 +26,41 @@
             <div class="mobile-header">
                 <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
             </div>
+            @php $sfMobileMenu = header_menu(); @endphp
+            @if (! empty($sfMobileMenu))
+                <div class="mobile-menu-block">
+                    <h3 class="filter-title"><i class="fas fa-bars"></i> Menu</h3>
+                    <ul class="sf-mobile-menu">
+                        @foreach ($sfMobileMenu as $sfMobileItem)
+                            @include('livewire.frontend.layouts.partial.header.menu-node', ['item' => $sfMobileItem, 'depth' => 0])
+                        @endforeach
+                    </ul>
+                </div>
+                @once
+                <style>
+                    .mobile-sidebar .sf-mobile-menu,
+                    .mobile-sidebar .sf-mobile-menu ul { margin: 0; padding: 0; list-style: none; }
+                    .mobile-sidebar .sf-mobile-menu > li > a {
+                        display: flex; align-items: center; justify-content: space-between; gap: 8px;
+                        padding: 10px 14px; border-bottom: 1px solid #f1f2f6;
+                        color: #222; font-size: .92rem; font-weight: 600; text-decoration: none;
+                    }
+                    .mobile-sidebar .sf-mobile-menu > li > a:hover { color: #7A0000; }
+                    .mobile-sidebar .sf-mobile-menu ul { padding-left: 18px; }
+                    .mobile-sidebar .sf-mobile-menu ul a {
+                        display: flex; align-items: center; justify-content: space-between; gap: 8px;
+                        padding: 7px 14px; color: #555; font-size: .86rem; text-decoration: none;
+                    }
+                    .mobile-sidebar .sf-mobile-menu ul a:hover { color: #7A0000; }
+                    .mobile-sidebar .sf-mobile-menu .sf-caret { font-size: .6rem; color: #b7bdc9; }
+                    .mobile-sidebar .sf-mobile-menu .sf-submenu {
+                        position: static; opacity: 1; visibility: visible; transform: none;
+                        min-width: 0; padding: 0; background: transparent; border-radius: 0; box-shadow: none;
+                    }
+                </style>
+                @endonce
+            @endif
+
             @include('livewire.frontend.layouts.partial.category.category-list', ['categories' => \App\Models\Category::with('allChildren')->where('parent_id', null)->where('status', 1)->orderBy('sort_order')->orderBy('name')->get()])
         </div>
 
@@ -191,6 +226,8 @@
         </div>
 
     </div>
+
+    @include('livewire.frontend.layouts.partial.header.menu-nav')
     <style>
         /* =============================================
    MOBILE HEADER - matches the image exactly

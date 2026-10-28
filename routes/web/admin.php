@@ -44,6 +44,7 @@ use App\Livewire\Admin\Pos\PosTerminal;
 use App\Livewire\Admin\Products\{ProductIndex, ProductCreate, ProductEdit, ProductView, ProductStockManage};
 use App\Livewire\Admin\Settings\AppSetting;
 use App\Livewire\Admin\Settings\HomePageSettings;
+use App\Livewire\Admin\Settings\MenuSetting;
 use App\Livewire\Admin\Settings\SeoSettings;
 use App\Livewire\Admin\Settings\StyleCustomizer;
 use App\Livewire\Admin\Settings\RolePermission\RolePermissionAssign;
@@ -79,6 +80,7 @@ Route::prefix('admin')->middleware(['auth', 'vendor.approved'])->name('admin.')-
 
     Route::get('/seo/{tab?}', SeoSettings::class)->name('seo.index')->middleware('can:setting.view');
     Route::get('/settings/homepage', HomePageSettings::class)->name('settings.homepage')->middleware('role:admin');
+    Route::get('/settings/menu', MenuSetting::class)->name('settings.menu')->middleware('role:admin');
 
     Route::get('server-side-tracking', ServerSideTracking::class)->name('server-side-tracking.index')->middleware('role:admin');
     Route::get('server-side-tracking/logs', TrackingLogIndex::class)->name('server-side-tracking.logs')->middleware('role:admin');

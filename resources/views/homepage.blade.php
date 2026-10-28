@@ -302,6 +302,10 @@
 {{-- ══════════════ SUB NAV ══════════════ --}}
 <div class="subnav d-none d-md-block">
     <div class="hp-container">
+        @php $hpMenuItems = header_menu(); @endphp
+        @if (! empty($hpMenuItems))
+            @include('livewire.frontend.layouts.partial.header.homepage-menu', ['items' => $hpMenuItems])
+        @else
         <nav class="d-flex align-items-center flex-wrap gap-1 py-1">
             <a href="{{ route('frontend.category.view') }}" class="nav-link">Categories</a>
             <a href="{{ route('home') }}" class="nav-link">Products</a>
@@ -310,6 +314,7 @@
             <a href="{{ route('frontend.order.tracking') }}" class="nav-link">Track Order</a>
             <a href="{{ route('home') }}" class="nav-link">Home</a>
         </nav>
+        @endif
     </div>
 </div>
 

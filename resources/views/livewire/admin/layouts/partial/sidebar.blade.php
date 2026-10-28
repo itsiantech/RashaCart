@@ -669,6 +669,12 @@ $currentRoute = request()->route()?->getName() ?? '';
                         <div>Home Page Settings</div>
                     </a>
                 </li>
+                <li class="menu-item {{ Route::is('admin.settings.menu') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.settings.menu') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-menu-alt-left"></i>
+                        <div>Menu Settings</div>
+                    </a>
+                </li>
                 @endif
             </ul>
         </li>
