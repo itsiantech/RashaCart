@@ -1,0 +1,14 @@
+{
+    "name": "Test Demo",
+    "slug": "TestDemo",
+    "version": "1.2.0",
+    "description": "Fixture add-on used by the add-on system tests.",
+    "author": "Tests",
+    "requires_core": "^1.0",
+    "provider": "Addons\\TestDemo\\TestDemoServiceProvider",
+    "depends_on": [],
+    "provides": [
+        "A demo filter",
+        "A demo slot"
+    ]
+}

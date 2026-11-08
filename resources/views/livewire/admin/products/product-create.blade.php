@@ -804,6 +804,8 @@
             </div>
         </div>
 
+        @hook('admin.product.form.sections', ['productId' => null, 'mode' => 'create'])
+
         <!-- Submit Button -->
         <div class="text-end">
             <button type="submit" class="btn btn-success">

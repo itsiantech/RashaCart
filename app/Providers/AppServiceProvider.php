@@ -2,11 +2,14 @@
 
 namespace App\Providers;
 
+use App\Addons\AddonManager;
 use App\Models\Banner;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Support\Hooks;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
@@ -19,6 +22,12 @@ class AppServiceProvider extends ServiceProvider
     {
         $loader = \Illuminate\Foundation\AliasLoader::getInstance();
         $loader->alias('Debugbar', \Barryvdh\Debugbar\Facades\Debugbar::class);
+
+        $this->app->singleton(AddonManager::class, function ($app) {
+            return new AddonManager(config('addons.path', base_path('addons')));
+        });
+
+        $this->app->make(AddonManager::class)->registerAutoloader();
     }
 
     public function boot(): void
@@ -115,5 +124,17 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function ($user, $ability) {
             return $user->hasRole('admin') ? true : null;
         });
+
+        /* ---------------- Add-ons ---------------- */
+        Blade::directive('hook', function (string $expression) {
+            return "<?php echo \\App\\Support\\Hooks::renderSlot({$expression}); ?>";
+        });
+
+        try {
+            $this->app->make(AddonManager::class)->boot();
+        } catch (\Throwable $e) {
+            // Never let the extension system take the shop down.
+            \Illuminate\Support\Facades\Log::error('Add-on boot failed: '.$e->getMessage(), ['exception' => $e]);
+        }
     }
 }

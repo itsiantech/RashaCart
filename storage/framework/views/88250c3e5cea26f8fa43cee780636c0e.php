@@ -15,6 +15,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <?php echo $__env->make('partials.style-vars', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     <?php echo $__env->yieldPushContent('styles'); ?>
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(\App\Services\PurchaseActions::cartDrawerEnabled()
+        || (\App\Services\PurchaseActions::addToCartEnabled() && \App\Services\PurchaseActions::variantPopupEnabled())): ?>
+    <?php echo \Livewire\Mechanisms\FrontendAssets\FrontendAssets::styles(); ?>
+
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
     <style>
         :root {
             --primary: #7A0000;
@@ -41,11 +46,38 @@
         .hp-search { flex: 1; display: flex; }
         .hp-search input.form-control { border: none; border-radius: 4px 0 0 4px; font-size: .9rem; background: var(--hd-search-bg, #fff); }
         .hp-search .btn { background: var(--hd-search-btn, #f5a623); border: none; color: var(--hd-search-icon, #fff); border-radius: 0 4px 4px 0; padding: 0 18px; }
+
+        /* Mobile: the inline search field collapses into a toggle so the header stays usable */
+        .hp-search-toggle { display: none; }
+        @media (max-width: 767.98px) {
+            .hp-navbar-row { gap: 12px; }
+            .hp-search-toggle {
+                display: inline-flex; align-items: center; justify-content: center;
+                width: 38px; height: 38px; flex: 0 0 auto; padding: 0;
+                border: 0; border-radius: 10px; cursor: pointer;
+                background: rgba(255, 255, 255, .08); color: var(--hd-icon, #fff); font-size: .95rem;
+            }
+            .hp-search-toggle:active { background: rgba(255, 255, 255, .2); }
+            .hp-search-toggle:focus-visible { outline: 2px solid #ffd479; outline-offset: 2px; }
+            .navbar-main .hp-container { position: relative; }
+            .hp-search {
+                position: absolute; top: 100%; left: 0; right: 0; z-index: 30;
+                display: none; padding: 0 16px 12px; background: var(--hd-bg, #10100a);
+                box-shadow: 0 14px 24px rgba(0, 0, 0, .25);
+            }
+            .hp-navbar-row.search-open .hp-search { display: flex; }
+        }
         .hp-nav-icons { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
         .nav-icon { color: var(--hd-icon, rgba(255,255,255,.85)); font-size: 1.1rem; position: relative; }
         .nav-icon:hover { color: var(--hd-icon, #fff); }
         .nav-icon .badge { font-size: .6rem; position: absolute; top: -6px; right: -8px; }
         .nav-icon .badge.bg-warning { background-color: var(--hd-badge, #ffc107) !important; }
+
+        /* Desktop logo size; mobile keeps the compact default above. */
+        @media (min-width: 768px) {
+            .hp-navbar-row { height: 120px; }
+            .hp-logo img { height: 120px; width: 230px; }
+        }
 
         /* ── Sub Nav ── */
         .subnav { background: var(--hd-bg, #12225B); border-top: 1px solid rgba(255,255,255,.12); }
@@ -54,11 +86,20 @@
         .subnav .btn-sell { background: var(--hd-search-btn, #f5a623); color: #fff; font-size: .8rem; border-radius: 20px; padding: .25rem .85rem; }
 
         /* ── Hero: categories + banner ── */
-        .hp-hero { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 16px; }
-        @media(min-width: 992px) { .hp-hero { grid-template-columns: 240px 1fr; } }
+        .hp-hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 16px; }
 
+        /* Sidebar exists only when "Show Category Sidebar on Home Page" is ON */
         .hp-cat { display: none; }
-        @media(min-width: 992px) { .hp-cat { display: block; } }
+        @media(min-width: 768px) {
+            .hp-hero--side { grid-template-columns: 210px minmax(0, 1fr); }
+            .hp-hero--side .hp-cat { display: block; }
+        }
+        @media(min-width: 992px) {
+            .hp-hero--side { grid-template-columns: 240px minmax(0, 1fr); }
+        }
+
+        /* Sub nav row that hosts the Categories button (mode OFF) */
+        .hp-subrow { display: flex; align-items: center; gap: 4px; min-height: 40px; }
         .hp-cat-card { background: #fff; border-radius: 12px; border: 1px solid var(--line); height: 380px; overflow-y: auto; }
         .hp-cat-item { display: flex; justify-content: space-between; align-items: center; padding: .55rem 1rem; font-size: .85rem; color: #4b5563; text-decoration: none; border-bottom: 1px solid #f3f4f6; transition: background .15s, color .15s, padding-left .15s; }
         .hp-cat-item:last-child { border-bottom: none; }
@@ -67,16 +108,29 @@
 
         .hero-carousel { border-radius: 12px; overflow: hidden; }
         .hero-carousel .carousel-item img { height: 380px; width: 100%; object-fit: cover; display: block; }
-        @media(max-width: 991px) { .hero-carousel .carousel-item img { height: 220px; } }
+        /* 220px only on phones: from 768px the banner sits beside the sidebar and matches its height */
+        @media(max-width: 767.98px) { .hero-carousel .carousel-item img { height: 220px; } }
         .hp-slide-fallback .inner { height: 380px; display: flex; flex-direction: column; justify-content: center; padding: 0 8%; background: linear-gradient(120deg, var(--navy), var(--primary)); }
-        @media(max-width: 991px) { .hp-slide-fallback .inner { height: 220px; } }
+        @media(max-width: 767.98px) { .hp-slide-fallback .inner { height: 220px; } }
         .hp-slide-fallback .tag { color: #fde68a; font-weight: 600; letter-spacing: 1px; font-size: .8rem; }
         .hp-slide-fallback h2 { color: #fff; font-weight: 800; font-size: 2rem; margin: 4px 0; }
         .hp-slide-fallback .off { color: #fde68a; font-weight: 700; font-size: 1.4rem; }
         .carousel-caption { background: linear-gradient(90deg, rgba(18,34,91,.85), rgba(18,34,91,0) 70%); border-radius: 8px; text-align: left; left: 5%; right: auto; bottom: 20%; padding: 1rem 1.4rem; }
 
+        /* ── Banner & Ads: Full Width mode (edge-to-edge, menu flush to slider) ── */
+        .hp-hero-bleed { width: 100%; max-width: none; margin: 0; padding: 0; }
+        .hp-hero-bleed .hp-hero { margin-top: 0; gap: 0; }
+        .hp-hero-bleed .hero-carousel { border-radius: 0; }
+        .hp-hero-bleed .hero-carousel .carousel-item img { height: 400px; border-radius: 0; }
+        .hp-hero-bleed .hp-slide-fallback .inner { height: 400px; }
+        .hp-hero-bleed .hp-pills { padding-left: 16px; padding-right: 16px; }
+        @media(max-width: 767.98px) {
+            .hp-hero-bleed .hero-carousel .carousel-item img { height: 220px; }
+            .hp-hero-bleed .hp-slide-fallback .inner { height: 220px; }
+        }
+
         /* ── Mobile category pills ── */
-        .hp-pills { display: flex; gap: 8px; overflow-auto; padding-bottom: 8px; scrollbar-width: none; }
+        .hp-pills { display: flex; gap: 8px; overflow: auto; padding-bottom: 8px; scrollbar-width: none; }
         .hp-pill { background: var(--primary); color: #fff; font-size: .78rem; padding: .4rem .8rem; border-radius: 20px; flex-shrink: 0; text-decoration: none; }
         .hp-pill:hover { color: #fff; }
 
@@ -101,9 +155,22 @@
         .cd-box .lbl { font-size: .62rem; opacity: .85; }
         .btn-deal-cta { margin-top: auto; background: #fff; color: var(--orange); border: none; border-radius: 3px; font-weight: 600; font-size: .85rem; padding: .5rem 1rem; display: inline-block; text-align: center; text-decoration: none; }
         .btn-deal-cta:hover { background: #fff7ed; color: #ea580c; }
-        .hp-deal-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-        @media(min-width: 576px) { .hp-deal-products { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 992px) { .hp-deal-products { grid-template-columns: repeat(5, 1fr); } }
+        .hp-deal-products { display: grid; grid-template-columns: repeat(var(--deal-cols, 2), minmax(0, 1fr)); gap: 12px; }
+        .hp-deal-cols-1 { --deal-cols: 1; max-width: 240px; margin-inline: auto; }
+        .hp-deal-cols-2 { --deal-cols: 2; }
+        .hp-deal-cols-3 { --deal-cols: 3; }
+        .hp-deal-cols-4 { --deal-cols: 4; }
+        .hp-deal-cols-5 { --deal-cols: 5; }
+        @media (max-width: 575px) {
+            .hp-deal-cols-3, .hp-deal-cols-4, .hp-deal-cols-5 { --deal-cols: 2; }
+        }
+        @media (min-width: 576px) and (max-width: 991px) {
+            .hp-deal-cols-4, .hp-deal-cols-5 { --deal-cols: 3; }
+        }
+        @media (min-width: 992px) {
+            .hp-deal-cols-2 { max-width: 520px; margin-inline: auto; }
+            .hp-deal-cols-3 { max-width: 760px; margin-inline: auto; }
+        }
 
         /* ── Product card ── */
         .hp-pcard { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; transition: box-shadow .2s, transform .2s; height: 100%; }
@@ -118,9 +185,10 @@
         .hp-stars small { color: #6b7280; font-size: .7rem; }
         .hp-price { font-weight: 700; color: #111827; font-size: .95rem; }
         .hp-price .old { text-decoration: line-through; color: #9ca3af; font-weight: 400; font-size: .78rem; margin-left: 4px; }
-        .btn-add-cart { width: 100%; background: var(--cart-btn-bg, #fff); color: var(--cart-btn-text, var(--navy)); border: 1px solid var(--navy); border-radius: 3px; font-size: .8rem; padding: .42rem; font-weight: 600; margin-top: auto; transition: background .2s ease, color .2s ease; }
-        .btn-add-cart:hover { background: var(--navy); color: #fff; }
-        .btn-add-cart i { color: var(--cart-btn-icon); }
+        .btn-add-cart { width: 100%; background: var(--btn-all-bg, #fff); color: var(--btn-all-text, var(--navy)); border: 1px solid var(--btn-all-bg, var(--navy)); border-radius: 3px; font-size: .8rem; padding: .42rem; font-weight: 600; margin-top: auto; transition: background .2s ease, color .2s ease; }
+        a.btn-add-cart { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+        .btn-add-cart:hover { filter: brightness(.92); }
+        .btn-add-cart i { color: var(--cart-btn-icon, var(--icon-color)); }
 
         /* ── Top shops ── */
         .hp-shops { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -134,23 +202,73 @@
         .hp-shop-count { font-size: .7rem; color: #6b7280; }
 
         /* ── Top brands ── */
-        .hp-brands { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-        @media(min-width: 768px) { .hp-brands { grid-template-columns: repeat(6, 1fr); } }
-        .hp-brand-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; transition: box-shadow .2s; padding: 8px; }
-        .hp-brand-card:hover { box-shadow: 0 8px 20px rgba(17,24,39,.1); }
-        .hp-brand-card img { max-height: 56px; max-width: 90%; object-fit: contain; }
-        .hp-brand-card span { font-size: .72rem; color: #4b5563; font-weight: 600; }
+        .hp-brands { display: grid; grid-template-columns: repeat(var(--brand-cols-sm, 3), minmax(0, 1fr)); gap: 12px; }
+        @media(min-width: 576px) { .hp-brands { grid-template-columns: repeat(var(--brand-cols-md, 4), minmax(0, 1fr)); } }
+        @media(min-width: 992px) { .hp-brands { grid-template-columns: repeat(var(--brand-cols, 8), minmax(0, 1fr)); } }
+        .hp-brand-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-decoration: none; padding: 14px 10px; transition: box-shadow .2s, transform .2s, border-color .2s; }
+        .hp-brand-card:hover { border-color: var(--primary); box-shadow: 0 10px 24px rgba(17,24,39,.1); transform: translateY(-3px); }
+        .hp-brand-logo { width: 100%; aspect-ratio: 16 / 10; display: grid; place-items: center; background: #f7f8fb; border-radius: 8px; padding: 8px; overflow: hidden; }
+        .hp-brand-logo img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+        .hp-brand-mark { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, var(--navy), var(--primary)); color: #fff; font-weight: 700; font-size: 1.05rem; letter-spacing: .5px; }
+        .hp-brand-name { font-size: .78rem; font-weight: 600; color: #1f2937; text-align: center; line-height: 1.25; }
+        .hp-brand-count { font-size: .68rem; color: #9ca3af; }
 
-        /* ── Homepage Categories grid ── */
-        .hp-cat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-        @media(min-width: 576px) { .hp-cat-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 768px) { .hp-cat-grid { grid-template-columns: repeat(4, 1fr); } }
-        @media(min-width: 992px) { .hp-cat-grid { grid-template-columns: repeat(6, 1fr); } }
+        /* ── Shop by Category (desktop showcase with images) ── */
+        .hp-catshow { display: grid; grid-template-columns: repeat(var(--cat-cols, 8), minmax(0, 1fr)); gap: 14px; }
+        .hp-catshow-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-decoration: none; transition: box-shadow .2s, transform .2s, border-color .2s; }
+        .hp-catshow-card:hover { border-color: var(--primary); box-shadow: 0 10px 24px rgba(17,24,39,.1); transform: translateY(-3px); }
+        .hp-catshow-img { width: 100%; max-width: 130px; aspect-ratio: 1 / 1; border-radius: 50%; background: #f6f7f9; overflow: hidden; display: grid; place-items: center; border: 1px solid #f1f2f5; }
+        .hp-catshow-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s ease; }
+        .hp-catshow-card:hover .hp-catshow-img img { transform: scale(1.07); }
+        .hp-catshow-fallback { color: var(--primary); opacity: .45; font-size: 1.5rem; }
+        .hp-catshow-name { font-size: .78rem; font-weight: 600; color: #1f2937; text-align: center; line-height: 1.25; }
+        .hp-catshow-count { font-size: .68rem; color: #9ca3af; }
 
-        /* ── Recommended grid ── */
-        .rp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-        @media(min-width: 576px) { .rp-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 992px) { .rp-grid { grid-template-columns: repeat(6, 1fr); } }
+        /* ── Homepage Categories grid (adapts to each category's product limit) ── */
+        .hp-cat-grid { display: grid; grid-template-columns: repeat(var(--cat-cols, 2), minmax(0, 1fr)); gap: 14px; }
+        .hp-cat-cols-1 { --cat-cols: 1; max-width: 280px; margin-inline: auto; }
+        .hp-cat-cols-2 { --cat-cols: 2; }
+        .hp-cat-cols-3 { --cat-cols: 3; }
+        .hp-cat-cols-4 { --cat-cols: 4; }
+        .hp-cat-cols-5 { --cat-cols: 5; }
+        .hp-cat-cols-6 { --cat-cols: 6; }
+        @media (max-width: 575px) {
+            .hp-cat-cols-3, .hp-cat-cols-4, .hp-cat-cols-5, .hp-cat-cols-6 { --cat-cols: 2; }
+        }
+        @media (min-width: 576px) and (max-width: 767px) {
+            .hp-cat-cols-4, .hp-cat-cols-5, .hp-cat-cols-6 { --cat-cols: 3; }
+        }
+        @media (min-width: 768px) and (max-width: 991px) {
+            .hp-cat-cols-5, .hp-cat-cols-6 { --cat-cols: 4; }
+        }
+        @media (min-width: 992px) {
+            .hp-cat-cols-1 { max-width: 300px; margin-inline: auto; }
+            .hp-cat-cols-2 { max-width: 610px; margin-inline: auto; }
+            .hp-cat-cols-3 { max-width: 900px; margin-inline: auto; }
+        }
+
+        /* ── Recommended grid (adapts to recommended product limit) ── */
+        .rp-grid { display: grid; grid-template-columns: repeat(var(--rp-cols, 2), minmax(0, 1fr)); gap: 14px; }
+        .rp-cols-1 { --rp-cols: 1; max-width: 280px; margin-inline: auto; }
+        .rp-cols-2 { --rp-cols: 2; }
+        .rp-cols-3 { --rp-cols: 3; }
+        .rp-cols-4 { --rp-cols: 4; }
+        .rp-cols-5 { --rp-cols: 5; }
+        .rp-cols-6 { --rp-cols: 6; }
+        @media (max-width: 575px) {
+            .rp-cols-3, .rp-cols-4, .rp-cols-5, .rp-cols-6 { --rp-cols: 2; }
+        }
+        @media (min-width: 576px) and (max-width: 767px) {
+            .rp-cols-4, .rp-cols-5, .rp-cols-6 { --rp-cols: 3; }
+        }
+        @media (min-width: 768px) and (max-width: 991px) {
+            .rp-cols-5, .rp-cols-6 { --rp-cols: 4; }
+        }
+        @media (min-width: 992px) {
+            .rp-cols-1 { max-width: 300px; margin-inline: auto; }
+            .rp-cols-2 { max-width: 610px; margin-inline: auto; }
+            .rp-cols-3 { max-width: 900px; margin-inline: auto; }
+        }
 
         /* ── Load more ── */
         .hp-load-wrap { text-align: center; margin-top: 22px; }
@@ -161,7 +279,7 @@
         .hp-footer { background: var(--ft-bg, #12225B); color: var(--ft-text, #fff); margin-top: 32px; padding: 40px 0 18px; }
         .f-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
         @media(min-width: 768px) { .f-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media(min-width: 992px) { .f-grid { grid-template-columns: 1.35fr 1fr 1fr 1fr .95fr 1.4fr; } }
+        @media(min-width: 992px) { .f-grid { grid-template-columns: 1.35fr 1fr 1fr 1fr .95fr; } }
         .hp-footer h6 { color: var(--ft-text, #fff); font-weight: 600; font-size: .92rem; margin-bottom: .8rem; }
         .hp-footer a { color: var(--ft-nav, rgba(255,255,255,.75)); text-decoration: none; font-size: .85rem; }
         .hp-footer a:hover { color: var(--ft-nav, #fff); }
@@ -191,12 +309,25 @@
 </head>
 <body>
     
-    <?php echo $__env->make('partials.seo-body', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>}
+    <?php echo $__env->make('partials.seo-body', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+<?php
+    // Server-rendered so the first paint is already correct (no layout jump):
+    // OFF => sidebar markup is skipped entirely, slider takes the full width.
+    $homeCatSidebar = (string) setting('home_category_sidebar', '1') === '1';
+    // Banner & Ads layout: 'full' = edge-to-edge, 'boxed' = inside the container.
+    $bannerFull = (string) setting('banner_layout', 'boxed') === 'full';
+?>
 
 
 <nav class="navbar-main sticky-top">
     <div class="hp-container">
         <div class="hp-navbar-row">
+            <button type="button" class="hp-burger" id="hpCatToggle"
+                aria-label="Open categories menu" aria-expanded="false" aria-controls="hpCatDrawer">
+                <i class="fas fa-bars" aria-hidden="true"></i>
+            </button>
+
             <a class="hp-logo" href="<?php echo e(route('home')); ?>">
                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(setting('app_logo')): ?>
                     <img src="<?php echo e(asset('storage/logo/' . rawurlencode(setting('app_logo')))); ?>"
@@ -207,49 +338,91 @@
                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             </a>
 
-            <form class="hp-search" method="GET" action="<?php echo e(route('home')); ?>">
+            <form class="hp-search" id="hpSearchForm" method="GET" action="<?php echo e(route('home')); ?>">
                 <input type="search" name="q" class="form-control" placeholder="Search products...">
                 <button class="btn" type="submit"><i class="fas fa-search"></i></button>
             </form>
 
             <div class="hp-nav-icons">
+                <button type="button" class="hp-search-toggle" id="hpSearchToggle"
+                    aria-label="Search" aria-expanded="false" aria-controls="hpSearchForm">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                </button>
                 <?php echo $__env->make('partials.customer-account-icon', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                 <a href="#" class="nav-icon d-none d-md-block">
                     <i class="fas fa-heart"></i>
                 </a>
                 <a href="<?php echo e(route('frontend.cart.view')); ?>" class="nav-icon">
                     <i class="fas fa-shopping-cart"></i>
-                    <span class="badge bg-warning text-dark"><?php echo e($cartCount ?? 0); ?></span>
+                    <span class="badge bg-warning text-dark" data-cd-header-count><?php echo e($cartCount ?? 0); ?></span>
                 </a>
             </div>
         </div>
     </div>
 </nav>
 
+<script>
+(function () {
+    var toggle = document.getElementById('hpSearchToggle');
+    var row = document.querySelector('.hp-navbar-row');
+    if (!toggle || !row) return;
+    var input = row.querySelector('.hp-search input');
+
+    toggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var open = row.classList.toggle('search-open');
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open && input) input.focus();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' || !row.classList.contains('search-open')) return;
+        row.classList.remove('search-open');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.focus();
+    });
+})();
+</script>
+
 
 <div class="subnav d-none d-md-block">
     <div class="hp-container">
-        <nav class="d-flex align-items-center flex-wrap gap-1 py-1">
-            <a href="<?php echo e(route('frontend.category.view')); ?>" class="nav-link">Categories</a>
-            <a href="<?php echo e(route('home')); ?>" class="nav-link">Products</a>
-            <a href="<?php echo e(route('register')); ?>" class="btn btn-sell ms-1">Sell on Padmazon</a>
-            <a href="#" class="nav-link">Discounts</a>
-            <a href="#" class="nav-link">All Shops</a>
-            <a href="<?php echo e(route('frontend.brand.view')); ?>" class="nav-link">All Brands</a>
-            <a href="<?php echo e(route('frontend.order.tracking')); ?>" class="nav-link">Track Order</a>
-            <a href="<?php echo e(route('home')); ?>" class="nav-link">Home</a>
-        </nav>
+        <div class="hp-subrow">
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if (! ($homeCatSidebar)): ?>
+                <?php echo $__env->make('livewire.frontend.layouts.partial.category.home-category-dropdown', ['categories' => $categories], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
+            <?php $hpMenuItems = header_menu(); ?>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(! empty($hpMenuItems)): ?>
+                <?php echo $__env->make('livewire.frontend.layouts.partial.header.homepage-menu', ['items' => $hpMenuItems], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+            <?php else: ?>
+            <nav class="d-flex align-items-center flex-wrap gap-1 py-1">
+                <a href="<?php echo e(route('frontend.category.view')); ?>" class="nav-link">Categories</a>
+                <a href="<?php echo e(route('home')); ?>" class="nav-link">Products</a>
+                <a href="#" class="nav-link">Discounts</a>
+                <a href="<?php echo e(route('frontend.brand.view')); ?>" class="nav-link">All Brands</a>
+                <a href="<?php echo e(route('frontend.order.tracking')); ?>" class="nav-link">Track Order</a>
+                <a href="<?php echo e(route('home')); ?>" class="nav-link">Home</a>
+            </nav>
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+        </div>
     </div>
 </div>
 
 
-<section class="hp-container">
-    <div class="hp-hero">
+<?php echo $__env->make('livewire.frontend.layouts.partial.category.home-category-drawer', ['categories' => $categories], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
+
+<section class="<?php echo e($bannerFull ? 'hp-hero-bleed' : 'hp-container'); ?>">
+    <div class="hp-hero <?php echo e($homeCatSidebar ? 'hp-hero--side' : 'hp-hero--full'); ?>">
+
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($homeCatSidebar): ?>
         
         <aside class="hp-cat">
             <?php echo $__env->make('livewire.frontend.layouts.partial.category.category-flyout', ['categories' => $categories], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         </aside>
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
         
         <div id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel">
@@ -297,7 +470,7 @@
     </div>
 
     
-    <div class="hp-pills d-lg-none mt-3">
+    <div class="hp-pills d-md-none mt-3">
         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <a href="<?php echo e(route('frontend.category.view', $cat->slug)); ?>" class="hp-pill"><?php echo e($cat->name); ?></a>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
@@ -305,10 +478,104 @@
 </section>
 
 
-<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($liveFlashSale) && $flashSaleProducts->count()): ?>
+<?php if (isset($component)) { $__componentOriginal06e973f26f7e8a0a577c787164d3f5a5 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal06e973f26f7e8a0a577c787164d3f5a5 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.product-showcase','data' => ['instance' => 'home','title' => $showcaseTitle,'tabNewLabel' => $showcaseTabNew,'tabHotLabel' => $showcaseTabHot,'newArrivals' => $showcaseNew,'hotItems' => $showcaseHot]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('product-showcase'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['instance' => 'home','title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($showcaseTitle),'tab-new-label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($showcaseTabNew),'tab-hot-label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($showcaseTabHot),'new-arrivals' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($showcaseNew),'hot-items' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($showcaseHot)]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal06e973f26f7e8a0a577c787164d3f5a5)): ?>
+<?php $attributes = $__attributesOriginal06e973f26f7e8a0a577c787164d3f5a5; ?>
+<?php unset($__attributesOriginal06e973f26f7e8a0a577c787164d3f5a5); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal06e973f26f7e8a0a577c787164d3f5a5)): ?>
+<?php $component = $__componentOriginal06e973f26f7e8a0a577c787164d3f5a5; ?>
+<?php unset($__componentOriginal06e973f26f7e8a0a577c787164d3f5a5); ?>
+<?php endif; ?>
+
+
+<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(setting('shop_by_category_enabled', 1) && !empty($categoryGrid) && $categoryGrid->count()): ?>
+<section class="hp-sec d-none d-lg-block">
+    <div class="hp-container">
+        <div class="hp-box">
+            <div class="hp-sec-head">
+                <h5 class="hp-sec-title"><?php echo e(setting('shop_by_category_title', 'Shop by Category')); ?></h5>
+                <a href="<?php echo e(route('frontend.category.view')); ?>" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
+            </div>
+            <div class="hp-catshow" style="--cat-cols: <?php echo e($categoryGrid->count() > 8 ? (int) ceil($categoryGrid->count() / 2) : $categoryGrid->count()); ?>">
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $categoryGrid; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php $cat = $row['category']; ?>
+                <a href="<?php echo e(route('frontend.category.view', $cat->slug)); ?>" class="hp-catshow-card">
+                    <span class="hp-catshow-img">
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($cat->image): ?>
+                        <img src="<?php echo e(asset('storage/'.$cat->image)); ?>" alt="<?php echo e($cat->name); ?>" loading="lazy">
+                        <?php else: ?>
+                        <i class="fas fa-layer-group hp-catshow-fallback"></i>
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </span>
+                    <span class="hp-catshow-name"><?php echo e($cat->name); ?></span>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($row['products_count'] > 0): ?>
+                    <span class="hp-catshow-count"><?php echo e($row['products_count']); ?> <?php echo e(\Illuminate\Support\Str::plural('item', $row['products_count'])); ?></span>
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                </a>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+            </div>
+        </div>
+    </div>
+</section>
+<?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
+
+<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(setting('top_brands_enabled', 1) && $topBrands->count()): ?>
 <section class="hp-sec">
     <div class="hp-container">
         <div class="hp-box">
+            <div class="hp-sec-head">
+                <h5 class="hp-sec-title"><?php echo e(setting('top_brands_title', 'Top Brands')); ?></h5>
+                <a href="<?php echo e(route('frontend.brand.view')); ?>" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
+            </div>
+            <?php
+            $brandShowCount = $topBrands->count();
+            $brandCols = $brandShowCount > 8 ? (int) ceil($brandShowCount / 2) : $brandShowCount;
+            ?>
+            <div class="hp-brands" style="--brand-cols: <?php echo e($brandCols); ?>; --brand-cols-md: <?php echo e(min($brandCols, 4)); ?>; --brand-cols-sm: <?php echo e(min($brandCols, 3)); ?>">
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $topBrands; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $brand): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <a href="<?php echo e(route('frontend.brands.products.view', $brand->slug ?? $brand->id)); ?>" class="hp-brand-card">
+                    <span class="hp-brand-logo">
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($brand->logo): ?>
+                        <img src="<?php echo e(asset('storage/'.$brand->logo)); ?>" alt="<?php echo e($brand->name); ?>" loading="lazy"
+                             onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=\'hp-brand-mark\'><?php echo e(strtoupper(mb_substr(trim($brand->name), 0, 1))); ?></span>';">
+                        <?php else: ?>
+                        <span class="hp-brand-mark"><?php echo e(strtoupper(mb_substr(trim($brand->name), 0, 1))); ?></span>
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </span>
+                    <span class="hp-brand-name"><?php echo e($brand->name); ?></span>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(($brand->products_count ?? 0) > 0): ?>
+                    <span class="hp-brand-count"><?php echo e($brand->products_count); ?> <?php echo e(\Illuminate\Support\Str::plural('product', $brand->products_count)); ?></span>
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                </a>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+            </div>
+        </div>
+    </div>
+</section>
+<?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
+
+<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(setting('flash_sale_enabled', 1) && !empty($liveFlashSale) && $flashSaleProducts->count()): ?>
+<section class="hp-sec">
+    <div class="hp-container">
+        <div class="hp-box">
+            <div class="hp-sec-head">
+                <h5 class="hp-sec-title"><?php echo e(setting('flash_sale_title', 'Flash Sale')); ?></h5>
+                <a href="<?php echo e(route('frontend.flash.sale.products')); ?>" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
+            </div>
             <div class="hp-deal-grid">
 
                 <div class="hp-deal-left">
@@ -324,7 +591,7 @@
                     <a href="<?php echo e(route('frontend.flash.sale.products')); ?>" class="btn-deal-cta">View Products</a>
                 </div>
 
-                <div class="hp-deal-products">
+                <div class="hp-deal-products hp-deal-cols-<?php echo e(min($flashSaleProducts->count(), 5)); ?>">
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $flashSaleProducts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $product): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <?php $pi = $product->price_info; ?>
                     <div class="hp-pcard">
@@ -350,12 +617,7 @@
                                 <span class="old">৳<?php echo e(number_format($pi['original'], 0)); ?></span>
                                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </div>
-                            <form method="POST" action="<?php echo e(route('frontend.cart.add', $product->id)); ?>">
-                                <?php echo csrf_field(); ?>
-                                <button type="submit" class="btn-add-cart">
-                                    <i class="fas fa-cart-plus me-1"></i>Add to Cart
-                                </button>
-                            </form>
+                            <?php echo $__env->make('partials.purchase-add-to-cart', ['product' => $product], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                         </div>
                     </div>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
@@ -368,63 +630,13 @@
 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
 
-<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($topShops->count()): ?>
 <section class="hp-sec">
     <div class="hp-container">
         <div class="hp-box">
             <div class="hp-sec-head">
-                <h5 class="hp-sec-title">Top Shops</h5>
-                <a href="#" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
+                <h5 class="hp-sec-title"><?php echo e($recommendedTitle); ?></h5>
             </div>
-            <div class="hp-shops">
-                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $topShops; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $shop): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <a href="<?php echo e(route('frontend.user.products.view', $shop->id)); ?>" class="hp-shop-card">
-                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($shop->vendorDetails?->profile_image): ?>
-                    <img src="<?php echo e(asset('storage/'.$shop->vendorDetails->profile_image)); ?>" alt="<?php echo e($shop->vendorDetails->shop_name ?? $shop->name); ?>">
-                    <?php else: ?>
-                    <span class="hp-shop-logo-fallback"><i class="fas fa-store"></i></span>
-                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                    <p class="hp-shop-name"><?php echo e($shop->vendorDetails->shop_name ?? $shop->name); ?></p>
-                    <span class="hp-shop-count"><?php echo e($shop->products_count); ?> items</span>
-                </a>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-            </div>
-        </div>
-    </div>
-</section>
-<?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-
-
-<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($topBrands->count()): ?>
-<section class="hp-sec">
-    <div class="hp-container">
-        <div class="hp-box">
-            <div class="hp-sec-head">
-                <h5 class="hp-sec-title">Top Brands</h5>
-                <a href="<?php echo e(route('frontend.brand.view')); ?>" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
-            </div>
-            <div class="hp-brands">
-                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $topBrands; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $brand): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <a href="<?php echo e(route('frontend.brands.products.view', $brand->slug ?? $brand->id)); ?>" class="hp-brand-card">
-                    <img src="<?php echo e(asset('storage/'.$brand->logo)); ?>" alt="<?php echo e($brand->name); ?>"
-                         onerror="this.src='https://via.placeholder.com/120x60?text=Brand'">
-                    <span><?php echo e($brand->name); ?></span>
-                </a>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-            </div>
-        </div>
-    </div>
-</section>
-<?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-
-
-<section class="hp-sec">
-    <div class="hp-container">
-        <div class="hp-box">
-            <div class="hp-sec-head">
-                <h5 class="hp-sec-title">Recommended For You</h5>
-            </div>
-            <div class="rp-grid">
+            <div class="rp-grid rp-cols-<?php echo e(min($recommendedProducts->count(), 6)); ?>">
                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $recommendedProducts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $product): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                 <?php $pi = $product->price_info; ?>
                 <div class="hp-pcard">
@@ -450,12 +662,7 @@
                             <span class="old">৳<?php echo e(number_format($pi['original'], 0)); ?></span>
                             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </div>
-                        <form method="POST" action="<?php echo e(route('frontend.cart.add', $product->id)); ?>">
-                            <?php echo csrf_field(); ?>
-                            <button type="submit" class="btn-add-cart">
-                                <i class="fas fa-cart-plus me-1"></i>Add to Cart
-                            </button>
-                        </form>
+                        <?php echo $__env->make('partials.purchase-add-to-cart', ['product' => $product], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                     </div>
                 </div>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -492,7 +699,7 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
                 <h5 class="hp-sec-title"><?php echo e($homeCat->category->name); ?></h5>
                 <a href="<?php echo e(route('frontend.category.products.view', $homeCat->category->slug)); ?>" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
             </div>
-            <div class="hp-cat-grid">
+            <div class="hp-cat-grid hp-cat-cols-<?php echo e(min($categoryProducts->count(), 6)); ?>">
                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $categoryProducts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $product): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <?php $pi = $product->price_info; ?>
                 <div class="hp-pcard">
@@ -518,12 +725,7 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
                             <span class="old">৳<?php echo e(number_format($pi['original'], 0)); ?></span>
                             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </div>
-                        <form method="POST" action="<?php echo e(route('frontend.cart.add', $product->id)); ?>">
-                            <?php echo csrf_field(); ?>
-                            <button type="submit" class="btn-add-cart">
-                                <i class="fas fa-cart-plus me-1"></i>Add to Cart
-                            </button>
-                        </form>
+                        <?php echo $__env->make('partials.purchase-add-to-cart', ['product' => $product], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                     </div>
                 </div>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
@@ -536,6 +738,33 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
 
+<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($topShops->count()): ?>
+<section class="hp-sec">
+    <div class="hp-container">
+        <div class="hp-box">
+            <div class="hp-sec-head">
+                <h5 class="hp-sec-title">Top Shops</h5>
+                <a href="#" class="hp-see-more">See more <i class="fas fa-chevron-right" style="font-size:.7rem"></i></a>
+            </div>
+            <div class="hp-shops">
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $topShops; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $shop): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <a href="<?php echo e(route('frontend.user.products.view', $shop->id)); ?>" class="hp-shop-card">
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($shop->vendorDetails?->profile_image): ?>
+                    <img src="<?php echo e(asset('storage/'.$shop->vendorDetails->profile_image)); ?>" alt="<?php echo e($shop->vendorDetails->shop_name ?? $shop->name); ?>">
+                    <?php else: ?>
+                    <span class="hp-shop-logo-fallback"><i class="fas fa-store"></i></span>
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <p class="hp-shop-name"><?php echo e($shop->vendorDetails->shop_name ?? $shop->name); ?></p>
+                    <span class="hp-shop-count"><?php echo e($shop->products_count); ?> items</span>
+                </a>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+            </div>
+        </div>
+    </div>
+</section>
+<?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
+
 <footer class="hp-footer">
     <div class="hp-container">
         <div class="f-grid">
@@ -543,9 +772,18 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
             <div class="f-contact">
                 <h6>Contact Us</h6>
                 <p>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(setting('contact_address')): ?>
+                    <i class="fas fa-map-marker-alt me-2"></i><?php echo e(setting('contact_address')); ?><br>
+                    <?php else: ?>
                     <i class="fas fa-map-marker-alt me-2"></i>Dhaka, Bangladesh<br>
-                    <i class="fas fa-phone me-2"></i>+880 1234 567890<br>
-                    <i class="fas fa-envelope me-2"></i>support@padmazon.com
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(setting('contact_phone')): ?>
+                    <i class="fas fa-phone me-2"></i><?php echo e(setting('contact_phone')); ?><br>
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(setting('contact_email')): ?>
+                    <i class="fas fa-envelope me-2"></i><?php echo e(setting('contact_email')); ?>
+
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </p>
             </div>
 
@@ -559,12 +797,10 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
             </div>
 
             <div>
-                <h6>Seller Center</h6>
+                <h6>About Us</h6>
                 <ul>
-                    <li><a href="<?php echo e(route('register')); ?>">Sell on Padmazon</a></li>
-                    <li><a href="<?php echo e(route('login')); ?>">Seller Dashboard</a></li>
-                    <li><a href="#">Help Center</a></li>
-                    <li><a href="<?php echo e(route('frontend.refund.and.returns')); ?>">Returns Policy</a></li>
+                    <li><a href="<?php echo e(route('frontend.terms.and.conditions')); ?>">Terms and Conditions</a></li>
+                    <li><a href="<?php echo e(route('frontend.privacy.policy')); ?>">Privacy Policy</a></li>
                 </ul>
             </div>
 
@@ -588,22 +824,10 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
                 </div>
             </div>
 
-            <div>
-                <h6>Mobile App</h6>
-                <a href="#" class="f-app-btn">
-                    <i class="fab fa-google-play"></i>
-                    <span><small>GET IT ON</small><strong>Google Play</strong></span>
-                </a>
-                <a href="#" class="f-app-btn">
-                    <i class="fab fa-apple"></i>
-                    <span><small>Download on the</small><strong>App Store</strong></span>
-                </a>
-            </div>
-
         </div>
 
         <div class="f-bottom">
-            <span>© <?php echo e(date('Y')); ?> <?php echo e(setting('app_name') ?: 'Padmazon'); ?>. All rights reserved.</span>
+            <span><?php echo e(setting('footer_copyright') ?: '© ' . date('Y') . ' ' . (setting('app_name') ?: 'Padmazon') . '. All rights reserved.'); ?></span>
             <div class="d-flex gap-3">
                 <a href="<?php echo e(route('frontend.privacy.policy')); ?>">Privacy Policy</a>
                 <a href="<?php echo e(route('frontend.terms.and.conditions')); ?>">Terms &amp; Conditions</a>
@@ -640,11 +864,20 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 </div>
 
+
+<?php echo $__env->make('partials.cart-drawer', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<?php echo $__env->make('partials.quick-add-popup', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <?php echo $__env->make('partials.customer-account-scripts', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 <?php echo $__env->make('partials.customer-auth-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
+<?php if(\App\Services\PurchaseActions::cartDrawerEnabled()
+    || (\App\Services\PurchaseActions::addToCartEnabled() && \App\Services\PurchaseActions::variantPopupEnabled())): ?>
+<?php echo \Livewire\Mechanisms\FrontendAssets\FrontendAssets::scripts(); ?>
+
+<?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 <?php echo $__env->yieldPushContent('scripts'); ?>
 
 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('success') || session('error')): ?>

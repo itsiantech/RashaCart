@@ -344,9 +344,11 @@
                     </div>
                 </div>
                 <div class="invoice-meta">
+                    <p class="invoice-no">Order No: #{{ $order->id }}</p>
                     <p class="invoice-no">Invoice #{{ $order->invoice_no }}</p>
-                    <p>{{ $order->created_at->format('d M Y') }}</p>
-                    <p>Time: {{ $order->created_at->format('h:i A') }}</p>
+                    <p>{{ $order->created_at?->format('d M Y') }}</p>
+                    <p>Time: {{ $order->created_at?->format('h:i A') }}</p>
+                    <p>Shipping Method: {{ $order->shipping_method }}</p>
                 </div>
             </div>
 

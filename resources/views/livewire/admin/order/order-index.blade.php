@@ -1,7 +1,100 @@
 @php
 $courier = new \App\Services\CourierService();
 @endphp
-<div class="col-xxl">
+<style>
+    /* Order Manage: use the full content width instead of the narrow xxl container */
+    .content-wrapper > .container-xxl:has(.order-manage-page) {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    .order-manage-page .order-table {
+        width: 100%;
+        margin-bottom: 0;
+        font-size: 0.82rem;
+    }
+
+    .order-manage-page .order-table > :not(caption) > * > * {
+        padding: 0.6rem 0.45rem;
+        vertical-align: middle;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .order-manage-page .order-table thead th {
+        white-space: nowrap;
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: #6b7280;
+    }
+
+    .order-manage-page .order-table .form-select {
+        min-width: 125px;
+    }
+
+    /* Below xl: turn every row into a readable card (no horizontal scrolling) */
+    @media (max-width: 1199.98px) {
+        .order-manage-page .order-table thead {
+            display: none;
+        }
+
+        .order-manage-page .order-table,
+        .order-manage-page .order-table tbody,
+        .order-manage-page .order-table tr,
+        .order-manage-page .order-table td {
+            display: block;
+            width: 100%;
+        }
+
+        .order-manage-page .order-table tr {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.65rem;
+            margin-bottom: 0.75rem;
+            padding: 0.35rem 0.75rem;
+            background: #fff;
+        }
+
+        .order-manage-page .order-table td {
+            display: flex;
+            gap: 0.75rem;
+            border: 0;
+            padding: 0.35rem 0;
+        }
+
+        .order-manage-page .order-table td::before {
+            content: attr(data-label);
+            flex: 0 0 110px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #6b7280;
+            padding-top: 0.15rem;
+        }
+
+        .order-manage-page .order-table td[data-label="Actions"] {
+            align-items: flex-start;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .order-manage-page .order-table td {
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .order-manage-page .order-table td::before {
+            flex: none;
+        }
+
+        .order-manage-page .order-table .form-select {
+            min-width: 0;
+            width: 100%;
+        }
+    }
+</style>
+<div class="col-xxl order-manage-page">
     <div class="card">
         <div class="card-header">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -25,39 +118,60 @@ $courier = new \App\Services\CourierService();
                             All ({{ array_sum($statusCounts) ?? 0 }})
                         </button>
 
-                        @foreach (['pending','Call Not Received', 'completed', 'shipped', 'delivered', 'cancelled', 'returned','Pending Return','Pending Cancelled'] as $status)
+                        @foreach ($statuses as $status)
                         <button type="button"
                             wire:click="filterByStatus('{{ $status }}')"
                             class="btn {{ $statusFilter == $status ? 'btn-primary' : 'btn-outline-primary' }}">
-                            {{ ucfirst($status) }} ({{ $statusCounts[$status] ?? 0 }})
+                            {{ str_replace('_', ' ', ucfirst($status)) }} ({{ $statusCounts[$status] ?? 0 }})
                         </button>
                         @endforeach
                     </div>
+
+                    <!-- Channel Filter -->
+                    <select class="form-select" style="max-width: 160px;"
+                        wire:model.live="channelFilter" aria-label="Filter by channel">
+                        <option value="all">All Channels</option>
+                        <option value="checkout">Website</option>
+                        <option value="cod">Popup COD</option>
+                        <option value="whatsapp">Popup WhatsApp</option>
+                    </select>
+
+                    @hook('admin.orders.filters', ['af' => $af])
+
+                    <button type="button" class="btn btn-outline-secondary" wire:click="exportCsv">
+                        <i class="bx bx-download"></i> Export CSV
+                    </button>
 
                 </div>
             </div>
         </div>
 
-        <div class="table-responsive text-nowrap position-relative" style="min-height: 200px;">
+        <div class="position-relative" style="min-height: 200px;">
 
             <!-- Loader -->
             <div wire:loading.flex
-                wire:target="search,statusFilter,updateStatus,filterByStatus,sendToCourier"
+                wire:target="search,statusFilter,channelFilter,updateStatus,filterByStatus,sendToCourier,exportCsv"
                 class="position-absolute top-50 start-50 translate-middle p-3 rounded shadow">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
 
-            <table class="table table-hover mt-3">
+            <table class="table table-hover mt-3 order-table">
                 <thead>
                     <tr>
-                        <th>INV</th>
+                        <th>Order ID</th>
+                        <th>Order Date</th>
                         <th>Customer</th>
+                        <th>Origin</th>
                         <th>Vendor</th>
                         <th>Items</th>
                         <th>Total AMT</th>
                         <th>Payment Method</th>
+                        <th>Channel</th>
+                        @foreach($addonColumns as $col)
+                        <th>{{ $col['label'] }}</th>
+                        @endforeach
                         <th>Order Status</th>
                         <th>Actions</th>
                     </tr>
@@ -66,22 +180,47 @@ $courier = new \App\Services\CourierService();
                 <tbody>
                     @forelse($orders as $order)
                     <tr>
-                        <!-- Invoice -->
-                        <td>{{ $order->invoice_no }}</td>
+                        <!-- Order ID -->
+                        <td data-label="Order ID">
+                            <strong>#{{ $order->id }}</strong><br>
+                            <small class="text-muted">{{ $order->invoice_no }}</small>
+                        </td>
+
+                        <!-- Order Date -->
+                        <td data-label="Order Date" title="{{ $order->created_at?->format('d M Y, h:i A') }}">
+                            {{ $order->order_date_display }}
+                        </td>
 
                         <!-- Customer -->
-                        <td>
+                        <td data-label="Customer">
                             {{ $order->name }} <br>
                             <span class="text-muted">
                                 <a href="tel:{{ $order->phone }}">{{ $order->phone }}</a>
                             </span><br>
+                            @if($order->email)
+                            <span class="text-muted">{{ $order->email }}</span><br>
+                            @endif
                             <span class="text-muted">
                                 Shipping addr: {{ $order->shipping_address }}
                             </span>
                         </td>
 
+                        <!-- Origin -->
+                        <td data-label="Origin">
+                            @php
+                            $originBadge = match ($order->origin) {
+                                'Google' => 'bg-danger',
+                                'Facebook' => 'bg-primary',
+                                'TikTok' => 'bg-dark',
+                                'Direct' => 'bg-secondary',
+                                default => 'bg-info',
+                            };
+                            @endphp
+                            <span class="badge {{ $originBadge }}">{{ $order->origin }}</span>
+                        </td>
+
                         <!-- Vendor -->
-                        <td>
+                        <td data-label="Vendor">
                             @php
                             $vendors = $order->items
                             ->map(fn($item) => $item->product?->user)
@@ -97,21 +236,37 @@ $courier = new \App\Services\CourierService();
                         </td>
 
                         <!-- Items -->
-                        <td>{{ $order->items->count() }}</td>
+                        <td data-label="Items">{{ $order->items->count() }}</td>
 
                         <!-- Total -->
-                        <td>{{ setting('currency') }} {{ number_format($order->total_amount, 2) }}</td>
+                        <td data-label="Total">{{ setting('currency') }} {{ number_format($order->total_amount, 2) }}</td>
 
                         <!-- Payment -->
-                        <td>
+                        <td data-label="Payment Method">
                             {{ $order->payment_method }}
                             @if($order->payment_amt)
                             - {{ setting('currency') }} {{ $order->payment_amt }}
                             @endif
                         </td>
 
+                        <!-- Channel -->
+                        <td data-label="Channel">
+                            @php
+                            $channelBadge = match ($order->channel) {
+                                'cod' => ['Popup COD', 'bg-primary'],
+                                'whatsapp' => ['Popup WhatsApp', 'bg-success'],
+                                default => ['Website', 'bg-secondary'],
+                            };
+                            @endphp
+                            <span class="badge {{ $channelBadge[1] }}">{{ $channelBadge[0] }}</span>
+                        </td>
+
+                        @foreach($addonColumns as $col)
+                        <td data-label="{{ $col['label'] }}">@hook('admin.orders.cell.'.$col['key'], ['order' => $order])</td>
+                        @endforeach
+
                         <!-- Status -->
-                        <td>
+                        <td data-label="Order Status">
                             <select wire:change="updateStatus({{ $order->id }}, $event.target.value)"
                                 wire:loading.attr="disabled"
                                 class="form-select form-select-sm">
@@ -124,7 +279,7 @@ $courier = new \App\Services\CourierService();
                         </td>
 
                         <!-- Actions -->
-                        <td>
+                        <td data-label="Actions">
                             <div class="d-flex gap-2 flex-wrap">
 
                                 <!-- View -->
@@ -194,7 +349,7 @@ $courier = new \App\Services\CourierService();
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center">No orders found.</td>
+                        <td colspan="{{ 10 + count($addonColumns) }}" class="text-center">No orders found.</td>
                     </tr>
                     @endforelse
                 </tbody>

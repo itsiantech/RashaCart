@@ -22,7 +22,7 @@ use Storage;
 
 class ProductEdit extends Component
 {
-    use WithFileUploads, ManagesProductVariants, ManagesProductImages, ManagesImageOptions;
+    use ManagesImageOptions, ManagesProductImages, ManagesProductVariants, WithFileUploads;
 
     public $has_attributes = true;
 
@@ -678,6 +678,7 @@ class ProductEdit extends Component
             }
 
             DB::commit();
+            \App\Support\Hooks::doAction('admin.product.saved', $product);
             $this->dispatch('success', message: 'Product Updated Successfully!');
 
             return redirect()->back();

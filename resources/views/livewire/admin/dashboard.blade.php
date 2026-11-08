@@ -274,6 +274,7 @@
                 </div>
             </div>
         </div>
+        @hook('admin.dashboard.cards')
     </div>
 
     <!-- Revenue Breakdown by Status -->

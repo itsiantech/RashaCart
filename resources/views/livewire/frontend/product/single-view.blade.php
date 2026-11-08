@@ -11,9 +11,11 @@
 
     $purchaseAddEnabled = \App\Services\PurchaseActions::addToCartEnabled();
     $purchaseBuyEnabled = \App\Services\PurchaseActions::buyNowEnabled();
+    $popupOrderEnabled = \App\Services\PurchaseActions::popupOrderEnabled();
     $purchaseAddLabel = \App\Services\PurchaseActions::addToCartLabel();
     $purchaseBuyLabel = \App\Services\PurchaseActions::buyNowLabel();
     $purchaseDisabledText = \App\Services\PurchaseActions::disabledText();
+    $needsVariantPicker = $this->pickerRequired();
 
     $phoneRaw = setting('contact_phone') ?: '';
     $waNumber = preg_replace('/\D+/', '', $phoneRaw);
@@ -1384,7 +1386,7 @@
                                 <i class="fas fa-minus"></i>
                             </button>
                             <input type="number" min="1" max="{{ max((int) $currentStock, 1) }}"
-                                wire:model="quantity" aria-label="Quantity">
+                                data-pd-qty wire:model="quantity" aria-label="Quantity">
                             <button type="button" wire:click="increaseQty"
                                 @disabled($quantity >= max((int) $currentStock, 1)) aria-label="Increase quantity">
                                 <i class="fas fa-plus"></i>
@@ -1395,24 +1397,23 @@
                     {{-- ===== Action buttons ===== --}}
                     <div class="pd-actions">
                         @if ($purchaseAddEnabled)
-                        <button type="button" class="pd-btn pd-btn--cart" wire:click="addToCart({{ $product->id }})"
-                            @disabled(!$isInStock)>
+                        <button type="button" class="pd-btn pd-btn--cart"
+                            wire:click="{{ $needsVariantPicker ? 'openCartPopup' : 'addToCart(' . $product->id . ')' }}"
+                            wire:loading.attr="disabled"
+                            wire:target="addToCart,openCartPopup,confirmCartPopup"
+                            @disabled(!$isInStock && !$needsVariantPicker)>
                             <i class="fas fa-shopping-cart"></i>
-                            <span wire:loading.remove wire:target="addToCart">{{ $purchaseAddLabel }}</span>
-                            <span wire:loading wire:target="addToCart">Adding...</span>
+                            <span wire:loading.remove wire:target="addToCart,openCartPopup,confirmCartPopup">{{ $purchaseAddLabel }}</span>
+                            <span wire:loading wire:target="addToCart,openCartPopup,confirmCartPopup">Adding...</span>
                         </button>
                         @endif
 
-                        @if ($purchaseBuyEnabled)
-                        <button type="button" class="pd-btn pd-btn--buy" wire:click="buyNow({{ $product->id }})"
-                            @disabled(!$isInStock)>
-                            <i class="fas fa-bolt"></i>
-                            <span wire:loading.remove wire:target="buyNow">{{ $purchaseBuyLabel }}</span>
-                            <span wire:loading wire:target="buyNow">Please wait...</span>
-                        </button>
+                        @if ($purchaseBuyEnabled || $popupOrderEnabled)
+                        <x-order-now-button :product="$product" :label="$purchaseBuyLabel" :disabled="!$isInStock"
+                            :variant-id="$selectedVariant" :option-id="$selectedOption" :qty="$quantity" />
                         @endif
 
-                        @if (! $purchaseAddEnabled && ! $purchaseBuyEnabled)
+                        @if (! $purchaseAddEnabled && ! $purchaseBuyEnabled && ! $popupOrderEnabled)
                         <span class="pd-purchase-disabled">{{ $purchaseDisabledText }}</span>
                         @endif
 
@@ -1667,10 +1668,17 @@
 
                                 @if ($purchaseAddEnabled)
                                 @if (\App\Services\PurchaseActions::requiresVariantSelection($rel))
-                                <a class="pd-rel-cart"
-                                    href="{{ route('frontend.product.single.view', $rel->slug) }}" wire:navigate>
-                                    <i class="fas fa-shopping-cart"></i> {{ $purchaseAddLabel }}
-                                </a>
+                                    @if (\App\Services\PurchaseActions::variantPopupEnabled())
+                                    <button type="button" class="pd-rel-cart"
+                                        onclick="Livewire.dispatch('quick-add-open', { productId: {{ (int) $rel->id }} })">
+                                        <i class="fas fa-shopping-cart"></i> {{ $purchaseAddLabel }}
+                                    </button>
+                                    @else
+                                    <a class="pd-rel-cart"
+                                        href="{{ route('frontend.product.single.view', $rel->slug) }}" wire:navigate>
+                                        <i class="fas fa-shopping-cart"></i> {{ $purchaseAddLabel }}
+                                    </a>
+                                    @endif
                                 @else
                                 <button type="button" class="pd-rel-cart" wire:click="addToCart({{ $rel->id }})">
                                     <i class="fas fa-shopping-cart"></i> {{ $purchaseAddLabel }}
@@ -1694,8 +1702,9 @@
             <i class="far fa-heart"></i>
         </button>
         @if ($purchaseAddEnabled)
-        <button type="button" class="pd-btn pd-btn--cart" wire:click="addToCart({{ $product->id }})"
-            @disabled(!$isInStock)>
+        <button type="button" class="pd-btn pd-btn--cart"
+            wire:click="{{ $needsVariantPicker ? 'openCartPopup' : 'addToCart(' . $product->id . ')' }}"
+            @disabled(!$isInStock && !$needsVariantPicker)>
             <i class="fas fa-shopping-cart"></i> {{ $purchaseAddLabel }}
         </button>
         @endif
@@ -1706,6 +1715,71 @@
         @endif
     </div>
     <div class="pd-sticky-spacer"></div>
+    @endif
+
+    {{-- ===== Add-to-Cart variant picker popup ===== --}}
+    @if ($cartPopupOpen)
+    @include('livewire.frontend.partials.popup-styles')
+    <div class="op-layer" wire:keydown.escape.window="closeCartPopup" role="dialog" aria-modal="true"
+        aria-labelledby="cart-picker-title">
+        <div class="op-backdrop" wire:click="closeCartPopup"></div>
+        <div class="op-card">
+            <div class="op-head">
+                <div>
+                    <h3 id="cart-picker-title">আপনার পছন্দ বেছে নিন</h3>
+                    <p>{{ collect($cartPickerData['groups'] ?? [])->pluck('name')->implode(' · ') }}{{ ! empty($cartPickerData['options']) ? ' · ডিজাইন' : '' }} বেছে নিয়ে কার্টে যোগ করুন</p>
+                </div>
+                <button type="button" class="op-x" wire:click="closeCartPopup" aria-label="বন্ধ করুন">&times;</button>
+            </div>
+
+            <div class="op-prod">
+                <div>
+                    <strong>{{ $product->name }}</strong>
+                    <small>{{ $product->sku ?: 'পরিমাণ: ' . $quantity }}</small>
+                </div>
+                <span>{{ $cur }} {{ $fmt($displayPrice) }}</span>
+            </div>
+
+            <x-variant-picker
+                :groups="$cartPickerData['groups'] ?? []"
+                :picks="$cartPicks"
+                :availability="$cartAvailability"
+                :options="$cartPickerData['options'] ?? []"
+                :option-id="$selectedOption"
+                :option-required="$cartPickerData['option_required'] ?? false" />
+
+            <div class="vp-qty">
+                <span>পরিমাণ</span>
+                <div class="vp-stepper">
+                    <button type="button" wire:click="decreaseQty" @disabled($quantity <= 1)>&minus;</button>
+                    <b>{{ $quantity }}</b>
+                    <button type="button" wire:click="increaseQty"
+                        @disabled($quantity >= max((int) $currentStock, 1))>+</button>
+                </div>
+            </div>
+
+            @if ($cartPickerError !== '')
+                <div class="vp-note">{{ $cartPickerError }}</div>
+            @endif
+
+            <div class="op-summary">
+                <div class="op-row op-total">
+                    <span>সর্বমোট</span>
+                    <span>{{ $cur }} {{ $fmt($displayPrice * $quantity) }}</span>
+                </div>
+            </div>
+
+            <div class="op-actions">
+                <button type="button" class="op-btn op-btn--cod" wire:click="confirmCartPopup"
+                    wire:loading.attr="disabled" wire:target="confirmCartPopup">
+                    <span wire:loading.remove wire:target="confirmCartPopup">
+                        <i class="fas fa-shopping-cart"></i> {{ $purchaseAddLabel }}
+                    </span>
+                    <span wire:loading wire:target="confirmCartPopup">যোগ হচ্ছে...</span>
+                </button>
+            </div>
+        </div>
+    </div>
     @endif
 </div>
 

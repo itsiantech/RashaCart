@@ -28,6 +28,7 @@ $purchaseAddLabel = \App\Services\PurchaseActions::addToCartLabel();
 $purchaseBuyLabel = \App\Services\PurchaseActions::buyNowLabel();
 $purchaseDisabledText = \App\Services\PurchaseActions::disabledText();
 $needsVariantSelection = \App\Services\PurchaseActions::requiresVariantSelection($product);
+$variantPopupEnabled = \App\Services\PurchaseActions::variantPopupEnabled();
 $productUrl = route('frontend.product.single.view', $product->slug);
 @endphp
 <div class="product-card" @if($cardSwatches->isNotEmpty()) x-data="{ cardImg: '{{ $cardDefaultImg }}' }" @endif>
@@ -101,10 +102,18 @@ $productUrl = route('frontend.product.single.view', $product->slug);
 
             @if ($purchaseAddEnabled)
                 @if ($needsVariantSelection)
-                <a href="{{ $productUrl }}" wire:navigate class="cart-button"
-                    title="{{ $purchaseAddLabel }}" aria-label="{{ $purchaseAddLabel }}">
-                    <i class="fas fa-shopping-cart"></i>
-                </a>
+                    @if ($variantPopupEnabled)
+                    <button type="button" class="cart-button"
+                        onclick="Livewire.dispatch('quick-add-open', { productId: {{ (int) $product->id }} })"
+                        title="{{ $purchaseAddLabel }}" aria-label="{{ $purchaseAddLabel }}">
+                        <i class="fas fa-shopping-cart"></i>
+                    </button>
+                    @else
+                    <a href="{{ $productUrl }}" wire:navigate class="cart-button"
+                        title="{{ $purchaseAddLabel }}" aria-label="{{ $purchaseAddLabel }}">
+                        <i class="fas fa-shopping-cart"></i>
+                    </a>
+                    @endif
                 @else
                 <button class="cart-button"
                     wire:click="addToCart({{ $product->id }})" wire:loading.attr="disabled"

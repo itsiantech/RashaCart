@@ -8,6 +8,47 @@
         </div>
     </div>
 
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Banner &amp; Ads Section Layout</h5>
+                    <small class="text-muted">Boxed keeps the 1280px container · Full width stretches edge-to-edge on every screen</small>
+                </div>
+                <div class="card-body">
+                    <form wire:submit.prevent="saveBannerLayout">
+                        <div class="d-flex flex-wrap gap-3 mb-3">
+                            <label class="border rounded p-3 d-flex align-items-start gap-2 mb-0"
+                                   style="cursor: pointer; flex: 1 1 260px; max-width: 340px;">
+                                <input class="form-check-input mt-1" type="radio" name="banner_layout"
+                                       value="boxed" wire:model="banner_layout">
+                                <span>
+                                    <strong class="d-block">Boxed</strong>
+                                    <small class="text-muted">Banner stays inside the site container with side padding.</small>
+                                </span>
+                            </label>
+                            <label class="border rounded p-3 d-flex align-items-start gap-2 mb-0"
+                                   style="cursor: pointer; flex: 1 1 260px; max-width: 340px;">
+                                <input class="form-check-input mt-1" type="radio" name="banner_layout"
+                                       value="full" wire:model="banner_layout">
+                                <span>
+                                    <strong class="d-block">Full Width</strong>
+                                    <small class="text-muted">Banner touches both screen edges and the category menu sits flush next to it.</small>
+                                </span>
+                            </label>
+                        </div>
+                        @error('banner_layout')
+                            <div class="text-danger small mb-2">{{ $message }}</div>
+                        @enderror
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="bx bx-save me-1"></i> Save Layout
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12">
             <div class="card">
@@ -112,9 +153,57 @@
                                             @enderror
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox"
+                                                       id="switchNewArrivalSection"
+                                                       wire:model="new_arrival_section_enabled">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <label for="switchNewArrivalSection" class="mb-0 fw-semibold">New Arrivals / Hot Items</label>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control" maxlength="100"
+                                                   wire:model="new_arrival_section_title"
+                                                   placeholder="New Arrivals">
+                                            @error('new_arrival_section_title')
+                                                <div class="text-danger small">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control" min="1" max="12"
+                                                   style="max-width: 110px;"
+                                                   wire:model="new_arrival_section_limit">
+                                            @error('new_arrival_section_limit')
+                                                <div class="text-danger small">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted mb-1">Tab 1 label (New Arrivals data)</label>
+                                <input type="text" class="form-control" maxlength="40"
+                                       wire:model="new_arrival_tab_label" placeholder="New Arrival">
+                                @error('new_arrival_tab_label')
+                                    <div class="text-danger small">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted mb-1">Tab 2 label (best-selling products)</label>
+                                <input type="text" class="form-control" maxlength="40"
+                                       wire:model="hot_items_tab_label" placeholder="Hot Items">
+                                @error('hot_items_tab_label')
+                                    <div class="text-danger small">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
                         <div class="d-flex align-items-center gap-2">
                             <button type="submit" class="btn btn-success">
                                 <i class="bx bx-save me-1"></i> Save Section Settings

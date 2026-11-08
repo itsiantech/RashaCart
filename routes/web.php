@@ -104,6 +104,42 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
     $recommendedTitle = setting('recommended_title') ?? 'Recommended For You';
     $recommendedLimit = setting('recommended_product_limit') ?? 12;
 
+    // New Arrivals / Hot Items showcase — admin-controlled, rendered right after the hero.
+    $showcaseEnabled = (string) setting('new_arrival_section_enabled', '1') === '1';
+    $showcaseLimit = max(1, min(12, (int) setting('new_arrival_section_limit', 6)));
+    $showcaseNew = collect();
+    $showcaseHot = collect();
+
+    if ($showcaseEnabled) {
+        $orderedProducts = function (array $ids) {
+            if (empty($ids)) {
+                return collect();
+            }
+
+            return \App\Models\Product::with('activeFlashSaleItem')
+                ->withCount('reviews')
+                ->where('status', 1)
+                ->whereIn('id', $ids)
+                ->get()
+                ->sortBy(fn ($product) => array_search($product->id, $ids, true))
+                ->values();
+        };
+
+        // Admin sort order from the New Arrivals manager decides the sequence.
+        $showcaseNew = $orderedProducts(\App\Models\NewArrival::active()->ordered()->limit($showcaseLimit)->pluck('product_id')->all());
+
+        // Hot Items = best selling, cancelled/returned orders excluded.
+        $hotIds = \App\Models\OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->whereNotIn('orders.status', ['cancelled', 'returned'])
+            ->select('order_items.product_id')
+            ->groupBy('order_items.product_id')
+            ->orderByRaw('SUM(order_items.quantity) DESC')
+            ->limit($showcaseLimit)
+            ->pluck('product_id')
+            ->all();
+        $showcaseHot = $orderedProducts($hotIds);
+    }
+
     return view('homepage', [
         'categories'          => $navCategories,
         'categoryGrid'        => $categoryGrid,
@@ -119,6 +155,11 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
         'recommendedTitle'    => $recommendedTitle,
         'recommendedLimit'    => $recommendedLimit,
         'recommendedProducts' => \App\Models\Product::with('activeFlashSaleItem')->withCount('reviews')->latest()->limit($recommendedLimit)->get(),
+        'showcaseTitle'       => setting('new_arrival_section_title', 'New Arrivals'),
+        'showcaseTabNew'      => setting('new_arrival_tab_label', 'New Arrival'),
+        'showcaseTabHot'      => setting('hot_items_tab_label', 'Hot Items'),
+        'showcaseNew'         => $showcaseNew,
+        'showcaseHot'         => $showcaseHot,
         'totalProducts'       => \App\Models\Product::count(),
         'show'                => $show,
         'cartCount'           => array_sum(array_column(session()->get('cart', []), 'qty')),

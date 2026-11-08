@@ -1,0 +1,19 @@
+{
+    "slug": "PartialPayment",
+    "name": "Partial Payment",
+    "version": "1.0.0",
+    "description": "Advance (partial) payment on cash-on-delivery orders: per-product advance rules, manual bKash / Nagad / Rocket TrxID submission, admin verification, courier due collection and refund tracking.",
+    "author": "Bandrose",
+    "requires_core": "^1.0",
+    "provider": "Addons\\PartialPayment\\PartialPaymentServiceProvider",
+    "depends_on": [],
+    "provides": [
+        "Advance payment rules per product",
+        "Popup advance-payment step with bKash / Nagad / Rocket TrxID",
+        "Admin verify / reject / collect / refund workflow",
+        "Awaiting-advance order filter, payment column and CSV columns",
+        "Partial Payment settings tab",
+        "Dashboard advance & due cards",
+        "partial-payment:expire scheduled command"
+    ]
+}

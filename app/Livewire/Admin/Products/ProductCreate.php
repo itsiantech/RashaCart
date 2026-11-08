@@ -19,7 +19,7 @@ use Livewire\WithFileUploads;
 
 class ProductCreate extends Component
 {
-    use WithFileUploads, ManagesProductVariants, ManagesProductImages, ManagesImageOptions;
+    use ManagesImageOptions, ManagesProductImages, ManagesProductVariants, WithFileUploads;
 
     public $has_attributes = true;
 
@@ -535,6 +535,7 @@ class ProductCreate extends Component
             }
 
             DB::commit();
+            \App\Support\Hooks::doAction('admin.product.saved', $product);
         } catch (\Exception $e) {
             DB::rollBack();
             $this->dispatch('error', ['message' => $e->getMessage()]);

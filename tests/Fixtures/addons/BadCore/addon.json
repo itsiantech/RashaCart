@@ -1,0 +1,11 @@
+{
+    "name": "Bad Core Plugin",
+    "slug": "BadCore",
+    "version": "1.0.0",
+    "description": "Requires a core version that does not exist.",
+    "author": "Tests",
+    "requires_core": "^9.0",
+    "provider": "Addons\\BadCore\\BadCoreServiceProvider",
+    "depends_on": [],
+    "provides": []
+}

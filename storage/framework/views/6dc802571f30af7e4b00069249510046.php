@@ -517,6 +517,30 @@ $currentRoute = request()->route()?->getName() ?? '';
         </li>
         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
+        <!-- Pages -->
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isAdmin): ?>
+        <li class="menu-item <?php echo e(Route::is('admin.pages.*') ? 'active open' : ''); ?>">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-file"></i>
+                <div>Pages</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item <?php echo e(Route::is('admin.pages.create') ? 'active' : ''); ?>">
+                    <a wire:navigate href="<?php echo e(route('admin.pages.create')); ?>" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-plus-circle"></i>
+                        <div>Add Page</div>
+                    </a>
+                </li>
+                <li class="menu-item <?php echo e(Route::is('admin.pages.index') || Route::is('admin.pages.edit') ? 'active' : ''); ?>">
+                    <a wire:navigate href="<?php echo e(route('admin.pages.index')); ?>" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-list-ul"></i>
+                        <div>Pages</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
         <!-- Automation (registry-driven; toggles are super-admin only) -->
         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(setting('automation_menu', true)): ?>
         <?php
@@ -591,6 +615,25 @@ $currentRoute = request()->route()?->getName() ?? '';
         </li>
         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
+        <!-- Add Ons -->
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isAdmin): ?>
+        <li class="menu-item <?php echo e(request()->is('admin/addons*') ? 'active open' : ''); ?>">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-extension"></i>
+                <div>Add Ons</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item <?php echo e(Route::is('admin.addons.index') ? 'active' : ''); ?>">
+                    <a wire:navigate href="<?php echo e(route('admin.addons.index')); ?>" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-list-check"></i>
+                        <div>Manage Add Ons</div>
+                    </a>
+                </li>
+                <?php echo \App\Support\Hooks::renderSlot('admin.menu'); ?>
+            </ul>
+        </li>
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
         <!-- Settings -->
         <li class="menu-header small text-uppercase"><span class="menu-header-text">APP MANAGE</span></li>
         <li class="menu-item <?php echo e(Route::is('admin.settings.*','admin.rolepermission.*') ? 'active open' : ''); ?>">
@@ -643,6 +686,18 @@ $currentRoute = request()->route()?->getName() ?? '';
                     <a wire:navigate href="<?php echo e(route('admin.settings.homepage')); ?>" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-home-alt"></i>
                         <div>Home Page Settings</div>
+                    </a>
+                </li>
+                <li class="menu-item <?php echo e(Route::is('admin.settings.menu') ? 'active' : ''); ?>">
+                    <a wire:navigate href="<?php echo e(route('admin.settings.menu')); ?>" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-menu-alt-left"></i>
+                        <div>Menu Settings</div>
+                    </a>
+                </li>
+                <li class="menu-item <?php echo e(Route::is('admin.settings.order') ? 'active' : ''); ?>">
+                    <a wire:navigate href="<?php echo e(route('admin.settings.order')); ?>" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-cart-add"></i>
+                        <div>Order Settings</div>
                     </a>
                 </li>
                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>

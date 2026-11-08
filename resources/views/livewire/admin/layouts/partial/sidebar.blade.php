@@ -615,6 +615,25 @@ $currentRoute = request()->route()?->getName() ?? '';
         </li>
         @endif
 
+        <!-- Add Ons -->
+        @if ($isAdmin)
+        <li class="menu-item {{ request()->is('admin/addons*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-extension"></i>
+                <div>Add Ons</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ Route::is('admin.addons.index') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.addons.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-list-check"></i>
+                        <div>Manage Add Ons</div>
+                    </a>
+                </li>
+                @hook('admin.menu')
+            </ul>
+        </li>
+        @endif
+
         <!-- Settings -->
         <li class="menu-header small text-uppercase"><span class="menu-header-text">APP MANAGE</span></li>
         <li class="menu-item {{ Route::is('admin.settings.*','admin.rolepermission.*') ? 'active open' : '' }}">
@@ -673,6 +692,12 @@ $currentRoute = request()->route()?->getName() ?? '';
                     <a wire:navigate href="{{ route('admin.settings.menu') }}" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-menu-alt-left"></i>
                         <div>Menu Settings</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::is('admin.settings.order') ? 'active' : '' }}">
+                    <a wire:navigate href="{{ route('admin.settings.order') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-cart-add"></i>
+                        <div>Order Settings</div>
                     </a>
                 </li>
                 @endif

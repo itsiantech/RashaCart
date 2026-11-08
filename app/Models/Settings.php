@@ -22,6 +22,12 @@ class Settings extends Model
         return self::$settings;
     }
 
+    public static function set(string $key, $value): void
+    {
+        self::updateOrCreate(['key' => $key], ['value' => $value]);
+        self::clearCache();
+    }
+
     public static function clearCache()
     {
         Cache::forget('app_settings');

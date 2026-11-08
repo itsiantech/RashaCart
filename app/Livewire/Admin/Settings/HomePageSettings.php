@@ -29,6 +29,16 @@ class HomePageSettings extends Component
     public $shop_by_category_limit = 8;
     public $top_brands_limit = 8;
 
+    // Banner & Ads section layout: boxed (container) or full (edge-to-edge)
+    public $banner_layout = 'boxed';
+
+    // New Arrivals / Hot Items showcase (tabs get their own labels)
+    public $new_arrival_section_enabled = true;
+    public $new_arrival_section_title = 'New Arrivals';
+    public $new_arrival_section_limit = 6;
+    public $new_arrival_tab_label = 'New Arrival';
+    public $hot_items_tab_label = 'Hot Items';
+
     protected $rules = [
         'selected_category_id' => 'required|exists:categories,id',
         'product_limit' => 'required|integer|min:1|max:50',
@@ -73,6 +83,15 @@ class HomePageSettings extends Component
         $this->flash_sale_enabled = (bool) setting('flash_sale_enabled', 1);
         $this->flash_sale_title = setting('flash_sale_title', 'Flash Sale');
         $this->flash_sale_limit = (int) setting('flash_sale_limit', 5);
+
+        $this->new_arrival_section_enabled = (bool) setting('new_arrival_section_enabled', 1);
+        $this->new_arrival_section_title = setting('new_arrival_section_title', 'New Arrivals');
+        $this->new_arrival_section_limit = (int) setting('new_arrival_section_limit', 6);
+        $this->new_arrival_tab_label = setting('new_arrival_tab_label', 'New Arrival');
+        $this->hot_items_tab_label = setting('hot_items_tab_label', 'Hot Items');
+
+        $layout = (string) setting('banner_layout', 'boxed');
+        $this->banner_layout = $layout === 'full' ? 'full' : 'boxed';
     }
 
     /**
@@ -215,6 +234,19 @@ class HomePageSettings extends Component
         $this->dispatch('success', message: 'Recommended For You settings updated!');
     }
 
+    public function saveBannerLayout()
+    {
+        $this->validate([
+            'banner_layout' => 'required|in:boxed,full',
+        ]);
+
+        Settings::updateOrCreate(['key' => 'banner_layout'], ['value' => $this->banner_layout]);
+
+        Settings::clearCache();
+
+        $this->dispatch('success', message: 'Banner layout updated!');
+    }
+
     public function saveSectionSettings()
     {
         $this->validate([
@@ -224,12 +256,17 @@ class HomePageSettings extends Component
             'top_brands_limit' => 'required|integer|min:2|max:12',
             'flash_sale_title' => 'required|string|max:100',
             'flash_sale_limit' => 'required|integer|min:1|max:12',
+            'new_arrival_section_title' => 'required|string|max:100',
+            'new_arrival_section_limit' => 'required|integer|min:1|max:12',
+            'new_arrival_tab_label' => 'required|string|max:40',
+            'hot_items_tab_label' => 'required|string|max:40',
         ]);
 
         $sections = [
             'shop_by_category' => [$this->shop_by_category_enabled, $this->shop_by_category_title],
             'top_brands' => [$this->top_brands_enabled, $this->top_brands_title],
             'flash_sale' => [$this->flash_sale_enabled, $this->flash_sale_title],
+            'new_arrival_section' => [$this->new_arrival_section_enabled, $this->new_arrival_section_title],
         ];
 
         foreach ($sections as $section => [$enabled, $title]) {
@@ -240,6 +277,9 @@ class HomePageSettings extends Component
         Settings::updateOrCreate(['key' => 'shop_by_category_limit'], ['value' => $this->shop_by_category_limit]);
         Settings::updateOrCreate(['key' => 'top_brands_limit'], ['value' => $this->top_brands_limit]);
         Settings::updateOrCreate(['key' => 'flash_sale_limit'], ['value' => $this->flash_sale_limit]);
+        Settings::updateOrCreate(['key' => 'new_arrival_section_limit'], ['value' => $this->new_arrival_section_limit]);
+        Settings::updateOrCreate(['key' => 'new_arrival_tab_label'], ['value' => trim($this->new_arrival_tab_label)]);
+        Settings::updateOrCreate(['key' => 'hot_items_tab_label'], ['value' => trim($this->hot_items_tab_label)]);
 
         Settings::clearCache();
 

@@ -15,7 +15,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     @include('partials.style-vars')
     @stack('styles')
-    @if (\App\Services\PurchaseActions::cartDrawerEnabled())
+    @if (\App\Services\PurchaseActions::cartDrawerEnabled()
+        || (\App\Services\PurchaseActions::addToCartEnabled() && \App\Services\PurchaseActions::variantPopupEnabled()))
     @livewireStyles
     @endif
     <style>
@@ -114,6 +115,18 @@
         .hp-slide-fallback h2 { color: #fff; font-weight: 800; font-size: 2rem; margin: 4px 0; }
         .hp-slide-fallback .off { color: #fde68a; font-weight: 700; font-size: 1.4rem; }
         .carousel-caption { background: linear-gradient(90deg, rgba(18,34,91,.85), rgba(18,34,91,0) 70%); border-radius: 8px; text-align: left; left: 5%; right: auto; bottom: 20%; padding: 1rem 1.4rem; }
+
+        /* ── Banner & Ads: Full Width mode (edge-to-edge, menu flush to slider) ── */
+        .hp-hero-bleed { width: 100%; max-width: none; margin: 0; padding: 0; }
+        .hp-hero-bleed .hp-hero { margin-top: 0; gap: 0; }
+        .hp-hero-bleed .hero-carousel { border-radius: 0; }
+        .hp-hero-bleed .hero-carousel .carousel-item img { height: 400px; border-radius: 0; }
+        .hp-hero-bleed .hp-slide-fallback .inner { height: 400px; }
+        .hp-hero-bleed .hp-pills { padding-left: 16px; padding-right: 16px; }
+        @media(max-width: 767.98px) {
+            .hp-hero-bleed .hero-carousel .carousel-item img { height: 220px; }
+            .hp-hero-bleed .hp-slide-fallback .inner { height: 220px; }
+        }
 
         /* ── Mobile category pills ── */
         .hp-pills { display: flex; gap: 8px; overflow: auto; padding-bottom: 8px; scrollbar-width: none; }
@@ -301,6 +314,8 @@
     // Server-rendered so the first paint is already correct (no layout jump):
     // OFF => sidebar markup is skipped entirely, slider takes the full width.
     $homeCatSidebar = (string) setting('home_category_sidebar', '1') === '1';
+    // Banner & Ads layout: 'full' = edge-to-edge, 'boxed' = inside the container.
+    $bannerFull = (string) setting('banner_layout', 'boxed') === 'full';
 @endphp
 
 {{-- ══════════════ NAVBAR ══════════════ --}}
@@ -398,7 +413,7 @@
 @include('livewire.frontend.layouts.partial.category.home-category-drawer', ['categories' => $categories])
 
 {{-- ══════════════ HERO: CATEGORIES + BANNER ══════════════ --}}
-<section class="hp-container">
+<section class="{{ $bannerFull ? 'hp-hero-bleed' : 'hp-container' }}">
     <div class="hp-hero {{ $homeCatSidebar ? 'hp-hero--side' : 'hp-hero--full' }}">
 
         @if ($homeCatSidebar)
@@ -460,6 +475,15 @@
         @endforeach
     </div>
 </section>
+
+{{-- ══════════════ NEW ARRIVALS / HOT ITEMS SHOWCASE ══════════════ --}}
+<x-product-showcase
+    instance="home"
+    :title="$showcaseTitle"
+    :tab-new-label="$showcaseTabNew"
+    :tab-hot-label="$showcaseTabHot"
+    :new-arrivals="$showcaseNew"
+    :hot-items="$showcaseHot" />
 
 {{-- ══════════════ SHOP BY CATEGORY (desktop: images below hero) ══════════════ --}}
 @if(setting('shop_by_category_enabled', 1) && !empty($categoryGrid) && $categoryGrid->count())
@@ -824,13 +848,15 @@ $categoryProducts = $homeCat->category->products->take($homeCat->product_limit);
 
 {{-- Site-wide slide-out cart drawer (admin toggle: Business Settings) --}}
 @include('partials.cart-drawer')
+@include('partials.quick-add-popup')
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 @include('partials.customer-account-scripts')
 @include('partials.customer-auth-modal')
 
-@if (\App\Services\PurchaseActions::cartDrawerEnabled())
+@if (\App\Services\PurchaseActions::cartDrawerEnabled()
+    || (\App\Services\PurchaseActions::addToCartEnabled() && \App\Services\PurchaseActions::variantPopupEnabled()))
 @livewireScripts
 @endif
 @stack('scripts')

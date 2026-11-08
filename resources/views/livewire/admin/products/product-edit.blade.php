@@ -761,6 +761,8 @@
             </div>
         </div>
 
+        @hook('admin.product.form.sections', ['productId' => $productId, 'mode' => 'edit'])
+
         <div class="text-end mt-4">
             <button type="submit" class="btn btn-success">
                 <i class="fas fa-save"></i> Update Product

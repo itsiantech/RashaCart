@@ -44,6 +44,7 @@
                                 @include('livewire.admin.settings.partial.customer-login-settings');
                             </div>
 
+                            @hook('admin.settings.panes')
 
 
                         </div>

@@ -128,13 +128,14 @@
 
         <div class="invoice-info">
             <div>
-                <strong>INV: {{ $order->invoice_no }}</strong><br>
-                Date: {{ now()->format('d/m/Y') }}
+                <strong>Order No: #{{ $order->id }}</strong><br>
+                INV: {{ $order->invoice_no }}<br>
+                Date: {{ $order->created_at?->format('d/m/Y, h:i A') }}
             </div>
             <div>
                 Status: {{ strtoupper($order->status) }}<br>
-                Payment: {{ $order->payment_method }}
-                <br>
+                Payment: {{ $order->payment_method }}<br>
+                Shipping Method: {{ $order->shipping_method }}<br>
                 Shop Name: {{ $order->items->first()?->product?->user?->vendorDetails?->shop_name ?? 'N/A' }}
             </div>
         </div>

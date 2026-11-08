@@ -5,6 +5,8 @@ namespace App\Livewire\Frontend\Product;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Review;
+use App\Services\PurchaseActions;
+use App\Services\VariantPickerData;
 use App\Traits\HandlesCartActions;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +62,15 @@ class SingleView extends Component
     public $sizeAttrName = 'Size';
 
     public $quantity = 1;
+
+    /** Add-to-Cart variant picker popup. */
+    public bool $cartPopupOpen = false;
+
+    public array $cartPickerData = [];
+
+    public array $cartPicks = [];
+
+    public string $cartPickerError = '';
 
     public $rating = 0;
 
@@ -391,6 +402,180 @@ class SingleView extends Component
 
         $this->refreshEffective();
         $this->updateStockStatus();
+        $this->clampStockToEffective();
+    }
+
+    /** Does Add to Cart need the variant picker popup? */
+    public function pickerRequired(): bool
+    {
+        if (! $this->product || ! $this->product->exists) {
+            return false;
+        }
+
+        if (! (bool) setting('attribute_system', true)) {
+            return false;
+        }
+
+        if (! PurchaseActions::variantPopupEnabled()) {
+            return false;
+        }
+
+        return $this->product->variants->count() > 0 || $this->product->has_image_options;
+    }
+
+    public function openCartPopup(): void
+    {
+        if (! PurchaseActions::addToCartEnabled()) {
+            $this->dispatch('error', message: 'Add to Cart is currently disabled.');
+
+            return;
+        }
+
+        $this->cartPickerData = VariantPickerData::for($this->product);
+        $this->cartPicks = [];
+
+        // Pre-fill from what is already selected on the page.
+        foreach ($this->cartPickerData['groups'] as $group) {
+            $lower = strtolower($group['name']);
+
+            if ((str_contains($lower, 'color') || str_contains($lower, 'colour')) && $this->selectedColor) {
+                $this->cartPicks[$group['name']] = $this->selectedColor;
+            } elseif (str_contains($lower, 'size') && $this->selectedSize) {
+                $this->cartPicks[$group['name']] = $this->selectedSize;
+            }
+        }
+
+        if ($this->selectedVariant) {
+            foreach (VariantPickerData::pickedFromVariant($this->cartPickerData, $this->selectedVariant) as $name => $value) {
+                $this->cartPicks[$name] ??= $value;
+            }
+        }
+
+        // Everything already chosen on the page — don't ask twice.
+        if ($this->pageSelectionComplete()) {
+            $this->syncPicksToSelection();
+
+            if ($this->addToCart($this->product->id)) {
+                return;
+            }
+        }
+
+        $this->cartPickerError = '';
+        $this->cartPopupOpen = true;
+
+        $this->js("document.body.classList.add('op-open'); document.body.style.overflow = 'hidden'");
+    }
+
+    public function closeCartPopup(): void
+    {
+        $this->cartPopupOpen = false;
+        $this->cartPickerError = '';
+        $this->js("document.body.classList.remove('op-open'); document.body.style.overflow = ''");
+    }
+
+    public function selectPickerValue(string $attribute, string $value): void
+    {
+        $this->cartPicks[$attribute] = $value;
+        $this->cartPickerError = '';
+        $this->syncPicksToSelection();
+
+        $variant = VariantPickerData::match($this->cartPickerData, $this->cartPicks);
+
+        if (! empty($variant['image'])) {
+            $this->dispatch('set-main-image', src: $variant['image']);
+        }
+    }
+
+    public function selectPickerOption($optionId): void
+    {
+        $this->selectedOption = $optionId ? (int) $optionId : null;
+        $this->cartPickerError = '';
+
+        $this->refreshEffective();
+        $this->updateStockStatus();
+        $this->clampStockToEffective();
+
+        if ($optionId) {
+            $option = $this->product->imageOptions->firstWhere('id', (int) $optionId);
+
+            if ($option) {
+                $this->dispatch('set-main-image', src: asset('storage/'.$option->image));
+            }
+        }
+    }
+
+    public function confirmCartPopup(): void
+    {
+        if (! $this->cartPopupOpen) {
+            return;
+        }
+
+        $this->syncPicksToSelection();
+
+        if ($this->comboReason) {
+            $this->cartPickerError = $this->comboReason;
+
+            return;
+        }
+
+        if (! $this->validateStock()) {
+            return;
+        }
+
+        if ($this->addToCart($this->product->id)) {
+            $this->closeCartPopup();
+        }
+    }
+
+    /** Are all required picker groups (and the design option) already picked? */
+    protected function pageSelectionComplete(): bool
+    {
+        foreach ($this->cartPickerData['groups'] ?? [] as $group) {
+            if (empty($group['required'])) {
+                continue;
+            }
+
+            if (empty($this->cartPicks[$group['name']])) {
+                return false;
+            }
+        }
+
+        if (! empty($this->cartPickerData['option_required']) && ! $this->selectedOption) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /** Mirror the popup picks into the page selectors + resolved variant. */
+    protected function syncPicksToSelection(): void
+    {
+        $colorName = null;
+        $sizeName = null;
+
+        foreach ($this->cartPickerData['groups'] as $group) {
+            $lower = strtolower($group['name']);
+
+            if (str_contains($lower, 'color') || str_contains($lower, 'colour')) {
+                $colorName = $group['name'];
+            } elseif (str_contains($lower, 'size')) {
+                $sizeName = $group['name'];
+            }
+        }
+
+        if ($colorName !== null) {
+            $this->selectedColor = $this->cartPicks[$colorName] ?? null;
+        }
+
+        if ($sizeName !== null) {
+            $this->selectedSize = $this->cartPicks[$sizeName] ?? null;
+        }
+
+        $match = VariantPickerData::match($this->cartPickerData, $this->cartPicks);
+        $this->selectedVariant = $match['id'] ?? null;
+
+        $this->updateStockStatus();
+        $this->refreshEffective();
         $this->clampStockToEffective();
     }
 
@@ -880,6 +1065,9 @@ class SingleView extends Component
             'flashSaleItem' => $this->flashSaleItem,
             'currentStock' => $this->currentStock,
             'isInStock' => $this->isInStock,
+            'cartAvailability' => $this->cartPopupOpen
+                ? VariantPickerData::availability($this->cartPickerData, $this->cartPicks)
+                : [],
             'ratingDistribution' => $this->product->reviews()
                 ->selectRaw('rating, COUNT(*) as total')
                 ->groupBy('rating')

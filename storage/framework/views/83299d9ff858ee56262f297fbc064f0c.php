@@ -279,6 +279,7 @@
                 </div>
             </div>
         </div>
+        <?php echo \App\Support\Hooks::renderSlot('admin.dashboard.cards'); ?>
     </div>
 
     <!-- Revenue Breakdown by Status -->

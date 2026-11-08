@@ -62,8 +62,9 @@
 
     <div class="header">
         <img src="{{ asset('storage/logo/' . setting('app_logo')) }}" alt="Logo"><br>
-        <strong>Invoice #{{ $order->invoice_no }}</strong><br>
-        <small>{{ $order->created_at->format('d M Y, h:i A') }}</small>
+        <strong>Order No: #{{ $order->id }}</strong><br>
+        <small>INV: {{ $order->invoice_no }}</small><br>
+        <small>{{ $order->created_at?->format('d M Y, h:i A') }}</small>
     </div>
 
     <div class="info">
@@ -71,6 +72,7 @@
         <p>📞 <a href="tel:{{ $order->phone }}">{{ $order->phone }}</a></p>
         <p>📦 {{ $order->shipping_address }}</p>
         <p>Status: <strong>{{ ucfirst($order->status) }}</strong></p>
+        <p>Shipping Method: <strong>{{ $order->shipping_method }}</strong></p>
         <p>Shop Name: {{ $order->items->first()?->product?->user?->vendorDetails?->shop_name ?? 'N/A' }}</p>
     </div>
 

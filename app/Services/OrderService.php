@@ -3,15 +3,11 @@
 namespace App\Services;
 
 use App\Events\OrderPlaced;
-use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
-use App\Models\ProductVariant;
-use App\Services\CombinationResolver;
-use App\Services\InventoryService;
-use App\Services\PriceResolver;
 use App\Services\Tracking\AttributionService;
+use App\Support\Hooks;
 use Illuminate\Support\Facades\DB;
 
 class OrderService
@@ -58,6 +54,10 @@ class OrderService
     public function createOrder($data, $cartItems)
     {
         return DB::transaction(function () use ($data, $cartItems) {
+            // Add-on input travels with the order but is never a column of it.
+            $addonInput = $data['_addons'] ?? [];
+            unset($data['_addons']);
+
             // 1) Resolve every line authoritatively (variant ownership, price, stock)
             $lines = [];
             $itemsTotal = 0;
@@ -93,9 +93,21 @@ class OrderService
             }
 
             // 2) Authoritative total (browser total is never trusted)
-            $data['total_amount'] = max(0, $itemsTotal
+            $authoritativeTotal = max(0, $itemsTotal
                 + (float) ($data['delivery_charge'] ?? 0)
                 - (float) ($data['coupon_discount_amount'] ?? 0));
+            $data['total_amount'] = $authoritativeTotal;
+
+            // 3) Add-on extension points. Silent while no add-on hooks in, and
+            //    the authoritative total survives whatever an add-on returns.
+            Hooks::doAction('order.before_create', $data, $lines, $addonInput);
+            $data = (array) Hooks::filter('order.create_data', $data, $lines, $addonInput);
+
+            if (array_key_exists('status', $data)) {
+                $data['status'] = Hooks::filter('order.initial_status', $data['status'], $data, $lines);
+            }
+
+            $data['total_amount'] = $authoritativeTotal;
 
             // Capture attribution data
             $attributionData = $this->attributionService->getAttributionForOrder();
@@ -125,13 +137,14 @@ class OrderService
 
             // Update tracking_event_id with actual order ID
             $order->update([
-                'tracking_event_id' => $this->attributionService->generatePurchaseEventId($order->id)
+                'tracking_event_id' => $this->attributionService->generatePurchaseEventId($order->id),
             ]);
 
             foreach ($lines as $line) {
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $line['product']->id,
+                    'product_name' => $line['product']->name,
                     'vendor_id' => $line['product']->user_id, // 👈 IMPORTANT
                     'product_variant_id' => $line['variant']?->id,
                     'variant_sku' => $line['variant']?->sku,
@@ -149,6 +162,15 @@ class OrderService
             // InventoryService::syncOrderMovements lazy-loads empty items),
             // so listeners see the real items.
             $order->unsetRelation('items')->unsetRelation('orderItems');
+
+            // 4) Payment plan + created hook. Both run inside this transaction,
+            //    so an add-on can persist its own rows atomically with the order.
+            $paymentPlan = (array) Hooks::filter('order.payment_plan', [
+                'pay_now' => 0.0,
+                'pay_later' => (float) $order->total_amount,
+            ], $order, $lines, $addonInput);
+
+            Hooks::doAction('order.created', $order, $paymentPlan, $addonInput);
 
             // Fire OrderPlaced event for tracking
             event(new OrderPlaced($order));

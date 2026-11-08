@@ -36,6 +36,16 @@
         >
       </li> --}}
 
+      <!-- Visit Website -->
+      <li class="nav-item d-flex align-items-center me-3 me-xl-4">
+        <a href="{{ route('home') }}" target="_blank" rel="noopener noreferrer"
+          class="btn btn-sm btn-outline-danger text-uppercase fw-semibold"
+          style="letter-spacing:.5px; border-width:1.5px;">
+          Visit Website
+        </a>
+      </li>
+      <!-- /Visit Website -->
+
       <!-- User -->
       <li class="nav-item navbar-dropdown dropdown-user dropdown">
         <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">

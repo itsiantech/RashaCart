@@ -323,9 +323,14 @@
 
 {{-- Site-wide slide-out cart drawer (admin toggle: Business Settings) --}}
 @include('partials.cart-drawer')
+@include('partials.quick-add-popup')
 
 @include('partials.customer-account-scripts')
 @include('partials.customer-auth-modal')
+
+@if (\App\Services\PurchaseActions::popupOrderEnabled())
+    <livewire:frontend.order-popup />
+@endif
 
 @stack('scripts')
 @livewireScripts

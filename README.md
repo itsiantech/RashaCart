@@ -130,7 +130,7 @@ php artisan test --filter=Tracking               # tracking test suite (12 tests
   ??? ???? ????)? OFF ???? ??????? ????, product simple ?????? ?????
 - **Attribute ????:** Catalog -> Attributes -> Add New (??? + type: Color Swatch /
   Image Swatch / Button / Dropdown) -> value ??? ???? (???? hex code, swatch ???,
-  sort order)? ??????? attribute/value delete ??? ???? ?? — ??? Deactivate ?????
+  sort order)? ??????? attribute/value delete ??? ???? ?? ï¿½ ??? Deactivate ?????
 - **Product-? variant:** Add Product -> attribute ??? ??? -> value ??????? ???? ->
   "Generate Variants" (?? combination ??????, ????????? ??? ??, SKU auto: BASE-RED-M)?
   Bulk price/stock, per-row ???/????/Active edit, order-???? variant delete-? ?????
@@ -143,9 +143,9 @@ php artisan test --filter=Tracking               # tracking test suite (12 tests
   weight/barcode/active/default; ????? `variant_price/stock/image` column ??????????),
   `product_images` (gallery + `attribute_value_id` swatch link), `order_items`
   (+`variant_sku/name/image` snapshot)?
-- `App\Services\VariantGenerator` — combination/SKU/dedup? `ManagesProductVariants`
-  trait — Add/Edit Product-? shared (generate/validate/bulk/order-guard, ??????? error)?
-- `App\Services\PriceResolver` — ????? ??????? ???? Cart + Order ????? ??? ??????? ???,
+- `App\Services\VariantGenerator` ï¿½ combination/SKU/dedup? `ManagesProductVariants`
+  trait ï¿½ Add/Edit Product-? shared (generate/validate/bulk/order-guard, ??????? error)?
+- `App\Services\PriceResolver` ï¿½ ????? ??????? ???? Cart + Order ????? ??? ??????? ???,
   ??? browser-? ??? ???? ????? ????? ??? DB-?? ???? Order total-? server-side recompute ????
 - Order item-? variant snapshot ????; variant ???? ????? order view-? ??? ???????
 - Tracking: AddToCart-?? `content_id` = variant SKU (feed-?? ???? consistent)?
@@ -154,25 +154,25 @@ php artisan test --filter=Tracking               # tracking test suite (12 tests
 - Seeder: `php artisan db:seed --class=AttributeSeeder` (setting ON + Color/Size/Unit)?
 - Tests: `php artisan test --filter="VariantGeneratorTest|VariantSystemTest"` (7 tests)?
 
-### (Cont.) Variant system — part 2
-- **Quick-add value:** generator-? ??????? attribute-?? ???? + ???? — modal ???? value
+### (Cont.) Variant system ï¿½ part 2
+- **Quick-add value:** generator-? ??????? attribute-?? ???? + ???? ï¿½ modal ???? value
   (??? + color) ??? ???, list refresh + auto-select ???, reload ???? ???
-- **Swatch gallery:** Add/Edit Product-?? ???? "Swatch Gallery" — ??? ????? ??? ???
+- **Swatch gallery:** Add/Edit Product-?? ???? "Swatch Gallery" ï¿½ ??? ????? ??? ???
   color/value-?? ???? ????? ???? (???? = common)? Product ???? ?? swatch ??????? ????
   ?????? ??? ??? ???; thumbnail-? ????? ???? matching swatch auto-select ????
 - **Listing filter:** Category ???? Price-?? ???? ??????? filterable attribute
   (???? Color/Size)-?? ????; multi-select, URL-? query string ?????
-- **Product card:** color dots — ?????? card-?? ??? ?????? (variant image ?????)?
-- **Wholesale slabs:** variant row-? "Slabs" — min qty + ??? (???? 10+: ?480)?
+- **Product card:** color dots ï¿½ ?????? card-?? ??? ?????? (variant image ?????)?
+- **Wholesale slabs:** variant row-? "Slabs" ï¿½ min qty + ??? (???? 10+: ?480)?
   Cart + Order ??????? `PriceResolver::resolve($product, $variant, $qty)` ????
-- **Feeds:** `/feed/google.xml` (Merchant Center), `/feed/meta.csv` (Meta/TikTok) —
+- **Feeds:** `/feed/google.xml` (Merchant Center), `/feed/meta.csv` (Meta/TikTok) ï¿½
   ????? active variant ?? row, `item_group_id` = product id, id = variant SKU
   (tracking `content_id`-?? ???? same)?
 - **GA4:** purchase items-? `item_id` (variant SKU) + `item_variant` ("Color: Red") ?????
-- Tests: `php artisan test --filter="Variant"` — 11 tests pass?
+- Tests: `php artisan test --filter="Variant"` ï¿½ 11 tests pass?
 
 ### (Cont.) Image Options layer (two independent layers)
-- Product flags: `has_attributes` (global setting OFF ????? panel hidden — master switch
+- Product flags: `has_attributes` (global setting OFF ????? panel hidden ï¿½ master switch
   ???? ????), `has_image_options`, `require_image_option`. Attribute group-wise required:
   generator-? ??????? attribute-?? ???? Required checkbox (`product_attributes.is_required`)?
 - `image_options` table (label/image/own price/sale/stock/active/sort) + ?????? ledger
@@ -181,56 +181,56 @@ php artisan test --filter=Tracking               # tracking test suite (12 tests
 - ???: option ?? variant ?? product; variant slab + flash ????? ????: min(variant/product, option)?
   Order-? variant (?? product) + option ??????? deduct, cancel/return-? ??????? restore
   (idempotent, double-deduct/restore ??????)? Checkout-? `SELECT ... FOR UPDATE` lock
-  (product ? variant ? option order) — oversell/concurrency safe?
+  (product ? variant ? option order) ï¿½ oversell/concurrency safe?
 - Cart key: `product-variant-option`; snapshot: variant + option label/image/price?
   Tampered variant/option reject (????? error)? Tracking/feed content_id ???? option
   combination-? ???? format (`productSKU-variantSKU-optionId`), ???? ?? ???? format?
 - Storefront: attribute selectors ?? image strip ?????; `?opt=ID&size=M` deep-link;
   sold-out-? reason ?? disabled; option ????? gallery option-???; required-? `*`?
 - Feeds: ????? combination ?? row (`/feed/google.xml`, `/feed/meta.csv`)?
-- Tests: `php artisan test --filter=VariantSystemTest` — 18 tests (precedence, min-stock,
+- Tests: `php artisan test --filter=VariantSystemTest` ï¿½ 18 tests (precedence, min-stock,
   double-deduct/restore, oversell, tampering, required, single/none-layer)?
 
-### (Cont.) Auto price/stock — "???? ????? auto"
+### (Cont.) Auto price/stock ï¿½ "???? ????? auto"
 - Variant ??? ???? ? product ??? (row-?? "auto: ?X" hint); Generate ?? pre-fill ??? ???
   Explicit 0 = ?????????? ?0 (???? data-? ???? ?????? ??)?
 - Option stock ???? ? variant/product stock (???? ledger ???? ??? ??); 0 = sold out?
 - Bulk: variant Auto-price + Product-stock-copy ????; options-? Bulk ???/?????
 - Stock clear ???? ledger ???? follow-variant ???; ??? pending order ????? ledger ???? +
   warning toast (oversell-safe)?
-- Preview table ?????? resolved final value ?????? — Save-?? ??? verify ?????
+- Preview table ?????? resolved final value ?????? ï¿½ Save-?? ??? verify ?????
 
 ## Sidebar theme engine (per-admin)
 - Menu text: Inter font, UPPERCASE (menu + submenu), default 14px.
 - Bottom-left palette button: 5 themes (Light / Dark / Periwinkle #D9DEF2 / Mint #E7F0EB /
-  Lavender #E3E0E7) — click applies instantly, no reload. Font size A-/A+ (12–18px),
+  Lavender #E3E0E7) ï¿½ click applies instantly, no reload. Font size A-/A+ (12ï¿½18px),
   submenu auto 1px smaller, reset button included.
-- Prefs stored per admin (`users.sidebar_theme` JSON) — login ????? ????? theme ??? ????
+- Prefs stored per admin (`users.sidebar_theme` JSON) ï¿½ login ????? ????? theme ??? ????
   Invalid values fall back to Light/14px. New admins see Light/14px (nothing changes suddenly).
 - Files: `App\Services\SidebarTheme` (palettes), `Admin\Settings\SidebarThemePicker`
   (Livewire), `public/assets/admin/css/sidebar-theme.css` (CSS vars), theme vars rendered
   server-side in admin layout head + live-applied via `sidebar-theme-applied` event.
 - Tests: `php artisan test --filter=SidebarThemeTest` (4 tests).
 
-## Automation foundation (??????? ? — ???? ??????)
+## Automation foundation (??????? ? ï¿½ ???? ??????)
 - Sidebar-? **Automation** menu (Settings-?? ???): Overview + ? module + AI Settings?
   ???? module = grey + Off badge; ??????? = Coming soon badge?
 - ?? module default **OFF**? Mode: Off / Shadow (???? log) / Live? Master switch OFF = ?? ?????
 - OFF ???? ?????? ????: `module.enabled:{key}` middleware route ??????, `SkipsWhenDisabled`
   trait listener/job-?? ?????? check ???, ???? API/AI call ??? ???
-- Save Cantonment: model observer cache clear ??? — deploy/command ?????? ???? ???? ????????
+- Save Cantonment: model observer cache clear ??? ï¿½ deploy/command ?????? ???? ???? ????????
 - Toggle + AI Settings ???? super-admin (`role:admin`); audit log-? secret ???? ???? ???
 
 ### ?? module ??? ??? (???? ? ???)
-1. `app/Automation/Modules/MyModule/MyModule.php` — `AutomationModule` contract implement
+1. `app/Automation/Modules/MyModule/MyModule.php` ï¿½ `AutomationModule` contract implement
    (key/name/description/icon/status/settingsSchema/guide ????? RiskScoreModule)?
 2. `AutomationRegistry::$modules`-? ?? ????: `MyModule::class,`
 3. `php artisan db:seed --class=AutomationSeeder` (OFF state-? row ??????)?
-Menu, Overview card, settings form, guide, audit — ?? automatic? Custom route/job ?????
+Menu, Overview card, settings form, guide, audit ï¿½ ?? automatic? Custom route/job ?????
 `routes()`, listener-? `SkipsWhenDisabled`, job-?? ?????? `skipUnlessEnabled()`?
 
 ### AI layer
-- `AiService::complete($moduleKey, $prompt)` — budget guard + usage log + PII mask?
+- `AiService::complete($moduleKey, $prompt)` ï¿½ budget guard + usage log + PII mask?
   Key encrypted (`automation_api_key`), UI-?? masked? Test Connection rate-limited?
 - ???: `ai_usage_logs`; ????? ??%+-? Overview-? warning, ?????? block?
 - Tests: `php artisan test --filter=AutomationFoundationTest` (9 tests)?
@@ -238,7 +238,7 @@ Menu, Overview card, settings form, guide, audit — ?? automatic? Custom route/jo
 ### (Cont.) Automation menu toggle
 - Business Settings-? **Automation Menu** switch: OFF ???? sidebar ???? ???? Automation
   section (header + ?? submenu) ???? ??; ON ???? ????? Auto-save + cache clear, ???? ???? ????????
-- Default ON (seeder `firstOrCreate` — re-seed-? ????? ????? overwrite ?? ??)?
+- Default ON (seeder `firstOrCreate` ï¿½ re-seed-? ????? ????? overwrite ?? ??)?
 
 ### (Cont.) Seller Manage menu toggle
 - Business Settings-? **Seller Manage Menu** switch: OFF ???? admin-??? sidebar ???? ????
@@ -247,8 +247,8 @@ Menu, Overview card, settings form, guide, audit — ?? automatic? Custom route/jo
 
 ## Google SEO menu (dynamic, no code edits)
 - Sidebar **Google SEO** menu (Business Settings toggle SO/Menu, default ON): Search Console,
-  Analytics 4, Tag Manager, XML Sitemap, Robots.txt, Schema Markup — 1 Livewire page, 6 tabs.
-- **GA4 shared source**: Measurement ID writes the tracking module`s ga4 row — browser pixel
+  Analytics 4, Tag Manager, XML Sitemap, Robots.txt, Schema Markup ï¿½ 1 Livewire page, 6 tabs.
+- **GA4 shared source**: Measurement ID writes the tracking module`s ga4 row ï¿½ browser pixel
   + server API both use it, no duplicate tags. Clearing disables GA4.
 - **GTM**: container ID + ON/OFF ? head script + body noscript on all storefront layouts + homepage.
 - **Sitemap**: `/sitemap.xml` (products/categories/static, 1h cache, auto-refresh on save).
@@ -261,14 +261,14 @@ Menu, Overview card, settings form, guide, audit — ?? automatic? Custom route/jo
 - Homepage hero panel ??? 3-level flyout: hover/focus-? L2 panel, ??? ????? hover-? L3?
   Mobile-? ???? ??? pills ????? Parent row-?? click ???? parent page-? ?????
 - Data: top-level + children.children eager load (N+1 ???), inactive category/child ???????
-  L3 data ?? ????? L3 panel ??? ?? — admin sub-sub-category ??????? ???????
-- ????? recursive lists (welcome/mobile sidebar) markup ???? ??? ?????? CSS ??? ?? —
+  L3 data ?? ????? L3 panel ??? ?? ï¿½ admin sub-sub-category ??????? ???????
+- ????? recursive lists (welcome/mobile sidebar) markup ???? ??? ?????? CSS ??? ?? ï¿½
   hover/focus/tap-to-open CSS (`@once`) ??? ??????
 - Tests: `php artisan test --filter=CategoryMenuTest` (3 tests)?
 
 ## Unified storefront chrome (homepage header/footer everywhere)
 - `partials/main-header`, `main-footer`, `main-chrome-css`: exact copies of the homepage
-  navbar/subnav/footer (homepage.blade.php untouched — zero regression risk).
+  navbar/subnav/footer (homepage.blade.php untouched ï¿½ zero regression risk).
 - New layout `livewire.frontend.layouts.store` uses them. PLP pages
   (CategoryProduct, CategoryView) moved to it; other pages stay on old layouts for now.
 - Tests: `php artisan test --filter=StoreLayoutTest` (new chrome present, old header gone, homepage intact).
@@ -276,7 +276,7 @@ Menu, Overview card, settings form, guide, audit — ?? automatic? Custom route/jo
 ## PLP layout fix (scoped theme CSS)
 - Category pages previously rendered unstyled on the new store layout (theme CSS lived
   only in the old layout). `public/assets/frontend/css/plp.css` holds ONLY PLP classes
-  extracted from the theme (scripted extraction, no globals) — header/footer look untouched.
+  extracted from the theme (scripted extraction, no globals) ï¿½ header/footer look untouched.
 - "No products found" on empty categories is legitimate (query verified by test).
 
 ## All Brands page (mock redesign)
@@ -290,17 +290,17 @@ Menu, Overview card, settings form, guide, audit — ?? automatic? Custom route/jo
   counts to `end_at` (no end-of-day fallback); otherwise the section is fully hidden.
 - Overlap: latest-created campaign wins; saving/editing an overlapping active campaign
   shows a Bangla warning (non-blocking).
-- Timezone: `APP_TIMEZONE=Asia/Dhaka` — admin dates match local time; countdown JS is
+- Timezone: `APP_TIMEZONE=Asia/Dhaka` ï¿½ admin dates match local time; countdown JS is
   timestamp-based so nothing breaks.
 - Design untouched (only `@if` conditions + data source changed).
 - Tests: `php artisan test --filter=FlashSaleHomepageTest` (3 tests).
 
 ## Style Settings (Style Customizer)
 - Settings ? **Style Settings** (All Settings-?? ????): header/nav/icons/cart-badge/hover/
-  search/footer/social colors, body font, flash card bg+text+font — color picker + font
+  search/footer/social colors, body font, flash card bg+text+font ï¿½ color picker + font
   select + Reset to default? Save = instant site-wide (CSS vars, no deploy).
 - Homepage + store pages read the same `:root` vars (`partials/style-vars`); every rule
-  keeps its original value as fallback — defaults = current design, pixel-identical.
+  keeps its original value as fallback ï¿½ defaults = current design, pixel-identical.
 - Flash card gradient auto-builds from the chosen bg color (color-mix).
 - Fonts: Segoe UI / Inter / Hind Siliguri / Roboto / Poppins (auto-loaded).
 - Tests: `php artisan test --filter=StyleCustomizerTest` (4 tests).
@@ -313,5 +313,47 @@ Menu, Overview card, settings form, guide, audit — ?? automatic? Custom route/jo
 
 ## (Cont.) More dynamic buttons/titles
 - Optional (empty = current look): Buy Now bg/text, WhatsApp bg/text, Call to Order bg/text,
-  All Categories title bg/text — plus existing Add to Cart bg/text/icon.
+  All Categories title bg/text ï¿½ plus existing Add to Cart bg/text/icon.
 - Details-page Add to Cart already follows the global cart button colors.
+
+## Popup Order (COD form on the product page)
+- Enable at **Settings â†’ Order Settings** (`popup_order_enabled`, default **OFF**). While OFF,
+  the Buy Now button keeps the original cart/checkout flow.
+- When ON, the product-page Buy Now button opens a modal (name, phone, address, optional
+  email, inside/outside delivery, live total) instead of redirecting to checkout. Both
+  actions create a real `pending` COD order: **Order Confirm** (`channel=cod`) and
+  **WhatsApp** (`channel=whatsapp`, then opens a pre-filled chat with the store contact phone).
+- Close with Esc, the backdrop, or the X; page scroll is locked while open. Mobile: bottom sheet.
+- Server authority: price/stock always re-resolved by `CombinationResolver` + `PriceResolver`
+  inside `OrderService::createOrder`, so a tampered browser total cannot change the order.
+  Variant/image-option products use the selection shown on the product page.
+- Delivery charges come from Business Settings (`dc_inside` / `dc_outside`), default area
+  from the Order Settings page. Phone numbers are normalized by `App\Services\PhoneNormalizer`
+  (`01[3-9]XXXXXXXX`).
+- Protections: `RateLimiter` 5 attempts/min per IP, hidden honeypot field, optional email
+  stored in `orders.email`, product name snapshotted in `order_items.product_name`.
+- Admin: Orders list now has a **Channel** column + filter (Website / Popup COD / Popup
+  WhatsApp) and an **Export CSV** button (respects search + status + channel filters).
+- Migration required: `php artisan migrate` (adds `orders.channel`, `orders.email`,
+  `order_items.product_name` and indexes). Run it before enabling the popup.
+- Tests: `php artisan test --filter=PopupOrderTest` (10 tests).
+
+## Add-ons (plugin system)
+- Manage at **Add Ons â†’ Manage Add Ons** (`/admin/addons`, admin only). Add-on folders live
+  in `addons/{Slug}` with an `addon.json` manifest; classes autoload as `Addons\{Slug}\â€¦`.
+- `App\Addons\AddonManager` discovers/installs/activates/deactivates/uninstalls. Providers of
+  **active** add-ons only are booted; a provider that throws is logged, auto-deactivated and
+  reported in the admin page, so one broken add-on never takes the shop down.
+- `App\Support\Hooks` provides filters, actions, UI slots and the `@hook('name')` Blade
+  directive. The sidebar's **Add Ons** group renders active add-ons through `admin.menu`.
+- Add-on routes must use `App\Http\Middleware\EnsureAddonActive` (404 while inactive).
+- Commands: `addon:list`, `addon:make`, `addon:install`, `addon:activate`, `addon:deactivate`.
+- Migration required: `php artisan migrate` (creates the `addons` table).
+- Extension points are live in the order flow (`OrderService`), the customer popup
+  (`OrderPopup` + `order-popup.blade.php`), the admin orders list / order view /
+  product form / settings page / dashboard. Full reference: `addons/README.md`.
+- Sample add-ons: `addons/HelloWorld` (minimal page + sidebar item) and
+  `addons/PartialPayment` (advance + COD, own four tables, popup step, admin panel,
+  refunds page, expiry command). Read `addons/PartialPayment/README.md`.
+- Tests: `php artisan test --filter=AddonSystemTest` (15 tests),
+  `php artisan test --filter=PartialPaymentTest` (17 tests).

@@ -44,6 +44,7 @@
                                 <?php echo $__env->make('livewire.admin.settings.partial.customer-login-settings', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>;
                             </div>
 
+                            <?php echo \App\Support\Hooks::renderSlot('admin.settings.panes'); ?>
 
 
                         </div>

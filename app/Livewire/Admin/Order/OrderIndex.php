@@ -6,6 +6,7 @@ use App\Mail\OrderStatusMail;
 use App\Models\CategoryCommission;
 use App\Models\Order;
 use App\Services\CourierService;
+use App\Support\Hooks;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
@@ -19,6 +20,11 @@ class OrderIndex extends Component
     public $search = '';
 
     public $statusFilter = 'all';
+
+    public $channelFilter = 'all';
+
+    /** Filter values owned by add-ons (payment status, …). */
+    public array $af = [];
 
     protected $courier;
 
@@ -159,6 +165,18 @@ class OrderIndex extends Component
         $this->resetPage();
     }
 
+    public function updatedChannelFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updated(string $property)
+    {
+        if (str_starts_with($property, 'af.')) {
+            $this->resetPage();
+        }
+    }
+
     public function filterByStatus($status)
     {
         $this->statusFilter = $status;
@@ -239,7 +257,7 @@ class OrderIndex extends Component
             'name' => $order->name,
             'phone' => $order->phone,
             'address' => $order->shipping_address,
-            'cod_amount' => $order->total_amount,
+            'cod_amount' => (float) Hooks::filter('order.courier_cod_amount', $order->total_amount, $order),
             'note' => 'Deliver within 3PM',
             'item_description' => $itemDescription,
         ];
@@ -260,7 +278,57 @@ class OrderIndex extends Component
 
     public function render()
     {
-        $query = Order::with(['items', 'vendor']);
+        $query = $this->filteredQuery()->with(['items', 'vendor']);
+
+        $orders = $query->latest()->paginate(setting('items_per_page') ?? 15);
+
+        return view('livewire.admin.order.order-index', [
+            'orders' => $orders,
+            'statusCounts' => Hooks::filter('order.status_counts', $this->statusCounts),
+            'statuses' => Hooks::filter('order.statuses', [
+                'pending', 'Call Not Received', 'completed', 'shipped', 'delivered',
+                'cancelled', 'returned', 'Pending Return', 'Pending Cancelled',
+            ]),
+            'addonColumns' => Hooks::filter('admin.orders.columns', [], $this),
+        ])->layout('livewire.admin.layouts.app');
+    }
+
+    public function exportCsv()
+    {
+        $orders = $this->filteredQuery()->latest()->get();
+
+        return response()->streamDownload(function () use ($orders) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+
+            fputcsv($out, Hooks::filter('admin.orders.export_headers', [
+                'Invoice', 'Date', 'Name', 'Phone', 'Email', 'Address', 'Zone',
+                'Channel', 'Payment Method', 'Status', 'Total',
+            ]));
+
+            foreach ($orders as $order) {
+                fputcsv($out, (array) Hooks::filter('admin.orders.export_row', [
+                    $order->invoice_no,
+                    optional($order->created_at)->format('Y-m-d H:i'),
+                    $order->name,
+                    $order->phone,
+                    $order->email,
+                    $order->shipping_address,
+                    $order->delivery_zone,
+                    $order->channel ?: 'checkout',
+                    $order->payment_method,
+                    $order->status,
+                    $order->total_amount,
+                ], $order));
+            }
+
+            fclose($out);
+        }, 'orders-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    protected function filteredQuery()
+    {
+        $query = Order::query();
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -271,14 +339,15 @@ class OrderIndex extends Component
         }
 
         if ($this->statusFilter !== 'all') {
-            $query->where('status', $this->statusFilter);
+            $query = Hooks::filter('order.status_query', $query, $this->statusFilter);
         }
 
-        $orders = $query->latest()->paginate(setting('items_per_page') ?? 15);
+        if ($this->channelFilter === 'checkout') {
+            $query->whereNull('channel');
+        } elseif ($this->channelFilter !== 'all') {
+            $query->where('channel', $this->channelFilter);
+        }
 
-        return view('livewire.admin.order.order-index', [
-            'orders' => $orders,
-            'statusCounts' => $this->statusCounts,
-        ])->layout('livewire.admin.layouts.app');
+        return Hooks::filter('admin.orders.query', $query, $this->af);
     }
 }

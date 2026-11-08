@@ -1,0 +1,11 @@
+{
+    "name": "Broken Plugin",
+    "slug": "Broken",
+    "version": "0.1.0",
+    "description": "Throws during boot so the manager has to isolate it.",
+    "author": "Tests",
+    "requires_core": "*",
+    "provider": "Addons\\Broken\\BrokenServiceProvider",
+    "depends_on": [],
+    "provides": []
+}

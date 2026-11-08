@@ -17,6 +17,7 @@ class Order extends Model
         'vendor_id',
         'name',
         'phone',
+        'email',
         'shipping_address',
         'delivery_zone',
         'delivery_charge',
@@ -30,6 +31,7 @@ class Order extends Model
         'coupon_code',
         'transaction_id',
         'payment_status',
+        'channel',
         // Tracking fields
         'fbp',
         'fbc',
@@ -132,6 +134,61 @@ class Order extends Model
 
         // Generate deterministic event ID for purchase
         return 'purchase_' . $this->id;
+    }
+
+    /**
+     * Order date for listings and invoices.
+     * Fresh orders (under 24 hours) show the time, older ones show the date.
+     */
+    public function getOrderDateDisplayAttribute(): string
+    {
+        if (! $this->created_at) {
+            return '-';
+        }
+
+        return $this->created_at->gte(now()->subDay())
+            ? $this->created_at->format('h:i A')
+            : $this->created_at->format('d M Y');
+    }
+
+    /**
+     * Where the order came from: Google, Facebook, TikTok or Direct.
+     */
+    public function getOriginAttribute(): string
+    {
+        $utm = strtolower(trim((string) $this->utm_source));
+
+        if ($utm !== '') {
+            return match (true) {
+                str_contains($utm, 'google'),
+                str_contains($utm, 'adwords'),
+                str_contains($utm, 'gads') => 'Google',
+                str_contains($utm, 'facebook'),
+                str_contains($utm, 'meta'),
+                str_contains($utm, 'instagram'),
+                $utm === 'ig',
+                str_contains($utm, 'fb') => 'Facebook',
+                str_contains($utm, 'tiktok') => 'TikTok',
+                default => ucfirst($utm),
+            };
+        }
+
+        return match (true) {
+            (bool) $this->gclid => 'Google',
+            (bool) $this->fbclid, (bool) $this->fbc => 'Facebook',
+            (bool) $this->ttclid => 'TikTok',
+            default => 'Direct',
+        };
+    }
+
+    /**
+     * Human readable shipping method (delivery area) for invoices.
+     */
+    public function getShippingMethodAttribute(): string
+    {
+        return strtolower((string) $this->delivery_zone) === 'outside'
+            ? 'Outside City'
+            : 'Inside City';
     }
 
     /**

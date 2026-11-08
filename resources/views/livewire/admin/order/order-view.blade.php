@@ -7,6 +7,11 @@
 
             <div>
                 <h4>Invoice #{{ $order->invoice_no }}</h4>
+                <p class="mb-0">
+                    <strong>Order No:</strong> #{{ $order->id }}
+                    <span class="ms-3"><strong>Date:</strong> {{ $order->created_at?->format('d M Y, h:i A') }}</span>
+                </p>
+                <p class="mb-0"><strong>Shipping Method:</strong> {{ $order->shipping_method }}</p>
                 <p class="mb-0"><strong>Customer:</strong> {{ $order->name }}</p>
                 <p class="mb-0"><strong>Phone:</strong> <a href="tel:{{ $order->phone }}">{{ $order->phone }}</a></p>
                 <p class="mb-0"><strong>Shipping:</strong> {{ $order->shipping_address }}</p>
@@ -254,5 +259,7 @@
         </div>
         @endif
     </div>
+
+    @hook('admin.order.details.panels', ['order' => $order])
 
 </div>

@@ -20,6 +20,7 @@
     <a class="list-group-item list-group-item-action" id="customer-login-tab" data-bs-toggle="list" href="#customer-login" role="tab" aria-controls="customer-login">
         <i class="bx bx-user me-2"></i> Customer Login/Register
     </a>
+    <?php echo \App\Support\Hooks::renderSlot('admin.settings.tabs'); ?>
 </div>
 
 
